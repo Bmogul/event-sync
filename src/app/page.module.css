@@ -40,9 +40,11 @@
 .main {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 53px;
   grid-row-start: 2;
   width: 100%;
+  align-items: center;
+  justify-items: center;
 
 }
 
@@ -53,6 +55,9 @@
   width: 100%;
   align-items: center;
   justify-items: center;
+  text-align: center;
+
+  margin-bottom: 12%;
 }
 
 .logoContainer {
@@ -74,27 +79,46 @@
   font-size: 30px;
 }
 
+.btnBox {
+  display: flex;
+  flex-direction: row;
+  gap: 100px;
+  align-items: center;
+  justify-items: center;
+}
+
 .btn {
+  border: none;
   background-color: var(--primary-btn);
   color: var(--btn-text-color);
   border-radius: 10%;
+  height: 65px;
+  width: 150px;
+
+  font-size: 25px;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 /* Enable hover only on non-touch devices */
+/* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
+  .btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+}
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
+/* Optional: Add focus styles for accessibility */
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(var(--primary-btn-rgb), 0.5);
+}
 
-  .footer a:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+/* Ensure the button doesn't get stuck in the expanded state on touch devices */
+@media (hover: none) {
+  .btn:active {
+    transform: scale(0.98);
   }
 }
 

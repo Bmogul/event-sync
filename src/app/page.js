@@ -29,13 +29,18 @@ export default function Home() {
 
 
   return (
-    <div>
-      Welcome to event-sync
-      <div>
-        {userData ? (
-          <>Data found</>
-        ) : (<>No data</>)}
-      </div>
+    <div className={styles.page}>
+      <main className={styles.main}>
+        <div className={styles.header}>
+          <div className={styles.logoContainer}>
+            <Image className={styles.responsiveLogo} src={"/logo.svg"} alt="Event-Sync" fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+          </div>
+          <div className={styles.tagLineContainer}>
+            <label>Sync up the perfect event</label>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

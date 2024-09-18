@@ -20,7 +20,7 @@ const Cards = ({ event, party }) => {
         src={event.func0.cardLink}
         className={styles.card}
         alt="card"
-        fill 
+        fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
     </div>
@@ -28,9 +28,19 @@ const Cards = ({ event, party }) => {
 }
 
 const Invite = ({ party }) => {
+  const sortedParty = [...party].sort((a, b) => a.FamilyOrder - b.FamilyOrder);
+  console.log(party)
   return (
-    <div className="inviteContainerDiv">
-      <pre>{JSON.stringify(party)}</pre>
+    <div className={styles.inviteContainer}>
+      <div className={styles.inviteHeader}>
+        <h2>Please Join Us</h2>
+      </div>
+      <div className={styles.inviteList}>
+        {sortedParty.map((member) => <label>{member.Name}</label>)}
+      </div>
+      <div className={styles.btnRSVP}>
+        <button>RSVP Now</button>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import Loading from "../components/loading"
 import EventContainer from "../components/eventcontainer"
 
+import styles from "../styles/events.module.css"
+
 export default function EventPage({ eventData }) {
   const router = useRouter();
   const params = useParams();
@@ -70,39 +72,50 @@ export default function EventPage({ eventData }) {
   // While still loading
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   if (loading)
-    return <Loading />;
+    return (
+      <div className={styles.page}>
+        <Loading />
+      </div>
+    );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
 
   // Return main page
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   return (
-    <div>
-      <div className = "eventTitleDiv">
-        <h1>{event.eventTitle}</h1>
-        <pre>{JSON.stringify(event, null, 2)}</pre>
-        <pre>{JSON.stringify(party, null, 2)}</pre>
-      </div>
-      {event ? (
-        !party ? (
-          <div>
-            <Image
-              src={event.logo}
-              alt="Logo"
-              width={250}
-              height={150}
-              layout="responsive"
-            />
-          </div>
+    <div className={styles.page}>
+      <div className={styles.main}>
+        <div className={styles.header}>
+          <h1>{event.eventTitle}</h1>
+          {!party ? (
+            <label>Please use the link provided to view details</label>
+            ) : (
+            <label>Please RSVP down below</label>
+            )}
+          {/*<pre>{JSON.stringify(event, null, 2)}</pre>
+          <pre>{JSON.stringify(party, null, 2)}</pre>*/}
+        </div>
+        {event ? (
+          !party ? (
+            <div className={styles.logoContainer}>
+              <Image
+                src={event.logo}
+                className={styles.logo}
+                alt={event.eventTitle}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
 
-        ) : (
-          <div className="eventContainerDiv">
-            {/* Display your event data here */}
-            <EventContainer guid={guid} event={event} party={party} />
-          </div>
-        )) : (
-        <div>No data available for this event.</div>
-      )}
+          ) : (
+            <div className={styles.eventContainer}>
+              {/* Display your event data here */}
+              <EventContainer guid={guid} event={event} party={party} />
+            </div>
+          )) : (
+          <div>No data available for this event.</div>
+        )}
+      </div>
     </div>
   );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */

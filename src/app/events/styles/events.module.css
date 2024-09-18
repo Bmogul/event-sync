@@ -1,0 +1,118 @@
+.page {
+  --gray-rgb: 0, 0, 0;
+  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
+  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
+
+  --button-primary-hover: #383838;
+  --button-secondary-hover: #f2f2f2;
+
+  --primary-btn: #CBEAF4;
+  --btn-text-color: #000;
+
+  --font-krub-sans: "Krub", sans-serif;
+  --primary-text-color: #6f4d0d;
+
+  --bg-color: #ffefd2;
+
+  display: grid;
+  grid-template-rows: 20px 1fr 20px;
+  align-items: center;
+  justify-items: center;
+  min-height: 100svh;
+  padding: 80px;
+  gap: 64px;
+  font-family: var(--font-krub-sans);
+  background-color: var(--bg-color);
+  color: var(--primary-text-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    --gray-rgb: 255, 255, 255;
+    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
+    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
+
+    --button-primary-hover: #ccc;
+    --button-secondary-hover: #1a1a1a;
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 53px;
+  grid-row-start: 2;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+
+}
+
+.main .header {
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.logoContainer {
+  position: relative;
+  width: 75%;
+  max-width: 970px;
+  min-width: 400px;
+  aspect-ratio: 2/1.5;
+}
+
+.logo {
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.eventContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 10%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardContainer{
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  min-width: 200px;
+  aspect-ratio: 640/897;
+}
+.card{
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .logo:hover {
+    transform: scale(1.05);
+  }
+  
+  .card:hover{
+    transform: scale(1.05);
+  }
+}
+
+@media (hover: none) {
+  .logo:active {
+    transform: scale(0.98);
+  }
+
+  .card:active {
+    transform: scale(0.98);
+  }
+}
+
+@media (max-width: 1000px) {
+  .eventContainer{
+    flex-direction: column;
+    gap: 50px;
+  }
+}
+

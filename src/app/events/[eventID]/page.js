@@ -2,6 +2,7 @@
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image'
 import { useState, useEffect } from 'react';
+import { ToastContainer, toast } from "react-toastify";
 
 import Loading from "../components/loading"
 import EventContainer from "../components/eventcontainer"
@@ -96,8 +97,10 @@ export default function EventPage({ eventData }) {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
+        toast("Thank you for your response!")
       } else {
+        toast("Error submitted response, please try again")
         throw new Error("Failed to save data");
       }
     } catch (error) {
@@ -161,6 +164,7 @@ export default function EventPage({ eventData }) {
           <div>No data available for this event.</div>
         )}
       </div>
+      <ToastContainer/>
     </div>
   );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */

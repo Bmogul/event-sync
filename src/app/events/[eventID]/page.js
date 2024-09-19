@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 
 import Loading from "../components/loading"
 import EventContainer from "../components/eventcontainer"
+import RSVPForm from "../components/RSVPForm"
 
 import styles from "../styles/events.module.css"
 
@@ -18,6 +19,8 @@ export default function EventPage({ eventData }) {
   const [party, setParty] = useState(null)
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
+
+  const [showForm, setShowForm] = useState(false);
 
   // Get event data based on eventID
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -35,9 +38,7 @@ export default function EventPage({ eventData }) {
       } catch (error) {
         console.error("Error fetching event data:", error);
         //router.push('/404'); // Redirect to 404 page if event doesn't exist
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     fetchEventData();
@@ -62,12 +63,28 @@ export default function EventPage({ eventData }) {
         // Process the data as needed
       } catch (error) {
         console.error("Error fetching data:", error);
+      }finally{
+        setLoading(false)
       }
     };
     fetchData(guid);
   }, [guid]);
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
+
+  // RSVP Form controls
+  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+  const openForm = () => {
+    setShowForm(!showForm)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+  }
+
+  const postResponse = () => {
+  }
+  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
   // While still loading
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -84,19 +101,30 @@ export default function EventPage({ eventData }) {
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   return (
     <div className={styles.page}>
+      {showForm && (
+        <div className={styles.formContainer}>
+          <RSVPForm closeForm={closeForm} party={party} postResponse={postResponse} event={event} />
+        </div>
+      )}
       <div className={styles.main}>
+
         <div className={styles.header}>
           <h1>{event.eventTitle}</h1>
           {!party ? (
             <label>Please use the link provided to view details</label>
-            ) : (
+          ) : (
             <label>Please RSVP down below</label>
-            )}
+          )}
           {/*<pre>{JSON.stringify(event, null, 2)}</pre>
           <pre>{JSON.stringify(party, null, 2)}</pre>*/}
         </div>
         {event ? (
-          !party ? (
+          party ? (
+            <div className={styles.eventContainer}>
+              {/* Display your event data here */}
+              <EventContainer guid={guid} event={event} party={party} openForm={openForm} />
+            </div>
+          ) : (
             <div className={styles.logoContainer}>
               <Image
                 src={event.logo}
@@ -105,12 +133,6 @@ export default function EventPage({ eventData }) {
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
-            </div>
-
-          ) : (
-            <div className={styles.eventContainer}>
-              {/* Display your event data here */}
-              <EventContainer guid={guid} event={event} party={party} />
             </div>
           )) : (
           <div>No data available for this event.</div>

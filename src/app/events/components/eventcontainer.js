@@ -3,11 +3,11 @@ import Image from 'next/image'
 
 import styles from '../styles/events.module.css'
 
-const container = ({ guid, event, party }) => {
+const container = ({ guid, event, party, openForm }) => {
   return (
     <>
       <Cards event={event} party={party} />
-      <Invite party={party} />
+      <Invite party={party} openForm={openForm} />
     </>
   )
 }
@@ -27,9 +27,10 @@ const Cards = ({ event, party }) => {
   )
 }
 
-const Invite = ({ party }) => {
+const Invite = ({ party, openForm }) => {
+  
   const sortedParty = [...party].sort((a, b) => a.FamilyOrder - b.FamilyOrder);
-  console.log(party)
+
   return (
     <div className={styles.inviteContainer}>
       <div className={styles.inviteHeader}>
@@ -39,7 +40,7 @@ const Invite = ({ party }) => {
         {sortedParty.map((member) => <label>{member.Name}</label>)}
       </div>
       <div className={styles.btnRSVP}>
-        <button>RSVP Now</button>
+        <button onClick={openForm}>RSVP Now</button>
       </div>
     </div>
   )

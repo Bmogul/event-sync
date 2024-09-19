@@ -67,8 +67,78 @@ const GET = async (req) => {
   return NextResponse.json(party, { status: 200 });
 }
 
-const POST = async () => {
+const POST = async (req) => {
+  const { party } = await req.json()
+  console.log("party", party, "party")
 
+  if (!party || party.length === 0)
+    return NextResponse.json(
+      { message: "Invalid data format" },
+      { status: 400 }
+    );
+
+  const sheetID = process.env.GOOGLE_SHEET_ID
+  const sheets = await getGoogleSheets();
+  try {
+    const mainSheet = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetID,
+      range: "Main"
+    })
+    const allValues = mainSheet.data.values.shift() || []
+    const valuesToUpdate = {};
+
+    for (const member of party) {
+      const { GUID, UID } = member;
+
+      if (!GUID || !UID) {
+        continue; // Skip members without GUID or UID
+      }
+
+      const matchingRows = allValues.filter((row) => {
+        if (
+          row[0].toString() === GUID &&
+          row[1].toString() === UID
+        ) {
+          const rowNumber = allValues.indexOf(row) + 2;
+          const cellRange = `Main!I${rowNumber}:K${rowNumber}`;
+          const values = [
+            parseInt(member.MainResponse),
+            getCentralTimeDate()
+          ];
+
+          valuesToUpdate[cellRange] = {
+            values: [values],
+          };
+          return true;
+        }
+        return false;
+      });
+    }
+
+    if (Object.keys(valuesToUpdate).length > 0) {
+      const batchUpdateRequest = {
+        data: [],
+        valueInputOption: "RAW",
+      };
+
+      for (const [range, valueData] of Object.entries(valuesToUpdate)) {
+        batchUpdateRequest.data.push({
+          range,
+          ...valueData,
+        });
+      }
+
+      const res = sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        resource: batchUpdateRequest,
+      });
+    }
+
+    return NextResponse.json({ message: "Success" }, { status: 200 });
+  } catch (e) {
+    console.error("error posting: \t", e)
+    return NextResponse.json({ message: "testing" }, { status: 200 })
+  }
 }
 
 export { GET, POST }

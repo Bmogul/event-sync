@@ -21,8 +21,11 @@ export async function GET(request, { params }) {
       numberOfFunctions: 1,
       logo: "https://i.imgur.com/gtm1VCd.png",
       func0: {
-        funcTitle: "Ruksathi and Kushi Jaman",
-        cardLink: "https://i.imgur.com/X3BNeHd.jpg"
+        funcNum: 0,
+        funcTitle: "Khushi Jaman and Darees",
+        cardLink: "https://i.imgur.com/X3BNeHd.jpg",
+        date: "28th November 2024, Thursday",
+        location: "17730 Coventry Park Dr, Houston, TX 77084",
       }
     },
     // Add more events as needed

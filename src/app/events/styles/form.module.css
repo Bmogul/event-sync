@@ -1,6 +1,9 @@
 .modal {
   --form-bg: #e2f3f3;
-  --form-text-color: black; 
+  --form-text-color: black;
+  --response-btn-bg: #d3d3d3;
+  --response-btn-bg-active: #36df80;
+  --response-btn-bg-hover: #59ffa2;
 
   border: none;
   position: fixed;
@@ -36,24 +39,92 @@
   cursor: pointer;
 }
 
-.formHeader{
+.formHeader {
   display: flex;
   flex-direction: column;
   float: left;
-  margin-left: 50px;
+  padding-left: 40px;
   width: 100%;
 }
 
-.formHeader h3{
+.formHeader h3 {
   font-size: 1.5em;
   text-decoration: none;
   font-weight: normal;
+  padding-bottom: 10px;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: row;
+  float: left;
+  gap: 10px;
+  font-size: 1em;
+  padding-left: 15px;
+}
+
+.formBody {
+  font-size: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 3em;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.resBlock {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+}
+
+.resBlock div {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.responseBtn {
+  border: none;
+  background-color: var(--response-btn-bg);
+  color: black;
+
+  width: 100px;
+  height: 30px;
+  font-size: 18px;
+
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.greenBtn {
+  background-color: var(--response-btn-bg-active);
+}
+
+.formSubmit .responseBtn {
+  height: 40px;
+  font-size: 20px;
 }
 
 
 @media (max-width: 830px) {
-  .modal{
+  .modal {
     width: 100%;
     height: 100%;
+  }
+
+  .headerInfo {
+    padding-left: 0;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .responseBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--response-btn-bg-hover);
   }
 }

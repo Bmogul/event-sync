@@ -19,6 +19,7 @@ export default function EventPage({ eventData }) {
   const [party, setParty] = useState(null)
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -38,7 +39,7 @@ export default function EventPage({ eventData }) {
       } catch (error) {
         console.error("Error fetching event data:", error);
         //router.push('/404'); // Redirect to 404 page if event doesn't exist
-      } 
+      }
     };
 
     fetchEventData();
@@ -63,7 +64,7 @@ export default function EventPage({ eventData }) {
         // Process the data as needed
       } catch (error) {
         console.error("Error fetching data:", error);
-      }finally{
+      } finally {
         setLoading(false)
       }
     };
@@ -75,14 +76,36 @@ export default function EventPage({ eventData }) {
   // RSVP Form controls
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openForm = () => {
-    setShowForm(!showForm)
+    setShowForm(true)
   }
 
   const closeForm = () => {
     setShowForm(false)
   }
 
-  const postResponse = () => {
+  const postResponse = async () => {
+
+    try {
+      setFormLoading(true)
+      const response = await fetch("/api/sheets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ party }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+      } else {
+        throw new Error("Failed to save data");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFormLoading(false)
+      closeForm()
+    }
   }
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
@@ -103,7 +126,7 @@ export default function EventPage({ eventData }) {
     <div className={styles.page}>
       {showForm && (
         <div className={styles.formContainer}>
-          <RSVPForm closeForm={closeForm} party={party} postResponse={postResponse} event={event} />
+          <RSVPForm formLoading={formLoading} closeForm={closeForm} party={party} setParty={setParty} postResponse={postResponse} event={event} />
         </div>
       )}
       <div className={styles.main}>

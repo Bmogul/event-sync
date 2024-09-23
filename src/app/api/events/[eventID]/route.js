@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
   const eventlist = {
     0: {
       sheetID: process.env.GOOGLE_SHEET_ID,
-      eventTitle: "Rashida Kanchwala Weds Ibrahim Kapasi",
+      eventTitle: "Rashida Weds Ibrahim",
       numberOfFunctions: 1,
       logo: "https://i.imgur.com/gtm1VCd.png",
       func0: {

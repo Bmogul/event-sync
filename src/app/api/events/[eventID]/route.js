@@ -15,8 +15,9 @@ export async function GET(request, { params }) {
   // Fetch data from DB once that is setup, for now static
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const eventlist = {
-    0: {
+    'B37DA2389S': {
       sheetID: process.env.GOOGLE_SHEET_ID,
+      eventID: 'B37DA2389S',
       eventTitle: "Rashida Weds Ibrahim",
       numberOfFunctions: 1,
       logo: "https://i.imgur.com/gtm1VCd.png",

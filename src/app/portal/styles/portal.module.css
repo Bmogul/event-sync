@@ -1,0 +1,83 @@
+.page {
+  --gray-rgb: 0, 0, 0;
+  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
+  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
+
+  --button-primary-hover: #383838;
+  --button-secondary-hover: #f2f2f2;
+
+  --primary-btn: #CBEAF4;
+  --btn-text-color: #000;
+
+  --font-krub-sans: "Krub", sans-serif;
+  --primary-text-color: #4A6872;
+
+  --bg-color: #FBF6ED;
+  --container-bg-color: #E0E0E0;
+
+  display: grid;
+  grid-template-rows: 20px 1fr 20px;
+  align-items: center;
+  justify-items: center;
+  min-height: 100svh;
+  padding: 60px;
+  gap: 64px;
+  font-family: var(--font-krub-sans);
+  background-color: var(--bg-color);
+  color: var(--primary-text-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    --gray-rgb: 255, 255, 255;
+    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
+    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
+
+    --button-primary-hover: #ccc;
+    --button-secondary-hover: #1a1a1a;
+  }
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  float: left;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+}
+
+.logoContainer {
+  position: relative;
+  width: 100%;
+  max-width: 250px;
+  min-width: 200px;
+  aspect-ratio: 250/89;
+}
+
+.logoContainerB {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  min-width: 250px;
+  aspect-ratio: 250/89;
+}
+
+.responsiveLogo {
+  object-fit: contain;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 53px;
+  grid-row-start: 2;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+}
+
+.verticalLine {
+  border-left: 3px solid var(--primary-text-color);
+  border-radius: 15px;
+}

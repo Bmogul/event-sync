@@ -1,0 +1,57 @@
+.eventLogin {
+  background-color: var(--container-bg-color);
+  color: var(--primary-text-color);
+  display: flex;
+  flex-direction: row;
+  width: 75%;
+  border-radius: 16px;
+  padding: 60px;
+  gap: 40px;
+  justify-content: center;
+}
+
+.eventLoginInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-items: center;
+  gap: 20px;
+}
+
+.eventLoginInfo h2{
+  text-align: center;
+  padding: 20px 40px;
+  border-radius: 16px;
+  background-color: var(--bg-color);
+  max-width: 450px;
+}
+.eventLoginInfo h3{
+  padding: 20px 40px;
+  border-radius: 16px;
+  background-color: var(--bg-color);
+}
+
+.formBox{
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+}
+
+.formBox button{
+  border: none;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 16px;
+}
+
+.formBox input{
+  border: none;
+  cursor: auto;
+  color: var(--primary-text-color);
+  background-color: var(--bg-color);
+  width: 150px;
+}
+
+.formBox label{
+  padding: 0 10px;
+}

@@ -59,7 +59,7 @@
   position: relative;
   width: 100%;
   max-width: 500px;
-  min-width: 250px;
+  min-width: 150px;
   aspect-ratio: 250/89;
 }
 
@@ -80,4 +80,35 @@
 .verticalLine {
   border-left: 3px solid var(--primary-text-color);
   border-radius: 15px;
+  height: 75%;
+
+}
+.portalBox {
+  background-color: var(--container-bg-color);
+  color: var(--primary-text-color);
+  display: flex;
+  flex-direction: row;
+  width: 75%;
+  height: 55vh;
+  border-radius: 16px;
+  padding: 60px;
+  gap: 40px;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+}
+.Mailbox{
+  background-color: var(--container-bg-color);
+  color: var(--primary-text-color);
+  display: flex;
+  flex-direction: column;
+  width: 75%;
+  height: 55vh;
+  border-radius: 16px;
+  padding: 60px;
+  gap: 40px;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+
 }

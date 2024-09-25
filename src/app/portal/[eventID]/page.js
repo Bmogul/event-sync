@@ -2,10 +2,14 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Image from "next/image";
+import { ToastContainer, toast } from "react-toastify";
 
 import styles from '../styles/portal.module.css'
 import stylesL from '../styles/login.module.css'
 import Loading from '../../components/loading'
+
+import Login from '../components/login'
+import EmailPortal from '../components/emailPortal'
 
 const page = ({ eventData }) => {
 
@@ -15,7 +19,7 @@ const page = ({ eventData }) => {
 
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
-  const [login, setLogin] = useState(false);
+  const [login, setLogin] = useState(true);
   //
   // Get event data based on eventID
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -51,7 +55,7 @@ const page = ({ eventData }) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        to: 'recipient@example.com',
+        to: 'burhanuddinmogul@gmail.com',
         subject: 'Hello from Next.js',
         text: 'This is a test email sent from a Next.js application!',
         html: '<strong>and easy to do anywhere, even with Node.js</strong>',
@@ -61,6 +65,8 @@ const page = ({ eventData }) => {
     const result = await res.json();
     console.log("Result of send", result);
   }
+
+
 
   // While still loading
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -74,6 +80,7 @@ const page = ({ eventData }) => {
 
   return (
     <div className={styles.page}>
+
       <div className={styles.header}>
         <div className={styles.logoContainer}>
           <Image className={styles.responsiveLogo} src={"/logo.svg"} alt="Event-Sync" fill
@@ -83,33 +90,11 @@ const page = ({ eventData }) => {
       </div>
       <div className={styles.main}>
         {!login ? (
-          <div className={stylesL.eventLogin}>
-            <div className={stylesL.eventLoginInfo}>
-              <h2>{event.eventTitle}</h2>
-              <h3>Event ID: {event.eventID}</h3>
-              <div className={stylesL.formBox}>
-                <div>
-                  <label for="password" >Event Password:</label>
-                  <input id="password" type="password" />
-                </div>
-                <button>Enter</button>
-              </div>
-            </div>
-            <div className={styles.verticalLine} />
-            <div className={styles.logoContainerB}>
-              <Image className={styles.responsiveLogo} src={"/logo.svg"} alt="Event-Sync" fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-            </div>
-          </div>
-        ) : (
-          <>
-            <h1>Event Portal</h1>
-            <h3>Event Title: {event.eventTitle}</h3>
-            <button onClick={SendMail}>Test Send</button>
-
-          </>
+         <Login event={event} setLogin={setLogin} params={params} toast={toast}/>) : (
+            <EmailPortal toast={toast} event={event}/>
         )}
       </div>
+      <ToastContainer />
     </div>
   )
 }

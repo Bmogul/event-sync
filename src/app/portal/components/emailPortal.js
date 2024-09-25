@@ -7,7 +7,12 @@ import "ag-grid-community/styles/ag-theme-quartz.css"; // Optional Theme applied
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 
 
-const EmailPortal = ({ event, toast }) => {
+const EmailPortal = ({ event, toast, params, setLoading, guestList }) => {
+
+  const [reminderDate, setReminderDate] = useState()
+  const [selectedRows, setSelectedRows] = useState([])
+
+  console.log(guestList)
 
   const [cols, setCols] = useState([
     { field: 'GUID', width: 80 },
@@ -15,25 +20,16 @@ const EmailPortal = ({ event, toast }) => {
     { field: 'Name', filter: true },
     { field: 'Email', filter: true },
     { field: 'Tag', filter: true, width: 100 },
-    { field: 'Sent', maxWidth: 80, minWidth: 50, filter: true },
+    { field: 'Sent', maxWidth: 90, minWidth: 50, filter: true },
   ]);
-  const [rowData, setRowData] = useState([
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Family", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Friend", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Family", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Out of State", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Out of State", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Jamat", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Jamat", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Family, Friend", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Family", Sent: "Yes" },
-    { GUID: "akjsdkajs", UID: "1", Name: "Burhanuddin Mogul", Email: "burhanuddin@bmogul.net", Tag:"Family", Sent: "Yes" },
-  ])
+  const [rowData, setRowData] = useState(guestList)
   const selection = useMemo(() => {
     return {
       mode: "multiRow",
     };
   }, []);
+
+  useEffect(()=>{setRowData(guestList)}, [guestList])
 
   const onGridSizeChanged = useCallback(
     (params) => {
@@ -69,10 +65,52 @@ const EmailPortal = ({ event, toast }) => {
     [window],
   );
 
+  const onRowSelection = useCallback(event => {
+    let rows = event.api.getSelectedNodes()
+    rows = rows.map(node => node.data)
+    setSelectedRows(rows)
+  })
+
+  useEffect(() => {
+    console.log("selected Rows", selectedRows)
+  }, [selectedRows])
+
+  // Send Mail
+  const SendMail = async () => {
+    console.log(selectedRows)
+    console.log(`/api/events/${params.eventID}/portal`)
+    /*const res = await fetch(`/api/events/${params.eventID}/portal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: 'burhanuddinmogul@gmail.com',
+        subject: 'Hello from Next.js',
+        text: 'This is a test email sent from a Next.js application!',
+        html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+      }),
+    });
+
+    const result = await res.json();
+    console.log("Result of send", result);*/
+  }
+
   return (
     <div className={styles.Mailbox}>
-      <div>
+      <div className={styles.MailboxHeader}>
         <h2>{event.eventTitle}</h2>
+        <div className={styles.verticalLine} />
+        <div className={styles.menuTitle}>
+          <h3>Send Mail</h3>
+          <Image src={"/Send_fill.svg"} alt="Close Form" height={30} width={30} className={styles.closeBtn} />
+        </div>
+      </div>
+      <div className={styles.mailControlBox}>
+        <div className={styles.reminderMenu}>
+          <label>Set reminder</label> <input type='datetime-local' value={reminderDate}></input>
+        </div>
+        <button onClick={SendMail}>Send</button>
       </div>
       <div
         className="ag-theme-quartz" // applying the Data Grid theme
@@ -83,6 +121,7 @@ const EmailPortal = ({ event, toast }) => {
           columnDefs={cols}
           selection={selection}
           onGridSizeChanged={onGridSizeChanged}
+          onSelectionChanged={onRowSelection}
         />
       </div>
     </div>)

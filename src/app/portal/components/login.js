@@ -4,14 +4,14 @@ import styles from '../styles/portal.module.css'
 import Image from "next/image";
 import React, { useEffect, useState } from 'react'
 
-const Login = ({ event, setLogin, params, toast }) => {
+const Login = ({ event, setLogin, params, toast, setLoading, setGuestList}) => {
 
   const [password, setPassword] = useState("")
 
   // Handle Login
   const handleLogin = async (e) => {
     // logic to verify password
-    console.log("Handle login", password)
+    setLoading(true)
     const res = await fetch(`/api/events/${params.eventID}/portal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -20,8 +20,9 @@ const Login = ({ event, setLogin, params, toast }) => {
     const result = await res.json()
     if (res.status == 200) {
       if (result.validated) {
-        toast("Welcome")
         setLogin(true)
+        setGuestList(result.guestList)
+        toast("Welcome")
       } else {
         toast("Invalid Password")
       }
@@ -29,6 +30,7 @@ const Login = ({ event, setLogin, params, toast }) => {
       toast("Please try again")
     }
     setPassword("")
+    setLoading(false)
     //setLogin(true)
   }
 

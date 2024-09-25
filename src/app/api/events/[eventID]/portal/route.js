@@ -10,7 +10,6 @@ const sender = 'event-sync@bmogul.net'
 export async function POST(req) {
 
   const body = await req.json()
-  console.log(body)
   if (body.password) {
     // Check Password with sheet
     const sheetID = process.env.GOOGLE_SHEET_ID
@@ -22,12 +21,27 @@ export async function POST(req) {
       })
       const password = webdata.data.values[0][1]
       if (password === body.password) {
-        return NextResponse.json({ validated: true }, { status: 200 })
+        let allUsers = await sheets.spreadsheets.values.get({
+          spreadsheetId: sheetID,
+          range: "Main"
+        })
+        allUsers = allUsers.data.values
+        const keys = allUsers.shift()
+        const selectedKeys = [keys[0], keys[1], keys[4], keys[5], keys[10], keys[11]]
+        const selectedIndexes = [0, 1, 4, 5, 10, 11]
+
+        allUsers = allUsers.map((user) => {
+          return selectedKeys.reduce((obj, key, index) => {
+            obj[key] = user[selectedIndexes[index]]
+            return obj
+          }, {})
+        })
+        return NextResponse.json({ validated: true, guestList: allUsers }, { status: 200 })
       } else {
         return NextResponse.json({ validated: false }, { status: 200 })
       }
     } catch (error) {
-      return NextResponse.json({ message: error}, { status: 200 })
+      return NextResponse.json({ message: error }, { status: 200 })
     }
   } else {
     if (body.to) {
@@ -60,6 +74,18 @@ async function GET(req) {
 
   if (body.password) {
     return NextResponse.json({ message: body.password }, { status: 200 })
+  }
+  if (body.getUsers) {
+    // get all users
+    try {
+      const allUsers = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetID,
+        range: "Main"
+      })
+      return NextResponse.json({ messgae: allUsers }, { status: 200 })
+    } catch (error) {
+      return NextResponse.json({ messgae: errors }, { status: 400 })
+    }
   }
 
   return NextResponse.json({ error: "Failed" }, { status: 400 })

@@ -83,6 +83,7 @@
   height: 75%;
 
 }
+
 .portalBox {
   background-color: var(--container-bg-color);
   color: var(--primary-text-color);
@@ -97,18 +98,49 @@
   align-items: center;
   justify-items: center;
 }
-.Mailbox{
+
+.Mailbox {
   background-color: var(--container-bg-color);
   color: var(--primary-text-color);
   display: flex;
   flex-direction: column;
   width: 75%;
-  height: 55vh;
+  height: 80vh;
   border-radius: 16px;
   padding: 60px;
   gap: 40px;
   justify-content: center;
   align-items: center;
   justify-items: center;
+}
 
+.MailboxHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-items: left;
+  width: 100%;
+  gap: 20px;
+}
+
+.MailboxHeader h2 {
+  text-align: center;
+  padding: 20px 40px;
+  border-radius: 30px;
+  background-color: var(--bg-color);
+  max-width: 450px;
+  min-width: 300px;
+}
+
+.MailboxHeader h3 {
+  padding: 20px 40px;
+  border-radius: 16px;
+}
+
+.menuTitle {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
 }

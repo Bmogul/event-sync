@@ -19,7 +19,9 @@ const page = ({ eventData }) => {
 
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
-  const [login, setLogin] = useState(true);
+  const [login, setLogin] = useState(false);
+
+  const [guestList, setGuestList] = useState()
   //
   // Get event data based on eventID
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -46,26 +48,6 @@ const page = ({ eventData }) => {
   }, [params.eventID, router]);
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
-  // Send Mail
-  const SendMail = async () => {
-    console.log(`/api/events/${params.eventID}/portal`)
-    const res = await fetch(`/api/events/${params.eventID}/portal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: 'burhanuddinmogul@gmail.com',
-        subject: 'Hello from Next.js',
-        text: 'This is a test email sent from a Next.js application!',
-        html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-      }),
-    });
-
-    const result = await res.json();
-    console.log("Result of send", result);
-  }
-
 
 
   // While still loading
@@ -90,8 +72,9 @@ const page = ({ eventData }) => {
       </div>
       <div className={styles.main}>
         {!login ? (
-         <Login event={event} setLogin={setLogin} params={params} toast={toast}/>) : (
-            <EmailPortal toast={toast} event={event}/>
+          <Login event={event} setLogin={setLogin} params={params} toast={toast} setLoading={setLoading} setGuestList={setGuestList} />
+        ) : (
+          <EmailPortal toast={toast} event={event} params={params} guestList={guestList} />
         )}
       </div>
       <ToastContainer />

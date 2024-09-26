@@ -1,11 +1,27 @@
 import sgMail from '@sendgrid/mail';
 import { NextResponse } from "next/server";
 import { getGoogleSheets, getAuthClient } from "../../../../lib/google-sheets";
+import {reminderTemplate, inviteTemplate} from './templates.js'
 import bcrypt from 'bcrypt'
+import Handlebars from 'handlebars';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sender = 'event-sync@bmogul.net'
+const email = {
+  reminder: {
+    text: "This is a reminder",
+    html: "<h1>This is a Reminder</h1>"
+  },
+  invite: {
+    text: "This is an invite",
+    html: "<h1>This is an Invite</h1>"
+  }
+}
+
+// Compile templates
+const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
+const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
 
 export async function POST(req) {
 
@@ -21,10 +37,50 @@ export async function POST(req) {
       })
       const password = webdata.data.values[0][1]
       if (password === body.password) {
+        // check if sending email
+        if (body.guestList) {
+          const eventLogo = body.event.logo
+          const guestList = body.guestList
+
+          await guestList.forEach(async (guest, index) => {
+            console.log("GUEST ", index, ":", guest, "\n")
+            let reminder = guest.Sent === "Yes" ? true : false
+            const templateData = {
+              rsvpLink: rsvpLink ? rsvpLink : 'google.com',
+              clientMessage: body.event.email_message,
+              eventName: body.event.Title,
+              logoLink: eventLogo
+            };
+            const msg = {
+              to: guest.Email,
+              from: sender,
+              subject: reminder ? "Invitation inside" : "Important reminder inside",
+              text: reminder ? email.reminder.text : email.invite.text,
+              html: reminder ? compiledReminderTemplate(templateData) : compiledInviteTemplate(templateData)
+            }
+            await sgMail.send(msg)
+            console.log('Email sent to: ', guest, "\nReminder: ",reminder)
+            guest.Sent = 'Yes'
+          })
+          /*const { to, subject, text, html } = body
+          const msg = {
+            to: to, // Change to your recipient
+            from: sender,// Change to your verified sender
+            subject: subject,
+            text: text,
+            html: html,
+          };*/
+
+          //await sgMail.send(msg);
+          //console.log('Email sent');
+          return NextResponse.json({ message: 'Email(s) sent successfully' }, { status: 200 });
+        }
+        // else get all users and return
         let allUsers = await sheets.spreadsheets.values.get({
           spreadsheetId: sheetID,
           range: "Main"
         })
+
         allUsers = allUsers.data.values
         const keys = allUsers.shift()
         const selectedKeys = [keys[0], keys[1], keys[4], keys[5], keys[10], keys[11]]
@@ -36,7 +92,9 @@ export async function POST(req) {
             return obj
           }, {})
         })
+
         return NextResponse.json({ validated: true, guestList: allUsers }, { status: 200 })
+
       } else {
         return NextResponse.json({ validated: false }, { status: 200 })
       }
@@ -44,25 +102,6 @@ export async function POST(req) {
       return NextResponse.json({ message: error }, { status: 200 })
     }
   } else {
-    if (body.to) {
-      const { to, subject, text, html } = body
-      try {
-        const msg = {
-          to: to, // Change to your recipient
-          from: sender,// Change to your verified sender
-          subject: subject,
-          text: text,
-          html: html,
-        };
-
-        await sgMail.send(msg);
-        console.log('Email sent');
-        return NextResponse.json({ message: 'Email sent successfully' }, { status: 200 });
-      } catch (error) {
-        console.error('Error sending email:', error);
-        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
-      }
-    }
   }
 
   return NextResponse.json({ error: "Failed" }, { status: 400 })

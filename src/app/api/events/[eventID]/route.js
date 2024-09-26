@@ -1,5 +1,8 @@
+import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
+
 export async function GET(request, { params }) {
   const { eventID } = params;
+  const sheetID = process.env.GOOGLE_SHEET_ID;
 
   // Here, you would typically fetch the event data from your database
   // This is just a mock implementation
@@ -15,9 +18,9 @@ export async function GET(request, { params }) {
   // Fetch data from DB once that is setup, for now static
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const eventlist = {
-    'B37DA2389S': {
+    B37DA2389S: {
       sheetID: process.env.GOOGLE_SHEET_ID,
-      eventID: 'B37DA2389S',
+      eventID: "B37DA2389S",
       eventTitle: "Rashida Weds Ibrahim",
       numberOfFunctions: 1,
       logo: "https://i.imgur.com/gtm1VCd.png",
@@ -27,22 +30,22 @@ export async function GET(request, { params }) {
         cardLink: "https://i.imgur.com/X3BNeHd.jpg",
         date: "28th November 2024, Thursday",
         location: "17730 Coventry Park Dr, Houston, TX 77084",
-      }
+      },
     },
     // Add more events as needed
   };
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
   if (eventlist[eventID]) {
-    console.log(eventlist[eventID])
+    console.log(eventlist[eventID]);
     return new Response(JSON.stringify(eventlist[eventID]), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   } else {
     return new Response(JSON.stringify({ error: "Event not found" }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

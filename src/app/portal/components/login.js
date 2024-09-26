@@ -4,10 +4,7 @@ import styles from '../styles/portal.module.css'
 import Image from "next/image";
 import React, { useEffect, useState } from 'react'
 
-const Login = ({ event, setLogin, params, toast, setLoading, setGuestList}) => {
-
-  const [password, setPassword] = useState("")
-
+const Login = ({ event, setLogin, params, toast, setLoading, setGuestList, password, setPassword}) => {
   // Handle Login
   const handleLogin = async (e) => {
     // logic to verify password
@@ -29,7 +26,6 @@ const Login = ({ event, setLogin, params, toast, setLoading, setGuestList}) => {
     }else{
       toast("Please try again")
     }
-    setPassword("")
     setLoading(false)
     //setLogin(true)
   }

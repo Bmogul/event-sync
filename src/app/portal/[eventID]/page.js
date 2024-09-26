@@ -21,6 +21,8 @@ const page = ({ eventData }) => {
   const [loading, setLoading] = useState(true);
   const [login, setLogin] = useState(false);
 
+  const [password, setPassword] = useState("")
+
   const [guestList, setGuestList] = useState()
   //
   // Get event data based on eventID
@@ -72,9 +74,22 @@ const page = ({ eventData }) => {
       </div>
       <div className={styles.main}>
         {!login ? (
-          <Login event={event} setLogin={setLogin} params={params} toast={toast} setLoading={setLoading} setGuestList={setGuestList} />
+          <Login 
+            event={event} 
+            setLogin={setLogin} 
+            params={params} 
+            toast={toast} 
+            setLoading={setLoading} 
+            setGuestList={setGuestList}
+            password={password}
+            setPassword={setPassword}/>
         ) : (
-          <EmailPortal toast={toast} event={event} params={params} guestList={guestList} />
+          <EmailPortal
+              toast={toast} 
+              event={event} 
+              params={params} 
+              guestList={guestList}
+              password={password}/>
         )}
       </div>
       <ToastContainer />

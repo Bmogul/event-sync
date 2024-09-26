@@ -7,7 +7,7 @@ import "ag-grid-community/styles/ag-theme-quartz.css"; // Optional Theme applied
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 
 
-const EmailPortal = ({ event, toast, params, setLoading, guestList }) => {
+const EmailPortal = ({ event, toast, params, setLoading, guestList, password }) => {
 
   const [reminderDate, setReminderDate] = useState()
   const [selectedRows, setSelectedRows] = useState([])
@@ -79,21 +79,16 @@ const EmailPortal = ({ event, toast, params, setLoading, guestList }) => {
   const SendMail = async () => {
     console.log(selectedRows)
     console.log(`/api/events/${params.eventID}/portal`)
-    /*const res = await fetch(`/api/events/${params.eventID}/portal`, {
+    const res = await fetch(`/api/events/${params.eventID}/portal`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        to: 'burhanuddinmogul@gmail.com',
-        subject: 'Hello from Next.js',
-        text: 'This is a test email sent from a Next.js application!',
-        html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-      }),
+      body: JSON.stringify({guestList: selectedRows, password: password, event: event}),
     });
 
     const result = await res.json();
-    console.log("Result of send", result);*/
+    console.log("Result of send", result);
   }
 
   return (

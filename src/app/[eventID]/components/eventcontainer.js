@@ -36,7 +36,7 @@ const Invite = ({ party, openForm }) => {
         <h2>Please Join Us</h2>
       </div>
       <div className={styles.inviteList}>
-        {sortedParty.map((member) => <label>{member.Name}</label>)}
+        {sortedParty.map((member,index) => <label key={index}>{member.Name}</label>)}
       </div>
       <div className={styles.btnRSVP}>
         <button onClick={openForm}>RSVP Now</button>

@@ -1,13 +1,14 @@
-"use client"
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import Image from 'next/image'
-import { useState, useEffect } from 'react';
+"use client";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
 
-import Loading from "../components/loading"
-import EventContainer from "../components/eventcontainer"
-import RSVPForm from "../components/RSVPForm"
+import Loading from "../components/loading";
+import EventContainer from "../components/eventcontainer";
+import RSVPForm from "../components/RSVPForm";
 
-import styles from "../styles/events.module.css"
+import styles from "../styles/events.module.css";
 
 export default function EventPage({ eventData }) {
   const router = useRouter();
@@ -16,9 +17,10 @@ export default function EventPage({ eventData }) {
 
   const guid = searchParams.get("guid");
 
-  const [party, setParty] = useState(null)
+  const [party, setParty] = useState(null);
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -27,63 +29,85 @@ export default function EventPage({ eventData }) {
   useEffect(() => {
     const fetchEventData = async () => {
       try {
-        console.log(params)
         const response = await fetch(`/api/events/${params.eventID}`);
         if (!response.ok) {
-          throw new Error('Event not found');
+          throw new Error("Event not found");
         }
         const data = await response.json();
-        console.log(data)
         setEvent(data);
+        await fetchData(guid, data);
       } catch (error) {
         console.error("Error fetching event data:", error);
         //router.push('/404'); // Redirect to 404 page if event doesn't exist
-      } 
+      }
     };
-
-    fetchEventData();
-  }, [params.eventID, router]);
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-
-
-  // Get party data based on GUID
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-  useEffect(() => {
-    const fetchData = async (guid) => {
+    const fetchData = async (guid, event) => {
       try {
-        const response = await fetch(`/api/sheets?guid=${guid}`);
+        const queryParams = new URLSearchParams({
+         guid,
+          sheetID: event.sheetID
+        });
+
+        const response = await fetch(
+          `/api/${params.eventID}/rsvp?${queryParams}`,
+        );
+
         const data = await response.json();
 
         if (response.status != 200)
-          throw new Error(JSON.stringify({ message: data, status: response.status }))
+          throw new Error(
+            JSON.stringify({ message: data, status: response.status }),
+          );
         else {
-          setParty(data)
-          console.log(data)
+          setParty(data);
         }
         // Process the data as needed
       } catch (error) {
         console.error("Error fetching data:", error);
-      }finally{
-        setLoading(false)
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData(guid);
-  }, [guid]);
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
+    fetchEventData();
+  }, [params.eventID, router, guid]);
+  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
   // RSVP Form controls
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openForm = () => {
-    setShowForm(!showForm)
-  }
+    setShowForm(true);
+  };
 
   const closeForm = () => {
-    setShowForm(false)
-  }
+    setShowForm(false);
+  };
 
-  const postResponse = () => {
-  }
+  const postResponse = async () => {
+    try {
+      setFormLoading(true);
+      const response = await fetch(`/api/${params.eventID}/rsvp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ party, event }),
+      });
+
+      if (response.ok) {
+        await response.json();
+        toast("Thank you for your response!");
+      } else {
+        toast("Error submitted response, please try again");
+        throw new Error("Failed to save data");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFormLoading(false);
+      closeForm();
+    }
+  };
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
   // While still loading
@@ -96,18 +120,23 @@ export default function EventPage({ eventData }) {
     );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
-
   // Return main page
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   return (
     <div className={styles.page}>
       {showForm && (
         <div className={styles.formContainer}>
-          <RSVPForm closeForm={closeForm} party={party} postResponse={postResponse} event={event} />
+          <RSVPForm
+            formLoading={formLoading}
+            closeForm={closeForm}
+            party={party}
+            setParty={setParty}
+            postResponse={postResponse}
+            event={event}
+          />
         </div>
       )}
       <div className={styles.main}>
-
         <div className={styles.header}>
           <h1>{event.eventTitle}</h1>
           {!party ? (
@@ -122,7 +151,12 @@ export default function EventPage({ eventData }) {
           party ? (
             <div className={styles.eventContainer}>
               {/* Display your event data here */}
-              <EventContainer guid={guid} event={event} party={party} openForm={openForm} />
+              <EventContainer
+                guid={guid}
+                event={event}
+                party={party}
+                openForm={openForm}
+              />
             </div>
           ) : (
             <div className={styles.logoContainer}>
@@ -134,10 +168,12 @@ export default function EventPage({ eventData }) {
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
-          )) : (
+          )
+        ) : (
           <div>No data available for this event.</div>
         )}
       </div>
+      <ToastContainer />
     </div>
   );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */

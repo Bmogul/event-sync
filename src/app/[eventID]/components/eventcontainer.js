@@ -13,7 +13,6 @@ const container = ({ guid, event, party, openForm }) => {
 }
 
 const Cards = ({ event, party }) => {
-  console.log("CARDS\n", event)
   return (
     <div className={styles.cardContainer}>
       <Image

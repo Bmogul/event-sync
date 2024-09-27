@@ -29,13 +29,11 @@ export default function EventPage({ eventData }) {
   useEffect(() => {
     const fetchEventData = async () => {
       try {
-        console.log(params);
         const response = await fetch(`/api/events/${params.eventID}`);
         if (!response.ok) {
           throw new Error("Event not found");
         }
         const data = await response.json();
-        console.log(data);
         setEvent(data);
         await fetchData(guid, data);
       } catch (error) {

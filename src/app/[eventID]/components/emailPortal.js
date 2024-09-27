@@ -80,6 +80,7 @@ const EmailPortal = ({
 
   // Send Mail
   const SendMail = async () => {
+    console.log(password)
     toast("Sending Mail")
     const res = await fetch(`/api/${params.eventID}/sendMail`, {
       method: "POST",

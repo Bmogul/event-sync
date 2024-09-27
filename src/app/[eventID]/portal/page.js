@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 import Cookies from "js-cookie";
 
-import Loading from "../../components/loading";
+import Loading from "../components/loading";
 import Login from "../components/login";
 import Email from "../components/emailPortal";
 
@@ -35,7 +35,6 @@ const page = () => {
           throw new Error("Event not found");
         }
         const data = await response.json();
-        console.log(data);
         setEvent(data);
 
         // check to see for password, and if not set login

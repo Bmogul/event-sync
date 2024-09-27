@@ -25,12 +25,12 @@ export const GET = async (req) => {
       const selectedKeys = [
         keys[0],
         keys[1],
+        keys[3],
         keys[4],
-        keys[5],
-        keys[10],
-        keys[11],
+        keys[8],
+        keys[9],
       ];
-      const selectedIndexes = [0, 1, 4, 5, 10, 11];
+      const selectedIndexes = [0, 1, 3, 4, 8, 9];
 
       allUsers = allUsers.map((user) => {
         return selectedKeys.reduce((obj, key, index) => {
@@ -47,6 +47,8 @@ export const GET = async (req) => {
   }
 }
 
+
+// TODO: update sheet
 export const POST = async (req) => {
   const { password, event } = await req.json();
   const sheetID = event.sheetID;

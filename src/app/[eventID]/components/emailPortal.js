@@ -120,10 +120,10 @@ const EmailPortal = ({
         </div>
       </div>
       <div className={styles.mailControlBox}>
-        <div className={styles.reminderMenu}>
+        {/*<div className={styles.reminderMenu}>
           <label>Set reminder</label>{" "}
           <input type="datetime-local" value={reminderDate}></input>
-        </div>
+        </div>*/}
         <button onClick={SendMail}>Send</button>
       </div>
       <div

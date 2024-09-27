@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 import styles from '../styles/events.module.css'
 
-const container = ({ guid, event, party, openForm }) => {
+const Container = ({ guid, event, party, openForm }) => {
   return (
     <>
       <Cards event={event} party={party} />

@@ -35,7 +35,7 @@ const ResBlock = ({ member, onResponseChange }) => {
   )
 }
 
-const rsvpForm = ({ formLoading, closeForm, party, setParty, postResponse, event }) => {
+const RsvpForm = ({ formLoading, closeForm, party, setParty, postResponse, event }) => {
 
   const [sortedParty, setSortedParty] = useState([...party].sort((a, b) => a.FamilyOrder - b.FamilyOrder));
 
@@ -83,4 +83,4 @@ const rsvpForm = ({ formLoading, closeForm, party, setParty, postResponse, event
   )
 }
 
-export default rsvpForm
+export default RsvpForm

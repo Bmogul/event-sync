@@ -12,7 +12,7 @@ import Email from "../components/emailPortal";
 
 import styles from "../styles/portal.module.css";
 
-const page = () => {
+const Page = () => {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();

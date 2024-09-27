@@ -45,5 +45,5 @@ const Invite = ({ party, openForm }) => {
   )
 }
 
-export default container
+export default Container
 

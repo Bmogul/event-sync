@@ -6,14 +6,14 @@
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
 
-  --primary-btn: #CBEAF4;
+  --primary-btn: #cbeaf4;
   --btn-text-color: #000;
 
   --font-krub-sans: "Krub", sans-serif;
-  --primary-text-color: #4A6872;
+  --primary-text-color: #4a6872;
 
-  --bg-color: #FBF6ED;
-  --container-bg-color: #E0E0E0;
+  --bg-color: #fbf6ed;
+  --container-bg-color: #e0e0e0;
 
   display: grid;
   grid-template-rows: 20px 1fr 20px;
@@ -81,7 +81,6 @@
   border-left: 3px solid var(--primary-text-color);
   border-radius: 15px;
   height: 75%;
-
 }
 
 .portalBox {
@@ -143,4 +142,34 @@
   justify-content: center;
   align-items: center;
   justify-items: center;
+}
+
+.mailControlBox {
+  display: flex;
+  flex-direction: column;
+  float: left;
+  width: 100%;
+}
+
+.sendMailBtn {
+  max-width: 60px;
+  border: none;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  .sendMailBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (hover: none) {
+  .sendMailBtn:active {
+    transform: scale(0.98);
+  }
 }

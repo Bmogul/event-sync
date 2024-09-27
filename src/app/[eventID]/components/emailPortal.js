@@ -124,7 +124,7 @@ const EmailPortal = ({
           <label>Set reminder</label>{" "}
           <input type="datetime-local" value={reminderDate}></input>
         </div>*/}
-        <button onClick={SendMail}>Send</button>
+        <button className={styles.sendMailBtn} onClick={SendMail}>Send</button>
       </div>
       <div
         className="ag-theme-quartz" // applying the Data Grid theme

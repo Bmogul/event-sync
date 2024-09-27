@@ -12,5 +12,18 @@ const getCentralTimeDate = () => {
 
   return `${month}/${day}/${year}`;
 };
+const authEvent = async (googleSheets, sheetID, password) => {
+  try {
+    const webdata = await googleSheets.spreadsheets.values.get({
+      spreadsheetId: sheetID,
+      range: "WebsiteData",
+    });
+    const eventPassword = webdata.data.values[0][1];
+    if (password === eventPassword) return true;
+    else return false;
+  } catch (error) {
+    return false;
+  }
+};
 
-export {getCentralTimeDate}
+export {getCentralTimeDate, authEvent}

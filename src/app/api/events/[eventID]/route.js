@@ -38,7 +38,7 @@ export async function GET(request, { params }) {
   const sheetID = eventlist[eventID].sheetID;
 
   if (eventlist[eventID]) {
-    console.log(eventlist[eventID]);
+
     const event = eventlist[eventID]
     return new Response(JSON.stringify(event), {
       status: 200,
@@ -51,7 +51,4 @@ export async function GET(request, { params }) {
     });
   }
 }
-/*
-export default handler = (req, res) => {
-  res.status(200).json({ message: "Hello from Next.js!" });
-};*/
+

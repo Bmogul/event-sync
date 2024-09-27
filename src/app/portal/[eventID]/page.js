@@ -1,48 +1,48 @@
-'use client'
-import React, { useEffect, useState } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 
-import styles from '../styles/portal.module.css'
-import stylesL from '../styles/login.module.css'
-import Loading from '../../components/loading'
+import Loading from "../../components/loading";
+import Login from "../components/login";
+import Email from "../components/emailPortal";
 
-import Login from '../components/login'
-import EmailPortal from '../components/emailPortal'
+import styles from "../styles/portal.module.css";
 
-const page = ({ eventData }) => {
-
+const page = () => {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const [event, setEvent] = useState(eventData);
+  const [event, setEvent] = useState();
+  const [guestList, setGuestList] = useState();
+
+  const [authToken, setAuthToken] = useState();
   const [loading, setLoading] = useState(true);
-  const [login, setLogin] = useState(false);
 
-  const [password, setPassword] = useState("")
+  const [menu, setMenu] = useState("loading");
+  const menuOptions = { login: Login, email: Email, loading: Loading };
 
-  const [guestList, setGuestList] = useState()
-  //
   // Get event data based on eventID
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   useEffect(() => {
     const fetchEventData = async () => {
       try {
-        console.log(params)
+        console.log(params);
         const response = await fetch(`/api/events/${params.eventID}`);
         if (!response.ok) {
-          throw new Error('Event not found');
+          throw new Error("Event not found");
         }
         const data = await response.json();
-        console.log(data)
+        console.log(data);
         setEvent(data);
       } catch (error) {
         console.error("Error fetching event data:", error);
         //router.push('/404'); // Redirect to 404 page if event doesn't exist
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     };
 
@@ -50,51 +50,24 @@ const page = ({ eventData }) => {
   }, [params.eventID, router]);
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
-
-
-  // While still loading
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-  if (loading)
-    return (
-      <div className={styles.page}>
-        <Loading />
-      </div>
-    );
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-
   return (
     <div className={styles.page}>
-
       <div className={styles.header}>
         <div className={styles.logoContainer}>
-          <Image className={styles.responsiveLogo} src={"/logo.svg"} alt="Event-Sync" fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+          <Image
+            className={styles.responsiveLogo}
+            src={"/logo.svg"}
+            alt="Event-Sync"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
         </div>
         <p>Event Portal</p>
       </div>
-      <div className={styles.main}>
-        {!login ? (
-          <Login 
-            event={event} 
-            setLogin={setLogin} 
-            params={params} 
-            toast={toast} 
-            setLoading={setLoading} 
-            setGuestList={setGuestList}
-            password={password}
-            setPassword={setPassword}/>
-        ) : (
-          <EmailPortal
-              toast={toast} 
-              event={event} 
-              params={params} 
-              guestList={guestList}
-              password={password}/>
-        )}
-      </div>
+      <div className={styles.main}></div>
       <ToastContainer />
     </div>
-  )
-}
+  );
+};
 
 export default page;

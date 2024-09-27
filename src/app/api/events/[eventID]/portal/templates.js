@@ -61,7 +61,7 @@ export const inviteTemplate=`
       <tr>
         <td style="text-align: center; padding: 20px">
           <p style="font-size: 16px; margin-bottom: 20px">
-            {{CLIENT MESSAGE}}. Please click the link below to view details and
+            {{clientMessage}}. Please click the link below to view details and
             RSVP at your earliest convenience.
           </p>
           <p style="font-size: 14px; font-style: italic; margin-bottom: 30px">
@@ -69,7 +69,7 @@ export const inviteTemplate=`
             website will be available.
           </p>
           <a
-            href="{{rsvpLink}}"
+            href="https://{{{rsvpLink}}}"
             style="
               display: inline-block;
               background-color: #181818;

@@ -7,7 +7,7 @@ import "ag-grid-community/styles/ag-theme-quartz.css"; // Optional Theme applied
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 
 
-const EmailPortal = ({ event, toast, params, setLoading, guestList, password }) => {
+const EmailPortal = ({ event, toast, params, setLoading, guestList, password, reloadGuests }) => {
 
   const [reminderDate, setReminderDate] = useState()
   const [selectedRows, setSelectedRows] = useState([])
@@ -89,6 +89,7 @@ const EmailPortal = ({ event, toast, params, setLoading, guestList, password }) 
 
     const result = await res.json();
     console.log("Result of send", result);
+    reloadGuests()
   }
 
   return (

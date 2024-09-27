@@ -84,7 +84,8 @@ const POST = async (req) => {
       spreadsheetId: sheetID,
       range: "Main"
     })
-    const allValues = mainSheet.data.values.shift() || []
+
+    const allValues = mainSheet.data.values || []
     const valuesToUpdate = {};
 
     for (const member of party) {
@@ -94,16 +95,18 @@ const POST = async (req) => {
         continue; // Skip members without GUID or UID
       }
 
-      const matchingRows = allValues.filter((row) => {
+      allValues.filter((row) => {
+        console.log(row[0])
         if (
           row[0].toString() === GUID &&
           row[1].toString() === UID
         ) {
           const rowNumber = allValues.indexOf(row) + 2;
-          const cellRange = `Main!I${rowNumber}:K${rowNumber}`;
+          const cellRange = `Main!I${rowNumber}:L${rowNumber}`;
           const values = [
             parseInt(member.MainResponse),
-            getCentralTimeDate()
+            getCentralTimeDate(),
+            member.Sent
           ];
 
           valuesToUpdate[cellRange] = {
@@ -137,7 +140,7 @@ const POST = async (req) => {
     return NextResponse.json({ message: "Success" }, { status: 200 });
   } catch (e) {
     console.error("error posting: \t", e)
-    return NextResponse.json({ message: "testing" }, { status: 200 })
+    return NextResponse.json({ message: "testing" }, { status: 300 })
   }
 }
 

@@ -1,44 +1,46 @@
 import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
 
+// Here, you would typically fetch the event data from your database
+// This is just a mock implementation
+/*
+ * const eventlist = {
+ *  eventID : {
+ *    sheetID: sheetID
+ *    eventTitle: "Title"
+ *    NumberOfFunctions: x
+ *  }
+ * }*/
+
+// Fetch data from DB once that is setup, for now static
+/* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+const eventlist = {
+  B37DA2389S: {
+    sheetID: "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE",
+    eventID: "B37DA2389S",
+    eventTitle: "Rashida Weds Ibrahim",
+    numberOfFunctions: 1,
+    email_message: "",
+    logo: "https://i.imgur.com/gtm1VCd.png",
+    func0: {
+      funcNum: 0,
+      funcTitle: "Khushi Jaman and Darees",
+      cardLink: "https://i.imgur.com/X3BNeHd.jpg",
+      date: "28th November 2024, Thursday",
+      location: "17730 Coventry Park Dr, Houston, TX 77084",
+    },
+  },
+  // Add more events as needed
+};
+/* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+
 export async function GET(request, { params }) {
   const { eventID } = params;
-  const sheetID = process.env.GOOGLE_SHEET_ID;
-
-  // Here, you would typically fetch the event data from your database
-  // This is just a mock implementation
-  /*
-   * const eventlist = {
-   *  eventID : {
-   *    sheetID: sheetID
-   *    eventTitle: "Title"
-   *    NumberOfFunctions: x
-   *  }
-   * }*/
-
-  // Fetch data from DB once that is setup, for now static
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-  const eventlist = {
-    B37DA2389S: {
-      sheetID: process.env.GOOGLE_SHEET_ID,
-      eventID: "B37DA2389S",
-      eventTitle: "Rashida Weds Ibrahim",
-      numberOfFunctions: 1,
-      logo: "https://i.imgur.com/gtm1VCd.png",
-      func0: {
-        funcNum: 0,
-        funcTitle: "Khushi Jaman and Darees",
-        cardLink: "https://i.imgur.com/X3BNeHd.jpg",
-        date: "28th November 2024, Thursday",
-        location: "17730 Coventry Park Dr, Houston, TX 77084",
-      },
-    },
-    // Add more events as needed
-  };
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+  const sheetID = eventlist[eventID].sheetID;
 
   if (eventlist[eventID]) {
     console.log(eventlist[eventID]);
-    return new Response(JSON.stringify(eventlist[eventID]), {
+    const event = eventlist[eventID]
+    return new Response(JSON.stringify(event), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -49,3 +51,7 @@ export async function GET(request, { params }) {
     });
   }
 }
+/*
+export default handler = (req, res) => {
+  res.status(200).json({ message: "Hello from Next.js!" });
+};*/

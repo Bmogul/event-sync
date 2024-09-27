@@ -4,31 +4,8 @@ import styles from '../styles/portal.module.css'
 import Image from "next/image";
 import React, { useEffect, useState } from 'react'
 
-const Login = ({ event, setLogin, params, toast, setLoading, setGuestList, password, setPassword}) => {
-  // Handle Login
-  const handleLogin = async (e) => {
-    // logic to verify password
-    setLoading(true)
-    const res = await fetch(`/api/events/${params.eventID}/portal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: password })
-    })
-    const result = await res.json()
-    if (res.status == 200) {
-      if (result.validated) {
-        setLogin(true)
-        setGuestList(result.guestList)
-        toast("Welcome")
-      } else {
-        toast("Invalid Password")
-      }
-    }else{
-      toast("Please try again")
-    }
-    setLoading(false)
-    //setLogin(true)
-  }
+const Login = ({ event, setLogin, params, toast, setLoading, setGuestList, password, setPassword, handleLogin}) => {
+
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);

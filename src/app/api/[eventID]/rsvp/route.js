@@ -75,7 +75,7 @@ const POST = async (req) => {
         console.log(row[0]);
         if (row[0].toString() === GUID && row[1].toString() === UID) {
           const rowNumber = allValues.indexOf(row) + 1;
-          const cellRange = `Main!G${rowNumber}:J${rowNumber}`;
+          const cellRange = `Main!H${rowNumber}:K${rowNumber}`;
           const values = [
             parseInt(member.MainResponse),
             getCentralTimeDate(),

@@ -50,7 +50,7 @@ export const inviteTemplate = `
           </div>
         </td>
       </tr>
-      <tr>
+      <tr style="background-color:#e1c0b7">
         <td style="text-align: center; padding-top: 20px">
           <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
             {{eventName}}
@@ -97,7 +97,7 @@ Please click the link below to view details and
           >
         </td>
       </tr>
-      <tr>
+      <tr style="background-color:#e1c0b7">
         <td
           style="
             text-align: center;
@@ -112,7 +112,7 @@ Please click the link below to view details and
           </p>
         </td>
       </tr>
-      <tr>
+      <tr style="background-color:#e1c0b7">
         <td
           style="
             text-align: center;

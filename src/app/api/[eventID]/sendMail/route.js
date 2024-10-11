@@ -38,9 +38,12 @@ export const POST = async (req) => {
             };
             const msg = {
               to: guest.Email,
-              from: sender,
+              from:{
+                email: sender,
+                name: 'Shk Khuzema and Zahra bhen Kanchwala',
+              } ,
               subject: !reminder
-                ? "Shadi Invitation"
+                ? "Rashida's Shadi Invitation"
                 : "Important reminder inside",
               html:compiledInviteTemplate(templateData)
             };

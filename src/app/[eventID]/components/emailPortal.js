@@ -36,6 +36,7 @@ const EmailPortal = ({
 
   useEffect(() => {
     setRowData(guestList);
+    console.log(guestList)
   }, [guestList]);
 
   const onGridSizeChanged = useCallback(

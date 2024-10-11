@@ -1,4 +1,4 @@
-export const inviteTemplate=`
+export const inviteTemplate = `
 <!doctype html>
 <html>
   <head>
@@ -60,8 +60,22 @@ export const inviteTemplate=`
       </tr>
       <tr>
         <td style="text-align: center; padding: 20px">
+<div style="padding:10px; text-align:left;font-size: 16px; margin-bottom: 20px; color: black;">
           <p style="font-size: 16px; margin-bottom: 20px">
-            {{clientMessage}}. Please click the link below to view details and
+            Afzalus salaam
+          </p>
+          <p style="text-align: left">
+
+Aqa Moula TUS ni raza ane dua Mubarak si hamari piyari dekri Rashida ni shaadi ni masaraat naseeb thai che. 
+
+Shaadi na jaman ma aap ne izan araz karye che, zaroor padharjo
+</p>
+</br>
+<p>
+Shk.Khuzema and Zahra bhen Kanchwala
+</p>
+</div>
+Please click the link below to view details and
             RSVP at your earliest convenience.
           </p>
           <p style="font-size: 14px; font-style: italic; margin-bottom: 30px">
@@ -120,7 +134,6 @@ export const inviteTemplate=`
     </table>
   </body>
 </html>
-`
+`;
 
-
-export const reminderTemplate=``
+export const reminderTemplate = ``;

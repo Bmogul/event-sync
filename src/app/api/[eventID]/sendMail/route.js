@@ -40,7 +40,7 @@ export const POST = async (req) => {
               to: guest.Email,
               from: sender,
               subject: !reminder
-                ? "Invitation inside"
+                ? "Shadi Invitation"
                 : "Important reminder inside",
               html:compiledInviteTemplate(templateData)
             };

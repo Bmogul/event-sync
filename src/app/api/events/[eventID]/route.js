@@ -24,8 +24,8 @@ const eventlist = {
     func0: {
       funcNum: 0,
       funcTitle: "Khushi Jaman and Darees",
-      cardLink: "https://i.imgur.com/X3BNeHd.jpg",
-      date: "28th November 2024, Thursday",
+      cardLink: "https://i.imgur.com/X3BNeHd.png",
+      date: "6:30 PM, 28th November 2024, Thursday",
       location: "17730 Coventry Park Dr, Houston, TX 77084",
     },
   },

@@ -154,7 +154,7 @@ export default function EventPage({ eventData }) {
           <h1>{event.eventTitle}</h1>
           {party ? (
             !pageOpened ? (
-              <label>Click below</label>
+              <label>Click logo below</label>
             ) : (
               <label>Please RSVP down below</label>
             )

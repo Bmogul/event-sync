@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 
 import Loading from "../components/loading";
@@ -14,6 +14,7 @@ export default function EventPage({ eventData }) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
+  const audioRef = useRef(null);
 
   const guid = searchParams.get("guid");
 
@@ -21,6 +22,7 @@ export default function EventPage({ eventData }) {
   const [event, setEvent] = useState(eventData);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
+  const [pageOpened, setPageOpened] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -44,8 +46,8 @@ export default function EventPage({ eventData }) {
     const fetchData = async (guid, event) => {
       try {
         const queryParams = new URLSearchParams({
-         guid,
-          sheetID: event.sheetID
+          guid,
+          sheetID: event.sheetID,
         });
 
         const response = await fetch(
@@ -110,6 +112,16 @@ export default function EventPage({ eventData }) {
   };
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
+  // When invite is opeened
+  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+  const openPage = () => {
+    setPageOpened(true);
+    //start music
+    if (audioRef.current) {
+      audioRef.current.play();
+    }
+  };
+  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   // While still loading
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   if (loading)
@@ -124,6 +136,7 @@ export default function EventPage({ eventData }) {
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   return (
     <div className={styles.page}>
+      <audio ref={audioRef} src="/invite_track.mp3" />
       {showForm && (
         <div className={styles.formContainer}>
           <RSVPForm
@@ -139,33 +152,48 @@ export default function EventPage({ eventData }) {
       <div className={styles.main}>
         <div className={styles.header}>
           <h1>{event.eventTitle}</h1>
-          {!party ? (
-            <label>Please use the link provided to view details</label>
+          {party ? (
+            !pageOpened ? (
+              <label>Click below</label>
+            ) : (
+              <label>Please RSVP down below</label>
+            )
           ) : (
-            <label>Please RSVP down below</label>
+            <label>Please use the link provided to view details</label>
           )}
           {/*<pre>{JSON.stringify(event, null, 2)}</pre>
           <pre>{JSON.stringify(party, null, 2)}</pre>*/}
         </div>
         {event ? (
           party ? (
-            <div className={styles.eventContainer}>
-              {/* Display your event data here */}
-              <EventContainer
-                guid={guid}
-                event={event}
-                party={party}
-                openForm={openForm}
-              />
-            </div>
+            pageOpened ? (
+              <div className={styles.eventContainer}>
+                {/* Display your event data here */}
+                <EventContainer
+                  guid={guid}
+                  event={event}
+                  party={party}
+                  openForm={openForm}
+                />
+              </div>
+            ) : (
+              <div className={styles.logoContainer}>
+                <Image
+                  src={event.logo}
+                  className={styles.logoP}
+                  alt={`Click Me`}
+                  onClick={openPage}
+                  fill
+                />
+              </div>
+            )
           ) : (
             <div className={styles.logoContainer}>
               <Image
                 src={event.logo}
-                className={styles.logo}
+                className={`${styles.logo}`}
                 alt={event.eventTitle}
                 fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
           )

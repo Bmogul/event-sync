@@ -6,7 +6,7 @@
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
 
-  --primary-btn: #CBEAF4;
+  --primary-btn: #cbeaf4;
   --btn-text-color: #000;
 
   --font-krub-sans: "Krub", sans-serif;
@@ -67,7 +67,6 @@
   cursor: pointer;
 }
 
-
 .main {
   display: flex;
   flex-direction: column;
@@ -76,7 +75,6 @@
   width: 100%;
   align-items: center;
   justify-items: center;
-
 }
 
 .main .header {
@@ -94,9 +92,32 @@
   aspect-ratio: 2/1.5;
 }
 
+.logoP {
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  border-radius: 100%;
+  cursor: pointer;
+
+  animation: pulse 2s infinite;
+}
+
 .logo {
   object-fit: contain;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
+  border-radius: 100%;
+  cursor: pointer;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .eventContainer {
@@ -121,8 +142,11 @@
   transition: all 0.3s ease;
 }
 
-
 @media (hover: hover) and (pointer: fine) {
+  .logoP:hover {
+    animation-play-state: paused;
+  }
+
   .logo:hover {
     transform: scale(1.05);
   }
@@ -156,6 +180,10 @@
   .eventContainer {
     flex-direction: column;
     gap: 50px;
+  }
+
+  .page{
+    padding:0;
   }
 
   .inviteContainer {

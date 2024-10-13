@@ -55,7 +55,7 @@ export const inviteTemplate = `
           <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
             {{eventName}}
           </h1>
-          <p style="font-size: 16px; margin-bottom: 20px">Please Join Us</p>
+          <p style="font-size: 16px; margin-bottom: 20px">We invite you to share this special day with us.</p>
         </td>
       </tr>
       <tr>

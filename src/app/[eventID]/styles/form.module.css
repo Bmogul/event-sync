@@ -25,6 +25,8 @@
   align-items: center;
   justify-items: center;
   gap: 25px;
+
+  overflow-y: auto;
 }
 
 .closeBtnDiv {
@@ -68,8 +70,40 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 3em;
-  max-height: 70vh;
+  max-height: 40vh;
   overflow-y: auto;
+  padding-right: 20px; /* Add some padding for the scrollbar */
+  box-sizing: border-box; /* Include padding in the element's total width and height */
+}
+
+/* For Webkit browsers like Chrome, Safari */
+.formBody::-webkit-scrollbar {
+  width: 10px;
+}
+
+.formBody::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.formBody::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+
+.formBody::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* For Firefox */
+.formBody {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+/* Ensure child elements don't overflow */
+.formBody > * {
+  min-width: 0;
+  word-wrap: break-word;
 }
 
 .resBlock {
@@ -118,6 +152,12 @@
 
   .headerInfo {
     padding-left: 0;
+  }
+}
+
+@media (max-height: 800px) {
+  .formBody{
+    margin-top: 100px;
   }
 }
 

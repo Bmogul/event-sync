@@ -72,8 +72,10 @@
   gap: 3em;
   max-height: 40vh;
   overflow-y: auto;
-  padding-right: 20px; /* Add some padding for the scrollbar */
-  box-sizing: border-box; /* Include padding in the element's total width and height */
+  padding-right: 20px;
+  /* Add some padding for the scrollbar */
+  box-sizing: border-box;
+  /* Include padding in the element's total width and height */
 }
 
 /* For Webkit browsers like Chrome, Safari */
@@ -101,7 +103,7 @@
 }
 
 /* Ensure child elements don't overflow */
-.formBody > * {
+.formBody>* {
   min-width: 0;
   word-wrap: break-word;
 }
@@ -143,7 +145,6 @@
   font-size: 20px;
 }
 
-
 @media (max-width: 830px) {
   .modal {
     width: 100%;
@@ -156,8 +157,44 @@
 }
 
 @media (max-height: 800px) {
-  .formBody{
+  .formBody {
+    font-size: 12px;
     margin-top: 100px;
+    overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+  }
+
+  /* Webkit browsers like Chrome and Safari */
+  .formBody::-webkit-scrollbar {
+    width: 10px;
+    background-color: #f1f1f1;
+    /* Light grey track */
+  }
+
+  .formBody::-webkit-scrollbar-thumb {
+    background-color: #888;
+    /* Grey scroll thumb */
+    border-radius: 5px;
+    border: 2px solid #f1f1f1;
+    /* Creates padding around scroll thumb */
+  }
+
+  .formBody::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+    /* Darker grey when hovering */
+  }
+
+  /* For Internet Explorer */
+  .formBody {
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+  }
+
+  /* Ensure the scrollbar doesn't affect layout */
+  .formBody {
+    padding-right: calc(20px + 10px);
+    /* Additional 10px for scrollbar width */
+    box-sizing: border-box;
   }
 }
 

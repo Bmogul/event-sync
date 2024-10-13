@@ -54,7 +54,69 @@ const RsvpForm = ({
       ),
     );
   };
+  const openMap = () => {
+    // Encode the location string to make it URL-safe
+    const encodedLocation = encodeURIComponent(event.func0.location);
 
+    // Construct the Google Maps URL
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+
+    // Open the URL in a new tab/window
+    window.open(mapUrl, "_blank");
+  };
+
+  const openGoogleCalendar = () => {
+    // Parse the given date and time
+    const [time, date, dayofweek] = event.func0.date.split(", ");
+    // Parse date components
+    const [day, month, year] = date.split(" ");
+    const monthIndex = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ].indexOf(month);
+
+    // Parse time components
+    const [hours, minutes] = time.split(":");
+    const isPM = time.toLowerCase().includes("pm");
+
+    // Create date object
+    const dateObj = new Date(
+      year,
+      monthIndex,
+      parseInt(day),
+      isPM ? parseInt(hours) + 12 : parseInt(hours),
+      parseInt(minutes),
+    );
+
+    // Format the date and time for Google Calendar URL
+    const formatDate = (date) => {
+      return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    };
+
+    const startDate = formatDate(dateObj);
+
+    // Set event duration (e.g., 1 hour)
+    const endDate = formatDate(new Date(dateObj.getTime() + 60 * 60 * 1000));
+    // Encode the event details
+    const encodedTitle = encodeURIComponent(event.eventTitle);
+    const encodedLocation = encodeURIComponent(event.func0.location);
+
+    // Construct the Google Calendar URL
+    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodedTitle}&dates=${startDate}/${endDate}&details=Event%20created%20from%20app&location=${encodedLocation}&sf=true&output=xml`;
+
+    // Open the URL in a new tab/window
+    window.open(calendarUrl, "_blank");
+  };
   return (
     <dialog open className={styles.modal}>
       {formLoading ? (
@@ -73,9 +135,9 @@ const RsvpForm = ({
           </div>
           <div className={styles.formHeader}>
             <h3>{event.func0.funcTitle}</h3>
-            <div className={styles.headerInfo}>
+            <div id="FunctionDate" className={styles.headerInfo}>
               <Image
-                onClick={closeForm}
+                onClick={openGoogleCalendar}
                 src={"/Date_range_fill.svg"}
                 alt="Close Form"
                 height={25}
@@ -84,9 +146,9 @@ const RsvpForm = ({
               />
               <label>{event.func0.date}</label>
             </div>
-            <div className={styles.headerInfo}>
+            <div id="FunctionLocation" className={styles.headerInfo}>
               <Image
-                onClick={closeForm}
+                onClick={openMap}
                 src={"/Pin_alt.svg"}
                 alt="Close Form"
                 height={25}

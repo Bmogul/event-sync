@@ -143,6 +143,7 @@
 .formSubmit .responseBtn {
   height: 40px;
   font-size: 20px;
+  margin-bottom: 50px;
 }
 
 @media (max-width: 830px) {
@@ -195,6 +196,15 @@
     padding-right: calc(20px + 10px);
     /* Additional 10px for scrollbar width */
     box-sizing: border-box;
+  }
+
+  .modal {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  border-radius: 0;
   }
 }
 

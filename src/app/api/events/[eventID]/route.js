@@ -20,7 +20,7 @@ const eventlist = {
     eventTitle: "Rashida Weds Ibrahim",
     numberOfFunctions: 1,
     email_message: "",
-    logo: "https://i.imgur.com/gtm1VCd.png",
+    logo: "https://i.imgur.com/Uo5EF2A.jpeg",
     func0: {
       funcNum: 0,
       funcTitle: "Khushi Jaman and Darees",

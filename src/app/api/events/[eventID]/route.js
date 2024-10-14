@@ -15,7 +15,7 @@ import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
 /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 const eventlist = {
   B37DA2389S: {
-    sheetID: "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE",
+    sheetID: "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTWRVOsC_5z4",
     eventID: "B37DA2389S",
     eventTitle: "Rashida Weds Ibrahim",
     numberOfFunctions: 1,

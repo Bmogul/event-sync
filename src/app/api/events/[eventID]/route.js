@@ -20,11 +20,11 @@ const eventlist = {
     eventTitle: "Rashida Weds Ibrahim",
     numberOfFunctions: 1,
     email_message: "",
-    logo: "https://i.imgur.com/Uo5EF2A.jpeg",
+    logo: "https://i.imgur.com/gtm1VCd.png",
     func0: {
       funcNum: 0,
       funcTitle: "Khushi Jaman and Darees",
-      cardLink: "https://i.imgur.com/X3BNeHd.png",
+      cardLink: "https://i.imgur.com/Uo5EF2A.jpeg",
       date: "6:30 PM, 28th November 2024, Thursday",
       location: "17730 Coventry Park Dr, Houston, TX 77084",
     },

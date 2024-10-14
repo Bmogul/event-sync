@@ -28,7 +28,7 @@ export const inviteTemplate = `
     >
       <tr>
         <td style="text-align: center">
-          <div style="display: inline-block; font-size: 0">
+          <div style="font-size: 0">
             <img
               src="https://i.imgur.com/ripeIdt.png"
               alt="Wedding Invitation"
@@ -38,6 +38,7 @@ export const inviteTemplate = `
                 vertical-align: middle;
               "
             />
+</div><div>
             <img
               src={{logoLink}}
               alt="Wedding Invitation"

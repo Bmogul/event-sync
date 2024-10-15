@@ -1,7 +1,7 @@
 .modal {
-  --form-bg: #e2f3f3;
+  --form-bg: #e1c0b7;
   --form-text-color: black;
-  --response-btn-bg: #d3d3d3;
+  --response-btn-bg: #dddddd;
   --response-btn-bg-active: #36df80;
   --response-btn-bg-hover: #59ffa2;
 
@@ -103,7 +103,7 @@
 }
 
 /* Ensure child elements don't overflow */
-.formBody>* {
+.formBody > * {
   min-width: 0;
   word-wrap: break-word;
 }
@@ -199,12 +199,12 @@
   }
 
   .modal {
-  height: 100vh;
-  width: 100vw;
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  border-radius: 0;
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    border-radius: 0;
   }
 }
 

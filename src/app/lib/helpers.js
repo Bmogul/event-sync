@@ -19,6 +19,7 @@ const authEvent = async (googleSheets, sheetID, password) => {
       range: "WebsiteData",
     });
     const eventPassword = webdata.data.values[0][1];
+    console.log(eventPassword)
     if (password === eventPassword) return true;
     else return false;
   } catch (error) {

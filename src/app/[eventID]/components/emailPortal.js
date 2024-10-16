@@ -100,6 +100,7 @@ const EmailPortal = ({
       toast("Mail sent!")
       updateGuestList(result.guestList);
     } else {
+      console.log(res.status, result.validated);
       toast("Failed to send invites, try again");
     }
   };

@@ -56,7 +56,7 @@ export const reminderTemplate = `
           <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
             {{eventName}}
           </h1>
-          <p style="font-size: 16px; margin-bottom: 20px">This is a quick reminder about an earlier email.</p>
+          <p style="font-size: 16px; margin-bottom: 20px">This is a quick reminder about our event.</p>
         </td>
       </tr>
       <tr>

@@ -83,7 +83,9 @@ export const POST = async (req) => {
             email: sender,
             name: "Shk Khuzema and Zahra bhen Kanchwala",
           },
-          subject: "Rashida's Shadi Invitation",
+          subject: !reminder
+            ? "Rashida's Shadi Invitation"
+            : "Important reminder inside",
           html: compiledInviteTemplate(templateData),
         };
 

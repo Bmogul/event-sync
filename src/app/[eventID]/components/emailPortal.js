@@ -24,21 +24,20 @@ const EmailPortal = ({
     { field: "UID", width: 80 },
     { field: "Name", filter: true },
     { field: "Email", filter: true },
-    { field: "MainResponse", filter: true},
+    { field: "MainResponse", filter: true },
     { field: "Tag", filter: true, width: 100 },
     { field: "Sent", maxWidth: 90, minWidth: 50, filter: true },
   ]);
   const [rowData, setRowData] = useState(guestList);
 
-const selection = useMemo(() => {
-  return {
-    mode: "multiRow",
-    selectAllFiltered: true,
-    suppressRowDeselection: true,
-    checkboxSelection: true,
-  };
-}, []);
-
+  const selection = useMemo(() => {
+    return {
+      mode: "multiRow",
+      selectAllFiltered: true,
+      suppressRowDeselection: true,
+      checkboxSelection: true,
+    };
+  }, []);
 
   useEffect(() => {
     setRowData(guestList);
@@ -79,14 +78,14 @@ const selection = useMemo(() => {
     [window],
   );
 
-
-const onRowSelection = useCallback((event) => {
-  const filteredRows = event.api.getModel().rowsToDisplay.filter(node => node.selected);
-  const selectedRowsData = filteredRows.map(node => node.data);
-  setSelectedRows(selectedRowsData);
-  console.log(selectedRowsData); // For debugging
-}, []);
-
+  const onRowSelection = useCallback((event) => {
+    const filteredRows = event.api
+      .getModel()
+      .rowsToDisplay.filter((node) => node.selected);
+    const selectedRowsData = filteredRows.map((node) => node.data);
+    setSelectedRows(selectedRowsData);
+    console.log(selectedRowsData); // For debugging
+  }, []);
 
   // Send Mail
   const SendMail = async () => {
@@ -139,6 +138,33 @@ const onRowSelection = useCallback((event) => {
       toast("Failed to send invites, try again");
     }
   };
+  // Send Reminder
+  const SendReminderAll = async () => {
+    console.log(password);
+    toast("Sending Reminder");
+    const reminderList = guestList.filter((user) => user.Sent === "Yes" && user.MainResponse === "");
+    console.log(reminderList);
+    const res = await fetch(`/api/${params.eventID}/sendReminder`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        guestList: reminderList,
+        password: password,
+        event: event,
+      }),
+    });
+    const result = await res.json();
+
+    if (res.status === 200 && result.validated) {
+      toast("Reminders sent!");
+      updateGuestList(result.guestList);
+    } else {
+      console.log(res.status, result.validated);
+      toast("Failed to send invites, try again");
+    }
+  };
 
   return (
     <div className={styles.Mailbox}>
@@ -161,11 +187,26 @@ const onRowSelection = useCallback((event) => {
           <label>Set reminder</label>{" "}
           <input type="datetime-local" value={reminderDate}></input>
         </div>*/}
-        <button className={styles.sendMailBtn} onClick={SendMail}>
+        <button
+          title={"Send invite to rows selected"}
+          className={styles.sendMailBtn}
+          onClick={SendMail}
+        >
           Send Invite
         </button>
-        <button className={styles.sendMailBtn} onClick={SendReminder}>
+        <button
+          title={"Send reminders to rows selected"}
+          className={styles.sendMailBtn}
+          onClick={SendReminder}
+        >
           Send Reminder
+        </button>
+        <button
+          title="Send reminders to everyone who has been sent an invite and has not responded"
+          className={styles.sendMailBtn}
+          onClick={SendReminderAll}
+        >
+          Send Reminder All
         </button>
       </div>
       <div

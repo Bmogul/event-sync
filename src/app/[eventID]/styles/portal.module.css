@@ -146,18 +146,20 @@
 
 .mailControlBox {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   float: left;
   width: 100%;
 }
 
 .sendMailBtn {
-  max-width: 60px;
+  max-width: 100px;
+  height: 50px;
   border: none;
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 16px;
   transition: all 0.3s ease;
+  margin-right: 5px;
 }
 
 

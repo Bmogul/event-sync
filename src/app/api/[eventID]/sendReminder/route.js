@@ -4,14 +4,12 @@ import Handlebars from "handlebars";
 
 import { authEvent } from "../../../lib/helpers";
 import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
-import { reminderTemplate, inviteTemplate } from "./templates.js";
+import { reminderTemplate } from "./templates.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const sender = "event-sync@bmogul.net";
 // Compile templates
 const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
-const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
-
 export const POST = async (req) => {
   const { password, event, guestList } = await req.json();
   const eventLogo = event.logo;
@@ -83,8 +81,8 @@ export const POST = async (req) => {
             email: sender,
             name: "Shk Khuzema and Zahra bhen Kanchwala",
           },
-          subject: "Rashida's Shadi Invitation",
-          html: compiledInviteTemplate(templateData),
+          subject: "Important Reminder Inside",
+          html: compiledReminderTemplate(templateData),
         };
 
         // Send email
@@ -119,3 +117,4 @@ export const POST = async (req) => {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 };
+

@@ -24,19 +24,25 @@ const EmailPortal = ({
     { field: "UID", width: 80 },
     { field: "Name", filter: true },
     { field: "Email", filter: true },
+    { field: "MainResponse", filter: true},
     { field: "Tag", filter: true, width: 100 },
     { field: "Sent", maxWidth: 90, minWidth: 50, filter: true },
   ]);
   const [rowData, setRowData] = useState(guestList);
-  const selection = useMemo(() => {
-    return {
-      mode: "multiRow",
-    };
-  }, []);
+
+const selection = useMemo(() => {
+  return {
+    mode: "multiRow",
+    selectAllFiltered: true,
+    suppressRowDeselection: true,
+    checkboxSelection: true,
+  };
+}, []);
+
 
   useEffect(() => {
     setRowData(guestList);
-    console.log(guestList)
+    console.log(guestList);
   }, [guestList]);
 
   const onGridSizeChanged = useCallback(
@@ -73,16 +79,19 @@ const EmailPortal = ({
     [window],
   );
 
-  const onRowSelection = useCallback((event) => {
-    let rows = event.api.getSelectedNodes();
-    rows = rows.map((node) => node.data);
-    setSelectedRows(rows);
-  });
+
+const onRowSelection = useCallback((event) => {
+  const filteredRows = event.api.getModel().rowsToDisplay.filter(node => node.selected);
+  const selectedRowsData = filteredRows.map(node => node.data);
+  setSelectedRows(selectedRowsData);
+  console.log(selectedRowsData); // For debugging
+}, []);
+
 
   // Send Mail
   const SendMail = async () => {
-    console.log(password)
-    toast("Sending Mail")
+    console.log(password);
+    toast("Sending Mail");
     const res = await fetch(`/api/${params.eventID}/sendMail`, {
       method: "POST",
       headers: {
@@ -97,7 +106,33 @@ const EmailPortal = ({
     const result = await res.json();
 
     if (res.status === 200 && result.validated) {
-      toast("Mail sent!")
+      toast("Mail sent!");
+      updateGuestList(result.guestList);
+    } else {
+      console.log(res.status, result.validated);
+      toast("Failed to send invites, try again");
+    }
+  };
+  // Send Reminder
+  const SendReminder = async () => {
+    console.log(password);
+    toast("Sending Reminder");
+    console.log(selectedRows);
+    const res = await fetch(`/api/${params.eventID}/sendReminder`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        guestList: selectedRows,
+        password: password,
+        event: event,
+      }),
+    });
+    const result = await res.json();
+
+    if (res.status === 200 && result.validated) {
+      toast("Reminders sent!");
       updateGuestList(result.guestList);
     } else {
       console.log(res.status, result.validated);
@@ -126,7 +161,12 @@ const EmailPortal = ({
           <label>Set reminder</label>{" "}
           <input type="datetime-local" value={reminderDate}></input>
         </div>*/}
-        <button className={styles.sendMailBtn} onClick={SendMail}>Send</button>
+        <button className={styles.sendMailBtn} onClick={SendMail}>
+          Send Invite
+        </button>
+        <button className={styles.sendMailBtn} onClick={SendReminder}>
+          Send Reminder
+        </button>
       </div>
       <div
         className="ag-theme-quartz" // applying the Data Grid theme

@@ -64,8 +64,6 @@ export const POST = async (req) => {
     const guests = processGuestList(mainSheet.data.values);
     let remindersSent = 0;
 
-    console.log(guests)
-
     for (const guest of guests) {
       try {
         const rsvpLink = `${process.env.HOST}/${event.eventID}/rsvp?guid=${guest.GUID}`;

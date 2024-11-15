@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 
 const eventList = {
   B37DA2389S: {
-    sheetID: process.env.NODE_ENV === 'development' 
+    /*sheetID: process.env.NODE_ENV === 'development' 
       ? "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE"
-      : "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTRVOsC_5z4",
+      : "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTRVOsC_5z4",*/
+
+    sheetID: "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTWRVOsC_5z4",
     eventID: "B37DA2389S",
     eventTitle: "Rashida Weds Ibrahim",
     numberOfFunctions: 1,
@@ -30,7 +32,7 @@ export async function GET(req) {
 
   try {
     const results = [];
-    
+
     // Process each event in the list
     for (const [eventID, eventData] of Object.entries(eventList)) {
       const EVENT_DETAILS = {
@@ -41,40 +43,45 @@ export async function GET(req) {
           eventDate: eventData.func0.date, // Using the first function's date
           sheetID: eventData.sheetID,
           logo: eventData.logo,
-          email_message: eventData.email_message
-        }
+          email_message: eventData.email_message,
+        },
       };
 
       try {
         // Call reminder API for each event
-        console.log(`${process.env.HOST}/api/${eventData.eventID}/remindeCountDown`)
-        const response = await fetch(`http://${process.env.HOST}/api/${eventData.eventID}/remindeCountDown/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+        console.log(
+          `${process.env.HOST}/api/${eventData.eventID}/remindeCountDown`,
+        );
+        const response = await fetch(
+          `http://${process.env.HOST}/api/${eventData.eventID}/remindeCountDown/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(EVENT_DETAILS),
           },
-          body: JSON.stringify(EVENT_DETAILS)
-        });
+        );
 
         const result = await response.json();
         results.push({
           eventID,
-          status: 'success',
-          ...result
+          status: "success",
+          ...result,
         });
       } catch (error) {
         console.error(`Error processing event ${eventID}:`, error);
         results.push({
           eventID,
-          status: 'error',
-          error: error.message
+          status: "error",
+          error: error.message,
         });
       }
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Reminder processing complete",
-      results 
+      results,
     });
   } catch (error) {
     console.error("Error in cron job:", error);

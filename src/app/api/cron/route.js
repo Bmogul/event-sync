@@ -1,12 +1,7 @@
-// app/api/cron/daily-reminder/route.js
 import { NextResponse } from "next/server";
 
 const eventList = {
   B37DA2389S: {
-    /*sheetID: process.env.NODE_ENV === 'development' 
-      ? "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE"
-      : "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTRVOsC_5z4",*/
-
     sheetID: "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTWRVOsC_5z4",
     eventID: "B37DA2389S",
     eventTitle: "Rashida Weds Ibrahim",
@@ -31,16 +26,14 @@ export async function GET(req) {
   }
 
   try {
-    const results = [];
-
-    // Process each event in the list
-    for (const [eventID, eventData] of Object.entries(eventList)) {
+    // Process events concurrently
+    const processPromises = Object.entries(eventList).map(async ([eventID, eventData]) => {
       const EVENT_DETAILS = {
         password: process.env.EVENT_PASSWORD,
         event: {
           eventID: eventData.eventID,
           eventTitle: eventData.eventTitle,
-          eventDate: eventData.func0.date, // Using the first function's date
+          eventDate: eventData.func0.date,
           sheetID: eventData.sheetID,
           logo: eventData.logo,
           email_message: eventData.email_message,
@@ -48,36 +41,48 @@ export async function GET(req) {
       };
 
       try {
-        // Call reminder API for each event
-        console.log(
-          `${process.env.HOST}/api/${eventData.eventID}/remindeCountDown`,
-        );
+        const baseUrl = process.env.HOST.startsWith('http') 
+          ? process.env.HOST 
+          : `https://${process.env.HOST}`;
+          
         const response = await fetch(
-          `http://${process.env.HOST}/api/${eventData.eventID}/remindeCountDown/`,
+          `${baseUrl}/api/${eventData.eventID}/remindeCountDown`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(EVENT_DETAILS),
-          },
+          }
         );
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
-        results.push({
+        return {
           eventID,
           status: "success",
           ...result,
-        });
+        };
       } catch (error) {
         console.error(`Error processing event ${eventID}:`, error);
-        results.push({
+        return {
           eventID,
           status: "error",
           error: error.message,
-        });
+        };
       }
-    }
+    });
+
+    // Wait for all events to be processed with a timeout
+    const results = await Promise.race([
+      Promise.all(processPromises),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Processing timeout')), 50000)
+      )
+    ]);
 
     return NextResponse.json({
       message: "Reminder processing complete",
@@ -85,6 +90,9 @@ export async function GET(req) {
     });
   } catch (error) {
     console.error("Error in cron job:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message }, 
+      { status: error.message === 'Processing timeout' ? 504 : 500 }
+    );
   }
 }

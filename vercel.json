@@ -4,7 +4,7 @@
     "schedule": "0 10 * * *"
   }],
   "functions": {
-    "/api/cron": {
+    "api/cron": {
       "maxDuration": 60
     }
   }

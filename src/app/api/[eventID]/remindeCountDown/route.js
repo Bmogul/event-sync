@@ -15,7 +15,7 @@ const isWithinReminderWindow = (eventDateString, daysBeforeEvent = 10) => {
   return daysUntil <= daysBeforeEvent && daysUntil >= 0;
 };
 
-// Helper function to process and filter guest list
+// Helper function to process guest list
 const processGuestList = (rows) => {
   const headerRow = rows[0];
   return rows
@@ -30,13 +30,13 @@ const processGuestList = (rows) => {
     .filter(
       (guest) =>
         guest.MainResponse === "1" && // Has RSVP'd yes
-        guest.Email && // Has email address
-        guest.Sent !== "Completed", // Hasn't received all reminders
+        guest.Email // Has email address
+        // Removed the Sent !== "Completed" filter to send to all valid RSVPs
     );
 };
 
 export const POST = async (req) => {
-  console.log("Posting email reminders")
+  console.log("Posting email reminders");
   try {
     const { event } = await req.json();
     const sheets = await getGoogleSheets();
@@ -48,13 +48,13 @@ export const POST = async (req) => {
     });
 
     if (!mainSheet.data.values) {
-      console.log("No data")
+      console.log("No data");
       throw new Error("No data found in sheet");
     }
 
     // Only process if event is within reminder window
     if (!isWithinReminderWindow(event.eventDate)) {
-      console.log("Not within window", event)
+      console.log("Not within window", event);
       return NextResponse.json({
         message: "No reminders needed today",
         reminders: 0,
@@ -63,6 +63,7 @@ export const POST = async (req) => {
 
     const guests = processGuestList(mainSheet.data.values);
     let remindersSent = 0;
+    let failedEmails = [];
 
     for (const guest of guests) {
       try {
@@ -102,30 +103,21 @@ export const POST = async (req) => {
 
         await sgMail.send(msg);
         remindersSent++;
-
-        // Update sheet to mark reminder as sent
-        const rowIndex = mainSheet.data.values.findIndex(
-          (row) => row[0] === guest.GUID && row[1] === guest.UID,
-        );
-
-        if (rowIndex !== -1) {
-          await sheets.spreadsheets.values.update({
-            spreadsheetId: event.sheetID,
-            range: `Main!J${rowIndex + 1}:J${rowIndex + 1}`,
-            valueInputOption: "RAW",
-            resource: {
-              values: [[daysUntil === 1 ? "Completed" : "Yes"]],
-            },
-          });
-        }
+        
       } catch (error) {
         console.error(`Failed to send reminder to ${guest.Email}:`, error);
+        failedEmails.push({
+          email: guest.Email,
+          error: error.message
+        });
       }
     }
 
     return NextResponse.json({
       message: `Sent ${remindersSent} reminders`,
       reminders: remindersSent,
+      failedEmails: failedEmails,
+      totalGuests: guests.length
     });
   } catch (error) {
     console.error("Error in reminder system:", error);

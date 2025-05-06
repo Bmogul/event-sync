@@ -18,19 +18,26 @@ const eventlist = {
     /*sheetID: process.env.NODE_ENV === 'development' 
       ? "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE"
       : "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTRVOsC_5z4",*/
-    sheetID: "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTWRVOsC_5z4",
+    sheetID: "1VWd-vWBJoiE5JNu6tOMId79LQkN5W_S8iYBJVGg-Nrs",
     eventID: "B37DA2389S",
-    eventTitle: "Rashida Weds Ibrahim",
-    numberOfFunctions: 1,
+    eventTitle: "Sakina Weds Mohammad",
+    numberOfFunctions: 2,
     email_message: "",
-    logo: "https://i.imgur.com/gtm1VCd.png",
+    logo: "https://i.imgur.com/PVHMOzK.png",
     func0: {
       funcNum: 0,
-      funcTitle: "Khushi Jaman and Darees",
-      cardLink: "https://i.imgur.com/Uo5EF2A.jpeg",
-      date: "6:30 PM, 28th November 2024, Thursday",
-      location: "17730 Coventry Park Dr, Houston, TX 77084",
+      funcTitle: "Khushi Jaman and Majlis",
+      cardLink: "https://i.imgur.com/Vq7vqkn.jpeg",
+      date: "Time TBD, 2nd August 2025, Saturday",
+      location: "341 Dunhams Corner Rd, East Brunswick, NJ 08816"
     },
+    func1:{
+      funcNum: 1,
+      funcTitle: "Sakina's Shitabi",
+      cardLink: "https://i.imgur.com/0OIvxSe.jpeg",
+      date: "6:00 PM, 1st August 2025, Friday",
+      location: "10 Wood Lake Court, North Brunswick NJ 08902 ",
+    }
   },
   // Add more events as needed
 };

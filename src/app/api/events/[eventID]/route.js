@@ -27,6 +27,7 @@ const eventlist = {
     func0: {
       funcNum: 0,
       funcTitle: "Khushi Jaman and Majlis",
+      funcCol: "MainInvite",
       cardLink: "https://i.imgur.com/Vq7vqkn.jpeg",
       date: "Time TBD, 2nd August 2025, Saturday",
       location: "341 Dunhams Corner Rd, East Brunswick, NJ 08816"
@@ -34,6 +35,7 @@ const eventlist = {
     func1:{
       funcNum: 1,
       funcTitle: "Sakina's Shitabi",
+      funcCol:"ShitabiInvite",
       cardLink: "https://i.imgur.com/0OIvxSe.jpeg",
       date: "6:00 PM, 1st August 2025, Friday",
       location: "10 Wood Lake Court, North Brunswick NJ 08902 ",

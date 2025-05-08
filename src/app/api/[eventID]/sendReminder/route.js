@@ -7,7 +7,7 @@ import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
 import { reminderTemplate } from "./templates.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const sender = "event-sync@bmogul.net";
+const sender = "sender@event-sync.com";
 // Compile templates
 const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
 export const POST = async (req) => {
@@ -102,7 +102,8 @@ export const POST = async (req) => {
           console.warn(`Could not find row for guest: ${guest.Email}`);
         }
       } catch (error) {
-        console.error(`Error processing guest ${guest.Email}:`, error);
+        console.log("erorr")
+        console.error(`Error processings guest ${guest.Email}:`, error,"\nss\n");
         // Add the guest to the list without updating their status
         updatedGuestList.push(guest);
       }

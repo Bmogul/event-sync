@@ -190,18 +190,26 @@ const RsvpForm = ({
 
 export default RsvpForm;*/
 
-import React, { useState } from "react";
+import React, { useState, useEffect} from "react";
 import styles from "../styles/form.module.css";
 import Image from "next/image";
 import Loading from "./loading";
 
 const ResBlock = ({ member, funcCol, onResponseChange }) => {
-  const [response, setResponse] = useState(member[funcCol]);
+  function convertToResponseColumn(str) {
+    return str.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ")[0] + "Response";
+  }
+  const responseKey = convertToResponseColumn(funcCol);
+  const [response, setResponse] = useState(member[responseKey]);
+
+  useEffect(() => {
+    setResponse(member[responseKey]);
+  }, [member, responseKey]);
 
   const handleResponse = (value) => {
     const newResponse = response === value ? "" : value;
     setResponse(newResponse);
-    onResponseChange(member.UID, funcCol, newResponse);
+    onResponseChange(member.UID, convertToResponseColumn(funcCol), newResponse);
   };
 
   return (
@@ -235,9 +243,6 @@ const RsvpForm = ({
   postResponse,
   event,
 }) => {
-  const [sortedParty, setSortedParty] = useState(
-    [...party].sort((a, b) => a.FamilyOrder - b.FamilyOrder),
-  );
 
   const funcKeys = Object.keys(event).filter((key) => key.startsWith("func"));
 
@@ -248,15 +253,13 @@ const RsvpForm = ({
   const [currentFuncIndex, setCurrentFuncIndex] = useState(0);
   const currentFunc = functionList[currentFuncIndex];
 
-  const currentFuncKey = funcKeys[currentFuncIndex];
-
-
 
   const onResChange = (uid, funcCol, res) => {
-    setParty((prevParty) =>
-      prevParty.map((member) =>
+    setParty((prevParty) => {
+
+      return [...prevParty.map((member) =>
         member.UID === uid ? { ...member, [funcCol]: res } : member,
-      ),
+      )].sort((a, b) => a.FamilyOrder - b.FamilyOrder)},
     );
   };
 
@@ -317,6 +320,11 @@ const RsvpForm = ({
     }
   };
 
+  const changeFunc = (val)=>{
+    console.log('changing', val, party);
+    setCurrentFuncIndex(prev => prev+val)
+  }
+
   return (
     <dialog open className={styles.modal}>
       {formLoading ? (
@@ -360,7 +368,7 @@ const RsvpForm = ({
           </div>
 
           <div className={styles.formBody}>
-            {sortedParty
+            {party
               .filter(
                 (member) =>
                   member[currentFunc.funcCol] === "1" ||
@@ -379,7 +387,7 @@ const RsvpForm = ({
           <div className={styles.formSubmit}>
             {currentFuncIndex > 0 && (
               <button
-                onClick={() => setCurrentFuncIndex((prev) => prev - 1)}
+                onClick={()=>changeFunc(-1)}
                 className={styles.responseBtn}
                 style={{ marginRight: "1rem" }}
               >
@@ -388,7 +396,7 @@ const RsvpForm = ({
             )}
             {currentFuncIndex < functionList.length - 1 ? (
               <button
-                onClick={() => setCurrentFuncIndex((prev) => prev + 1)}
+                onClick={()=>changeFunc(1)}
                 className={styles.responseBtn}
               >
                 Next

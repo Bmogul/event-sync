@@ -36,7 +36,6 @@ export default function EventPage({ eventData }) {
           throw new Error("Event not found");
         }
         const data = await response.json();
-        console.log(data);
         setEvent(data);
         await fetchData(guid, data);
       } catch (error) {
@@ -85,7 +84,7 @@ export default function EventPage({ eventData }) {
           }
 
           setEvent(filteredEvent);
-          setParty(data);
+          setParty([...data].sort((a, b) => a.FamilyOrder - b.FamilyOrder));
         }
         // Process the data as needed
       } catch (error) {

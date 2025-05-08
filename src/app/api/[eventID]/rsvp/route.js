@@ -47,51 +47,70 @@ const GET = async (req) => {
 const POST = async (req) => {
   const { party, event } = await req.json();
 
-  if (!party || !event || party.length === 0 || event.length === 0) {
-    console.log("INVALUD DARA FORMAT")
+  if (!party || !event || party.length === 0 || !event.sheetID) {
+    console.log("INVALID DATA FORMAT");
     return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
   }
 
+
   const sheetID = event.sheetID;
   const sheets = await getGoogleSheets();
+
   try {
-    // Get existing data from sheet
+    // Fetch existing sheet data
     const mainSheet = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetID,
       range: "Main",
     });
+
     const allValues = mainSheet.data.values || [];
+    const headers = allValues[0]; // First row contains headers
     const valuesToUpdate = {};
 
-    // loop through party and get values to update
+    // Helper: find column index
+    const colIndex = (colName) => headers.indexOf(colName);
+
     for (const member of party) {
       const { GUID, UID } = member;
+      console.log(GUID, UID)
 
-      if (!GUID || !UID) {
-        continue; // Skip members without GUID or UID
-      }
+      if (!GUID || !UID) continue;
 
-      allValues.filter((row) => {
-        console.log(row[0]);
-        if (row[0].toString() === GUID && row[1].toString() === UID) {
-          const rowNumber = allValues.indexOf(row) + 1;
-          const cellRange = `Main!H${rowNumber}:K${rowNumber}`;
-          const values = [
-            parseInt(member.MainResponse),
-            getCentralTimeDate(),
-            member.Sent,
-          ];
+      const rowIndex = allValues.findIndex(
+        (row) => row[0]?.toString() === GUID && row[1]?.toString() === UID
+      );
 
-          valuesToUpdate[cellRange] = {
-            values: [values],
-          };
-          return true;
+      if (rowIndex === -1) continue;
+
+      const rowNumber = rowIndex + 1; // Sheet rows are 1-indexed
+      const updateRow = new Array(headers.length).fill(null);
+
+      // Handle dynamic response columns like "MainResponse", "ShitabiResponse"
+      for (const key of Object.keys(member)) {
+        if (key.endsWith("Response")) {
+          const idx = colIndex(key);
+          if (idx !== -1) updateRow[idx] = member[key];
         }
-        return false;
-      });
+      }
+      console.log('updateRow', updateRow)
+
+      // DateResponded
+      const dateIdx = colIndex("DateResponded");
+      if (dateIdx !== -1) updateRow[dateIdx] = getCentralTimeDate();
+
+      const filteredValues = updateRow.filter((val) => val !== null);
+
+      // Construct A1-style range for the specific row
+      const range = `Main!A${rowNumber}:${String.fromCharCode(65 + headers.length - 1)}${rowNumber}`;
+      console.log('range', range)
+
+      valuesToUpdate[range] = {
+        values: [updateRow],
+      };
+      console.log('helo', valuesToUpdate)
     }
 
-    // Batch Update values in sheet
+    // Batch update request
     if (Object.keys(valuesToUpdate).length > 0) {
       const batchUpdateRequest = {
         data: [],
@@ -105,17 +124,17 @@ const POST = async (req) => {
         });
       }
 
-      sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: sheetID,
         resource: batchUpdateRequest,
       });
     }
 
-    // Handle sending back response
-    return NextResponse.json({message:"Success"}, {status:200})
-  } catch (error) {
-    console.error("error posting: \t", e)
-    return NextResponse.json({ message: "testing" }, { status: 300 })
+    return NextResponse.json({ message: "Success" }, { status: 200 });
+
+  } catch (e) {
+    console.error("Error posting:", e);
+    return NextResponse.json({ message: "Internal error" }, { status: 500 });
   }
 };
 

@@ -6,7 +6,7 @@ import { reminderTemplate } from "./templates.js";
 import { parseDateString, getDaysUntilEvent } from "../../../utils/dateParser";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const sender = "event-sync@bmogul.net";
+const sender = "sender@event-sync.com";
 const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
 
 // Helper function to check if a date is within the reminder window

@@ -67,13 +67,12 @@ export const inviteTemplate = `
           </p>
           <p style="text-align: left">
 
-Aqa Moula TUS ni raza ane dua Mubarak si hamari piyari dekri Rashida ni shaadi ni masaraat naseeb thai che. 
-
-Shaadi na jaman ma aap ne izan araz karye che, zaroor padharjo
+Email text
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus blandit mollis neque, in fringilla elit pretium porttitor. In aliquam vehicula est, at pretium purus fringilla eget. Aliquam sit amet aliquam nunc. Pellentesque nec sodales ligula, in luctus risus. Aliquam eu dui tristique dolor maximus volutpat at sit amet tortor. Aliquam vitae fermentum tortor. Duis pellentesque nisi at ipsum pulvinar pellentesque. Cras eget interdum ex, ut ultrices tellus.
 </p>
 </br>
 <p>
-Shk.Khuzema and Zahra bhen Kanchwala
+Huzefa and Fatema Mogul
 </p>
 </div>
 Please click the link below to view details and

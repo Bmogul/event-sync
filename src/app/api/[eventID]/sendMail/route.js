@@ -7,7 +7,8 @@ import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
 import { reminderTemplate, inviteTemplate } from "./templates.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const sender = "event-sync@bmogul.net";
+const sender = "sender@event-sync.com";
+
 // Compile templates
 const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
 const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
@@ -37,7 +38,7 @@ export const POST = async (req) => {
 
     // Function to update a single row in the sheet
     const updateSheetRow = async (guest, rowNumber) => {
-      const cellRange = `Main!J${rowNumber}:K${rowNumber}`;
+      const cellRange = `Main!M${rowNumber}:N${rowNumber}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId: sheetID,
         range: cellRange,
@@ -81,10 +82,10 @@ export const POST = async (req) => {
           to: guest.Email,
           from: {
             email: sender,
-            name: "Shk Khuzema and Zahra bhen Kanchwala",
+            name: "Huzefa and Fatema Mogul",
           },
           subject: !reminder
-            ? "Rashida's Shadi Invitation"
+            ? "Sakina's Shadi Invitation"
             : "Important reminder inside",
           html: compiledInviteTemplate(templateData),
         };
@@ -106,7 +107,7 @@ export const POST = async (req) => {
           console.warn(`Could not find row for guest: ${guest.Email}`);
         }
       } catch (error) {
-        console.error(`Error processing guest ${guest.Email}:`, error);
+        console.error(`Error processing guest ${guest.Email}:`, error, error.response.body,'\nsdsd\n');
         // Add the guest to the list without updating their status
         updatedGuestList.push(guest);
       }

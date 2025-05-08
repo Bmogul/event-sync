@@ -8,15 +8,15 @@
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
 
-  --primary-btn: #bd6644;
+  --primary-btn: #bbaa6a;
   --btn-text-color: #000;
 
   --font-krub-sans: "Krub", sans-serif;
   --font-header: "Great Vibes", cursive;
-  --primary-text-color: #6f4d0d;
+  --primary-text-color: #bbaa6a;
 
   /*--bg-color: #ffefd2;*/
-  --bg-color: #e1c0b7;
+  --bg-color: #0e122f;
 
   display: grid;
   grid-template-rows: 20px 1fr 20px;
@@ -88,14 +88,15 @@
   text-align: center;
 }
 
-.header h1{
+.header h1 {
   font-family: var(--font-header);
+  font-size: 50px;
 }
 
 .logoContainer {
   position: relative;
   width: 75%;
-  max-width: 970px;
+  max-width: 500px;
   min-width: 400px;
   aspect-ratio: 2/1.5;
 }
@@ -103,7 +104,6 @@
 .logoP {
   object-fit: contain;
   transition: transform 0.3s ease;
-  border-radius: 100%;
   cursor: pointer;
 
   animation: pulse 2s infinite;
@@ -112,7 +112,6 @@
 .logo {
   object-fit: contain;
   transition: transform 0.3s ease;
-  border-radius: 100%;
   cursor: pointer;
 }
 
@@ -199,4 +198,58 @@
     width: 100%;
     height: 200px;
   }
+
+  .cardD:nth-child(1):hover {
+    transform: scale(1.05);
+    transform: translateY(-10px);
+  }
+
+  .cardD:nth-child(2):hover,
+  .cardD:nth-child(3):hover {
+    transform: translateY(-10px);
+  }
+
+  .cardD:nth-child(2) {
+    z-index: 2;
+    top: 0px;
+    right: 0px;
+    /* Adjust the top offset for the second card */
+  }
+
+  .cardD:nth-child(3) {
+    z-index: 1;
+    top: 40px;
+    right: 0px;
+    /* Adjust the top offset for the third card */
+  }
+}
+
+.cardsDiv {
+  position: relative;
+  width: 75%;
+  max-width: 500px;
+  min-width: 200px;
+  aspect-ratio: 640/897;
+}
+
+.imageStack {
+  position: relative;
+}
+
+.cardD {
+  position: absolute;
+  top: -35px;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.2s ease;
+}
+
+.cardView {
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.75);
+}
+
+.cardD:hover {
+  transform: scale(1.05) translateX(5px) translateY(-10px);
 }

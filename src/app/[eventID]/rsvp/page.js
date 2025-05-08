@@ -61,7 +61,30 @@ export default function EventPage({ eventData }) {
             JSON.stringify({ message: data, status: response.status }),
           );
         else {
-          setParty(data);
+          console.log(data);
+          // modifiying event based on functios party is invited to
+          const filteredEvent = { ...event };
+
+          // Get all funcX keys
+          const funcKeys = Object.keys(event).filter((key) =>
+            key.startsWith("func"),
+          );
+
+          // Filter out funcX where no party member has the corresponding column set to 1
+          for (const funcKey of funcKeys) {
+            const funcCol = event[funcKey].funcCol;
+
+            const isAnyoneInvited = data.some(
+              (member) => member[funcCol] === "1",
+            );
+
+            if (!isAnyoneInvited) {
+              delete filteredEvent[funcKey];
+            }
+          }
+
+          setEvent(filteredEvent);
+          setParty([...data].sort((a, b) => a.FamilyOrder - b.FamilyOrder));
         }
         // Process the data as needed
       } catch (error) {

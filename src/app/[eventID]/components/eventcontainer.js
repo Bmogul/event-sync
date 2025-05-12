@@ -56,6 +56,7 @@ const Cards = ({ event, party }) => {
   const [cardOrder, setCardOrder] = useState(cardImages);
 
   useEffect(() => {
+    console.log(cardImages.reverse())
     setCardOrder(cardImages);
   }, [event]);
 

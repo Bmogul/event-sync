@@ -33,12 +33,29 @@ const GET = async (req) => {
             return obj;
           }, {});
         });
-      if (matchingRows.length > 0) party = matchingRows;
-      else throw new Error("Could not find party");
+      if (matchingRows.length > 0) {
+        party = matchingRows;
+        for (let i = 0; i < party.length; i++) {
+          let member = party[i];
+          console.log();
+          let invites = [];
+          for (let key in member) {
+            if (key.includes("Invite")) {
+              if (member[key]) invites.push(member[key]);
+            }
+          }
+          console.log(member.Name, invites);
+          if (!(invites.includes(1) || invites.includes("1"))) {
+            party.splice(i, 1);
+            i--;
+          }
+        }
+      } else throw new Error("Could not find party");
     } else {
       party = {};
     }
   } catch (error) {
+    console.log(error);
     return NextResponse.json({ error }, { status: 500 });
   }
   return NextResponse.json(party, { status: 200 });
@@ -51,7 +68,6 @@ const POST = async (req) => {
     console.log("INVALID DATA FORMAT");
     return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
   }
-
 
   const sheetID = event.sheetID;
   const sheets = await getGoogleSheets();
@@ -72,12 +88,12 @@ const POST = async (req) => {
 
     for (const member of party) {
       const { GUID, UID } = member;
-      console.log(GUID, UID)
+      console.log(GUID, UID);
 
       if (!GUID || !UID) continue;
 
       const rowIndex = allValues.findIndex(
-        (row) => row[0]?.toString() === GUID && row[1]?.toString() === UID
+        (row) => row[0]?.toString() === GUID && row[1]?.toString() === UID,
       );
 
       if (rowIndex === -1) continue;
@@ -92,7 +108,7 @@ const POST = async (req) => {
           if (idx !== -1) updateRow[idx] = member[key];
         }
       }
-      console.log('updateRow', updateRow)
+      console.log("updateRow", updateRow);
 
       // DateResponded
       const dateIdx = colIndex("DateResponded");
@@ -102,12 +118,12 @@ const POST = async (req) => {
 
       // Construct A1-style range for the specific row
       const range = `Main!A${rowNumber}:${String.fromCharCode(65 + headers.length - 1)}${rowNumber}`;
-      console.log('range', range)
+      console.log("range", range);
 
       valuesToUpdate[range] = {
         values: [updateRow],
       };
-      console.log('helo', valuesToUpdate)
+      console.log("helo", valuesToUpdate);
     }
 
     // Batch update request
@@ -131,7 +147,6 @@ const POST = async (req) => {
     }
 
     return NextResponse.json({ message: "Success" }, { status: 200 });
-
   } catch (e) {
     console.error("Error posting:", e);
     return NextResponse.json({ message: "Internal error" }, { status: 500 });

@@ -81,12 +81,13 @@ export const reminderTemplate = `
               This is a reminder that our event is approaching in {{daysUntil}} days.
             </p>
             <p style="text-align: left">
-              Aqa Moula TUS ni raza ane dua Mubarak si hamari piyari dekri Rashida ni shaadi ni masaraat naseeb thai che. 
-              Shaadi na jaman ma aap ne izan araz karye che, zaroor padharjo.
+Aqa Moula TUS ni raza ane dua Mubarak si hamari piyari dikri Sakina ni shaadi ni masaraat naseeb thai che. Aap ne izan araz karye che, zaroor padharjo
+
             </p>
             </br>
             <p>
-              Shk.Khuzema and Zahra bhen Kanchwala
+
+Huzefa and Fatema Mogul
             </p>
           </div>
           

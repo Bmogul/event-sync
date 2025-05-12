@@ -79,7 +79,7 @@ export const POST = async (req) => {
           to: guest.Email,
           from: {
             email: sender,
-            name: "Shk Khuzema and Zahra bhen Kanchwala",
+            name: "Huzefa and Fatema Mogul",
           },
           subject: "Important Reminder Inside",
           html: compiledReminderTemplate(templateData),

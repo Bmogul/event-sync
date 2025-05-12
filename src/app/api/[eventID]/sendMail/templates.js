@@ -66,9 +66,7 @@ export const inviteTemplate = `
             Afzalus salaam
           </p>
           <p style="text-align: left">
-
-Email text
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus blandit mollis neque, in fringilla elit pretium porttitor. In aliquam vehicula est, at pretium purus fringilla eget. Aliquam sit amet aliquam nunc. Pellentesque nec sodales ligula, in luctus risus. Aliquam eu dui tristique dolor maximus volutpat at sit amet tortor. Aliquam vitae fermentum tortor. Duis pellentesque nisi at ipsum pulvinar pellentesque. Cras eget interdum ex, ut ultrices tellus.
+Aqa Moula TUS ni raza ane dua Mubarak si hamari piyari dikri Sakina ni shaadi ni masaraat naseeb thai che. Aap ne izan araz karye che, zaroor padharjo
 </p>
 </br>
 <p>

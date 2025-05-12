@@ -53,11 +53,11 @@ const Cards = ({ event, party }) => {
   const cardImages = funcKeys.map(key => event[key].cardLink);
   console.log('cardimages', cardImages)
 
-  const [cardOrder, setCardOrder] = useState(cardImages);
+  const [cardOrder, setCardOrder] = useState(cardImages.reverse());
 
   useEffect(() => {
     console.log(cardImages.reverse())
-    setCardOrder(cardImages);
+    setCardOrder(cardImages.reverse());
   }, [event]);
 
   const handleCardClick = (clickedCard) => {

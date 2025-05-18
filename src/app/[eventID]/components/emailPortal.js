@@ -22,9 +22,10 @@ const EmailPortal = ({
   const [cols, setCols] = useState([
     { field: "GUID", width: 80 },
     { field: "UID", width: 80 },
+    { field: "FamilyOrder", filter: true, width: 80},
     { field: "Name", filter: true },
     { field: "Email", filter: true },
-    { field: "MainResponse", filter: true },
+    { field: "MainInvite", filter: true },
     { field: "Tag", filter: true, width: 100 },
     { field: "Sent", maxWidth: 90, minWidth: 50, filter: true },
   ]);
@@ -142,7 +143,9 @@ const EmailPortal = ({
   const SendReminderAll = async () => {
     console.log(password);
     toast("Sending Reminder");
-    const reminderList = guestList.filter((user) => user.Sent === "Yes" && user.MainResponse === "");
+    const reminderList = guestList.filter(
+      (user) => user.Sent === "Yes" && user.MainResponse === "",
+    );
     console.log(reminderList);
     const res = await fetch(`/api/${params.eventID}/sendReminder`, {
       method: "POST",

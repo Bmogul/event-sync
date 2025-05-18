@@ -103,7 +103,7 @@
 }
 
 /* Ensure child elements don't overflow */
-.formBody > * {
+.formBody>* {
   min-width: 0;
   word-wrap: break-word;
 }
@@ -214,4 +214,14 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     background-color: var(--response-btn-bg-hover);
   }
+}
+
+.responseInput {
+  background: white;
+  width: 80px;
+  text-align: center;
+  padding: 7px;
+  border: none;
+  border-radius: 25px;
+  color:black;
 }

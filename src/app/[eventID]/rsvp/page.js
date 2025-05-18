@@ -61,7 +61,6 @@ export default function EventPage({ eventData }) {
             JSON.stringify({ message: data, status: response.status }),
           );
         else {
-          console.log(data);
           // modifiying event based on functios party is invited to
           const filteredEvent = { ...event };
 
@@ -74,9 +73,9 @@ export default function EventPage({ eventData }) {
           for (const funcKey of funcKeys) {
             const funcCol = event[funcKey].funcCol;
 
-            const isAnyoneInvited = data.some(
-              (member) => member[funcCol] === "1",
-            );
+            const isAnyoneInvited = data.some((member) => {
+              return member[funcCol] === "1" || member[funcCol] == "x";
+            });
 
             if (!isAnyoneInvited) {
               delete filteredEvent[funcKey];

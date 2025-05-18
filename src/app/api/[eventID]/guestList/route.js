@@ -25,13 +25,14 @@ export const GET = async (req) => {
       const selectedKeys = [
         keys[0],
         keys[1],
+        keys[3],
         keys[4],
         keys[5],
         keys[7],
         keys[9],
-        keys[10],
+        keys[12],
       ];
-      const selectedIndexes = [0, 1, 4, 5,7, 9, 10];
+      const selectedIndexes = [0, 1,3, 4, 5,7, 9, 12];
 
       allUsers = allUsers.map((user) => {
         return selectedKeys.reduce((obj, key, index) => {

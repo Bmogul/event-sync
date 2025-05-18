@@ -45,7 +45,13 @@ const GET = async (req) => {
             }
           }
           console.log(member.Name, invites);
-          if (!(invites.includes(1) || invites.includes("1"))) {
+          if (
+            !(
+              invites.includes(1) ||
+              invites.includes("1") ||
+              invites.includes("x")
+            )
+          ) {
             party.splice(i, 1);
             i--;
           }

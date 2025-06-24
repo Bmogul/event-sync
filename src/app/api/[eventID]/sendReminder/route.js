@@ -35,7 +35,7 @@ export const POST = async (req) => {
 
     // Function to update a single row in the sheet
     const updateSheetRow = async (guest, rowNumber) => {
-      const cellRange = `Main!J${rowNumber}:K${rowNumber}`;
+      const cellRange = `Main!M${rowNumber}:N${rowNumber}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId: sheetID,
         range: cellRange,

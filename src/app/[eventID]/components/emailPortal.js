@@ -26,7 +26,7 @@ const EmailPortal = ({
     { field: "Name", filter: true },
     { field: "Email", filter: true },
     { field: "MainInvite", filter: true },
-    { field: "Tag", filter: true, width: 100 },
+    { field: "MainResponse", filter: true, width: 100 },
     { field: "Sent", maxWidth: 90, minWidth: 50, filter: true },
   ]);
   const [rowData, setRowData] = useState(guestList);

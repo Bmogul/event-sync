@@ -168,6 +168,35 @@ const EmailPortal = ({
       toast("Failed to send invites, try again");
     }
   };
+  // Send Update
+  const SendUpdateAll = async () => {
+    console.log(password);
+    toast("Sending Update");
+    const reminderList = guestList.filter(
+      (user) => user.MainResponse === "1" || user.MainResponse == 1,
+    );
+    console.log(reminderList);
+    const res = await fetch(`/api/${params.eventID}/sendUpdate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        guestList: reminderList,
+        password: password,
+        event: event,
+      }),
+    });
+    const result = await res.json();
+
+    if (res.status === 200 && result.validated) {
+      toast("Updates sent!");
+      updateGuestList(result.guestList);
+    } else {
+      console.log(res.status, result.validated);
+      toast("Failed to send invites, try again");
+    }
+  };
 
   return (
     <div className={styles.Mailbox}>
@@ -210,6 +239,13 @@ const EmailPortal = ({
           onClick={SendReminderAll}
         >
           Send Reminder All
+        </button>
+        <button
+          title="Send updates to all who have responded"
+          className={styles.sendMailBtn}
+          onClick={SendReminderAll}
+        >
+          Send Update All
         </button>
       </div>
       <div

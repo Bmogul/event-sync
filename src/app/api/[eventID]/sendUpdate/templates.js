@@ -66,7 +66,7 @@ export const reminderTemplate = `
           <p style="font-size: 16px; margin-bottom: 20px">
           </p>
           <p style="text-align: left">
-There has been an update to the event details, please click the button to view the latest details</p>
+There has been an update to the event details. Time for "Kushi Jaman and Majlis" has been set for 5:45 PM on August 2nd. Please click the button to view the latest details</p>
 </br>
 <p>
 Huzefa and Fatema Mogul

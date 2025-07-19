@@ -29,7 +29,7 @@ const eventlist = {
       funcTitle: "Khushi Jaman and Majlis",
       funcCol: "MainInvite",
       cardLink: "https://i.imgur.com/Vq7vqkn.jpeg",
-      date: "Time TBD, 2nd August 2025, Saturday",
+      date: "5:45 PM, 2nd August 2025, Saturday",
       location: "341 Dunhams Corner Rd, East Brunswick, NJ 08816"
     },
     func1:{

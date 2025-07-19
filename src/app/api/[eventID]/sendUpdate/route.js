@@ -81,7 +81,7 @@ export const POST = async (req) => {
             email: sender,
             name: "Huzefa and Fatema Mogul",
           },
-          subject: "Important Reminder Inside",
+          subject: "Important Update Inside",
           html: compiledReminderTemplate(templateData),
         };
 

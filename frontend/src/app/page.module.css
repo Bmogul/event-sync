@@ -1,4 +1,4 @@
-.page {
+/*.page {
   --gray-rgb: 0, 0, 0;
   --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
   --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
@@ -102,7 +102,9 @@
 
 /* Enable hover only on non-touch devices */
 /* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
+
+
+/*@media (hover: hover) and (pointer: fine) {
   .btn:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -110,13 +112,13 @@
 }
 
 /* Optional: Add focus styles for accessibility */
-.btn:focus {
+/*.btn:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(var(--primary-btn-rgb), 0.5);
 }
 
 /* Ensure the button doesn't get stuck in the expanded state on touch devices */
-@media (hover: none) {
+/*@media (hover: none) {
   .btn:active {
     transform: scale(0.98);
   }
@@ -156,3 +158,4 @@
     filter: invert();
   }
 }
+*/

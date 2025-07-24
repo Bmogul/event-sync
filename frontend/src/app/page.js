@@ -1,11 +1,16 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function Home() {
+import Header from "@/components/layout/Header";
+import Hero from "@/components/sections/Hero";
+import Features from "@/components/sections/Features";
+import CTA from "@/components/sections/CTA";
+import Footer from "@/components/layout/Footer";
 
+export default function Home() {
   const router = useRouter();
 
   const CreateEvent = async () => {
@@ -13,25 +18,38 @@ export default function Home() {
       // Attempt to navigate to the page
       router.push("/eventcreate");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
       // If navigation fails, redirect to 404 page
-      router.push('/404');
+      router.push("/404");
     }
-  }
+  };
 
   const LearnMore = async () => {
     try {
       // Attempt to navigate to the page
       router.push("/about");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
       // If navigation fails, redirect to 404 page
-      router.push('/404');
+      router.push("/404");
     }
-  }
+  };
 
   return (
-    <div className={styles.page}>
+    <>
+      <Header />
+      <main>
+        <Hero />
+        <Features />
+        <CTA />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+/*
+ *  <div className={styles.page}>
       <main className={styles.main}>
         <div className={styles.header}>
           <div className={styles.logoContainer}>
@@ -48,5 +66,4 @@ export default function Home() {
         </div>
       </main>
     </div>
-  );
-}
+*/

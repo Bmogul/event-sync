@@ -1,30 +1,31 @@
-# 🚀 FastAPI Backend - Event Sync
+# 🚀 Event-Sync Backend - ASP.NET Core Web API
 
-This is the backend service for the Event Sync project, built with **FastAPI**.
+This is the backend service for the **Event-Sync** project, rebuilt using **ASP.NET Core 8 Web API**.
 
 ---
 
 ## 📦 Tech Stack
 
-- **Python**: 3.11+
-- **FastAPI**: High-performance API framework
-- **Uvicorn**: ASGI server
-- **Pydantic**: Data validation and serialization
-- **(Optional)** PostgreSQL via `asyncpg` or `SQLAlchemy`
-- **(Optional)** Docker & Docker Compose
+* **.NET SDK**: 8.0.115
+* **ASP.NET Core Web API**
+* **Swagger / OpenAPI** (auto-generated API docs)
+* **PostgreSQL** 
+* **Docker**
 
 ---
 
 ## 📁 Project Structure
+
+```
 backend/
-├── app/
-│ ├── main.py # Entry point (FastAPI app)
-│ ├── api/ # API route definitions
-│ ├── models/ # Pydantic schemas / DB models
-│ ├── services/ # Business logic
-│ └── core/ # Config, dependencies, utils
-├── tests/ 
-├── requirements.txt
+├── Controllers/         # API endpoints
+├── Models/              # Data models (DTOs or EF Core models)
+├── Services/            # Business logic and helpers
+├── Data/                # DbContext and database setup (if using EF Core)
+├── Program.cs           # Entry point and configuration
+├── appsettings.json     # Configuration (e.g., connection strings)
+└── backend.csproj
+```
 
 ---
 
@@ -33,50 +34,54 @@ backend/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/event-sync.git
+git clone https://github.com/bmogul/event-sync.git
 cd event-sync/backend
 ```
 
-### 2. Create a virtal environment
+### 2. Install .NET SDK
+
+Make sure you have the [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) installed:
 
 ```bash
-python3.11 -m venv venv
-source venv/bin/activate
+dotnet --version
+# Should output: 8.0.115 or later
 ```
-### 3. Install dependencies
+
+### 3. Run the development server
 
 ```bash
-pip install -r requirements.txt
+dotnet watch run
 ```
 
-### 4. Run the development server
-
-```bash
-fastapi dev main.py
-```
-The app will be available at: http://127.0.0.1:8000
+The app will be available at:
+[http://localhost:5000](http://localhost:5000) (or [https://localhost:5001](https://localhost:5001) if using HTTPS)
 
 ---
 
-## 📚 API Docs
+## 📚 API Documentation
 
+Auto-generated API docs are available via Swagger UI:
 
-FastAPI automatically generates interactive docs:
+* Swagger UI: [http://localhost:{PORT}/swagger](http://localhost:{PORT}/swagger)
 
-Swagger UI: http://127.0.0.1:8000/docs
-
-ReDoc: http://127.0.0.1:8000/redoc
+Versioning and grouping are supported using API version attributes and Swagger configuration (if enabled).
 
 ---
 
 ## 🧪 Running Tests
 
+If you add unit/integration tests:
+
 ```bash
-pytest
+dotnet test
 ```
+
+Make sure your tests are under a separate `backend.Tests/` project.
+
 ---
 
 ## 🧾 License
 
-todo
+TODO
 
+---

@@ -18,7 +18,7 @@ const CTA = () => {
           >
             <h2>Ready to organize your event?</h2>
             <p>
-              Join the early adopters who helped shape EventSync during our beta phase. 
+              Join the early adopters who helped shape Event-Sync during our beta phase. 
               Start creating your event today with our simple, pay-once pricing.
             </p>
           </div>

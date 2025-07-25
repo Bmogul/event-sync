@@ -31,7 +31,7 @@ const Footer = () => {
       <Container>
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
-            <h3>EventSync</h3>
+            <h3>Event-Sync</h3>
             <p>
               Making multi-day event management simple and stress-free. From RSVPs to guest lists, 
               we help you create memorable experiences for you and your guests.
@@ -77,7 +77,7 @@ const Footer = () => {
         
         <div className={styles.footerBottom}>
           <p>
-            &copy; {currentYear} EventSync. All rights reserved. Built for event hosts who care about their guests.
+            &copy; {currentYear} Event-Sync. All rights reserved. Built for event hosts who care about their guests.
           </p>
         </div>
       </Container>

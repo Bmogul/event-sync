@@ -118,3 +118,7 @@ body {
   background: #fafafa;
   overflow-x: hidden;
 }
+
+.comingSoon {
+  text-decoration: line-through;
+} 

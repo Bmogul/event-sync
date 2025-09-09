@@ -2,12 +2,14 @@
 import styles from "./Hero.module.css";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import Container from "../layout/Container";
 import Button from "../ui/Button";
 
 const Hero = () => {
   const visualRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +22,14 @@ const Hero = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleCreateEvent = () => {
+    router.push('/create-event');
+  };
+
+  const handleLearnMore = () => {
+    router.push('/about');
+  };
 
   return (
     <section className={styles.hero}>
@@ -41,10 +51,10 @@ const Hero = () => {
             </p>
 
             <div className={styles.heroActions}>
-              <Button variant="primary" size="large">
+              <Button variant="primary" size="large" onClick={handleCreateEvent}>
                 Create Your Event
               </Button>
-              <Button variant="secondary" size="large">
+              <Button variant="secondary" size="large" onClick={handleLearnMore}>
                 See How It Works
               </Button>
             </div>

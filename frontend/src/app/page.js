@@ -1,8 +1,4 @@
 "use client";
-import Image from "next/image";
-import styles from "./page.module.css";
-import React, { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 
 import Header from "@/components/layout/Header";
 import Hero from "@/components/sections/Hero";
@@ -11,29 +7,6 @@ import CTA from "@/components/sections/CTA";
 import Footer from "@/components/layout/Footer";
 
 export default function Home() {
-  const router = useRouter();
-
-  const CreateEvent = async () => {
-    try {
-      // Attempt to navigate to the page
-      router.push("/eventcreate");
-    } catch (error) {
-      console.error("Navigation error:", error);
-      // If navigation fails, redirect to 404 page
-      router.push("/404");
-    }
-  };
-
-  const LearnMore = async () => {
-    try {
-      // Attempt to navigate to the page
-      router.push("/about");
-    } catch (error) {
-      console.error("Navigation error:", error);
-      // If navigation fails, redirect to 404 page
-      router.push("/404");
-    }
-  };
 
   return (
     <>

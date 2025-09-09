@@ -1,12 +1,22 @@
 import Container from '../layout/Container'
 import Button from '../ui/Button'
 import { useScrollAnimation } from '../../hooks/useScrollAnimation'
+import { useRouter } from 'next/navigation'
 import styles from './CTA.module.css'
 
 const CTA = () => {
   const { ref: contentRef, isVisible: contentVisible } = useScrollAnimation()
   const { ref: actionsRef, isVisible: actionsVisible } = useScrollAnimation()
   const { ref: statsRef, isVisible: statsVisible } = useScrollAnimation()
+  const router = useRouter()
+
+  const handleCreateEvent = () => {
+    router.push('/create-event');
+  };
+
+  const handleViewPricing = () => {
+    router.push('/pricing');
+  };
 
   return (
     <section className={styles.cta}>
@@ -27,10 +37,10 @@ const CTA = () => {
             className={`${styles.ctaActions} ${actionsVisible ? styles.visible : ''}`}
             ref={actionsRef}
           >
-            <Button variant="white" size="large">
+            <Button variant="white" size="large" onClick={handleCreateEvent}>
               Create Your First Event
             </Button>
-            <Button variant="outline" size="large">
+            <Button variant="outline" size="large" onClick={handleViewPricing}>
               View Pricing
             </Button>
           </div>

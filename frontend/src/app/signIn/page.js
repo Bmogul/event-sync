@@ -1,21 +1,53 @@
 
 'use client'
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import styles from "./page.module.css"
+import Branding from "./components/sections/Branding";
+import AuthForm from "./components/sections/Form";
 
 const SignIn = () => {
-  let [signUp, setSignUp] = useState(false)
-  let [form, setForm] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
-  useEffect(()=>{
-    if(signUp){
-
+  useEffect(() => {
+    // Add auth-page class to body for background styling
+    document.body.classList.add('auth-page')
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('auth-page')
     }
-  },[signUp])
+  }, [])
+
+  const switchTab = (tab) => {
+    setIsSignUp(tab === 'signup')
+  }
+
+  const handleSocialLogin = async (provider, formData) => {
+    setIsLoading(true)
+    
+    // Simulate authentication process for UI demonstration
+    console.log(`Demo: ${isSignUp ? 'Signup' : 'Login'} with ${provider}:`, formData)
+    
+    // Simulate loading state
+    setTimeout(() => {
+      setIsLoading(false)
+      // For demo purposes, redirect to create-event
+      router.push('/create-event')
+    }, 2000)
+  }
 
   return(
-  <div className="auth-container fade-in">
-      Hllo
+    <div className={`${styles.authContainer} ${styles.fadeIn}`}>
+      <Branding />
+      <AuthForm 
+        isSignUp={isSignUp}
+        onSwitchTab={switchTab}
+        onSocialLogin={handleSocialLogin}
+        isLoading={isLoading}
+      />
     </div>
   )
 }

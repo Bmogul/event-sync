@@ -69,78 +69,6 @@ const EventCards = ({ subEvents }) => {
   );
 };
 
-// Enhanced EventCards component for fullscreen with expansion
-const FullscreenEventCards = ({ subEvents, onImageExpand }) => {
-  // Get images from sub-events that have them, or create default placeholder cards
-  const cardImages = subEvents
-    .map((subEvent) => subEvent.image)
-    .filter(Boolean);
-
-  // If no images, create placeholder cards with event info
-  const cards =
-    cardImages.length > 0
-      ? subEvents.filter((subEvent) => subEvent.image)
-      : subEvents.slice(0, 3); // Limit to 3 cards like original
-
-  const [cardOrder, setCardOrder] = useState([...cards].reverse());
-
-  useEffect(() => {
-    setCardOrder([...cards].reverse());
-  }, [subEvents]);
-
-  const handleCardClick = (clickedCard, index) => {
-    // If it's the front card (index 0), expand it
-    if (index === 0 && clickedCard.image) {
-      onImageExpand(clickedCard.image);
-    } else {
-      // Otherwise, move to back of stack
-      const newOrder = cardOrder.filter((card) => card !== clickedCard);
-      newOrder.push(clickedCard);
-      setCardOrder(newOrder);
-    }
-  };
-
-  if (cardOrder.length === 0) return null;
-
-  return (
-    <div className={styles.cardsDiv}>
-      <div className={styles.imageStack}>
-        {cardOrder.map((card, index) => (
-          <div
-            key={card.title || index}
-            className={`${styles.cardD} ${index === 0 ? styles.frontCard : ""}`}
-            onClick={() => handleCardClick(card, index)}
-            style={{
-              zIndex: index + 1,
-              top: `${index * 35}px`,
-              right: `${index * 10}px`,
-            }}
-          >
-            {card.image ? (
-              <img
-                src={card.image}
-                alt={card.title || `Sub-Event ${index + 1}`}
-                className={styles.cardView}
-              />
-            ) : (
-              <div className={styles.cardView}>
-                <div className={styles.placeholderCard}>
-                  <h3>{card.title || `Sub-Event ${index + 1}`}</h3>
-                  <p>
-                    {card.date && card.startTime
-                      ? `${new Date(card.date).toLocaleDateString()} at ${card.startTime}`
-                      : "Date & Time"}
-                  </p>
-                  <p>{card.location || "Location"}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 // Fullscreen Preview component - shows exactly what guests will see
 const FullscreenPreview = ({
@@ -155,13 +83,22 @@ const FullscreenPreview = ({
   previousSubEvent,
   closeFullscreen,
 }) => {
-  const [expandedImage, setExpandedImage] = useState(null);
-  // Handle escape key to close fullscreen or expanded image
+  const [showRSVPModal, setShowRSVPModal] = useState(false);
+  
+  const openRSVPModal = () => {
+    setShowRSVPModal(true);
+  };
+  
+  const closeRSVPModal = () => {
+    setShowRSVPModal(false);
+  };
+  
+  // Handle escape key to close fullscreen or RSVP modal
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === "Escape") {
-        if (expandedImage) {
-          setExpandedImage(null);
+        if (showRSVPModal) {
+          setShowRSVPModal(false);
         } else {
           closeFullscreen();
         }
@@ -172,7 +109,7 @@ const FullscreenPreview = ({
     return () => {
       document.removeEventListener("keydown", handleEscKey);
     };
-  }, [closeFullscreen, expandedImage]);
+  }, [closeFullscreen, showRSVPModal]);
 
   return (
     <div className={styles.fullscreenOverlay} onClick={closeFullscreen}>
@@ -202,13 +139,6 @@ const FullscreenPreview = ({
               >
                 Greeting Page
               </button>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${previewView === "rsvp" ? styles.active : ""}`}
-                onClick={() => setPreviewView("rsvp")}
-              >
-                RSVP Form
-              </button>
             </div>
             <button
               type="button"
@@ -234,7 +164,7 @@ const FullscreenPreview = ({
             {/* Page Header */}
             <div className={styles.guestHeader}>
               <h1 className={styles.guestEventTitle}>
-                {eventData.title || "Your Event"}
+                {rsvpSettings.pageTitle || "You're Invited!"}
               </h1>
               <p className={styles.guestEventSubtitle}>
                 {previewView === "landing"
@@ -242,7 +172,7 @@ const FullscreenPreview = ({
                     ? "Click logo below"
                     : "Click below to continue"
                   : previewView === "greeting"
-                    ? "Please RSVP down below"
+                    ? rsvpSettings.subtitle || "Join us for our special celebration"
                     : "Please RSVP down below"}
               </p>
             </div>
@@ -269,14 +199,11 @@ const FullscreenPreview = ({
                     </div>
                   )}
                 </div>
-              ) : previewView === "greeting" ? (
+              ) : (
                 <>
-                  {/* Event Cards - Enhanced for fullscreen */}
+                  {/* Event Cards */}
                   {eventData.subEvents && eventData.subEvents.length > 0 && (
-                    <FullscreenEventCards
-                      subEvents={eventData.subEvents}
-                      onImageExpand={setExpandedImage}
-                    />
+                    <EventCards subEvents={eventData.subEvents} />
                   )}
 
                   {/* Guest Invite Section - Matching editing preview exactly */}
@@ -296,157 +223,138 @@ const FullscreenPreview = ({
                       type="button"
                       className={styles.fullscreenRsvpButton}
                       style={{ backgroundColor: rsvpSettings.primaryColor }}
-                      onClick={showRSVPForm}
+                      onClick={openRSVPModal}
                     >
                       RSVP Now
                     </button>
                   </div>
                 </>
-              ) : (
-                /* RSVP Form View - Full implementation */
-                <div className={styles.fullscreenRSVPForm}>
-                  <div className={styles.rsvpFormHeader}>
-                    <h2>
-                      {eventData.subEvents?.[currentSubEventIndex]?.title ||
-                        `Sub-Event ${currentSubEventIndex + 1}`}
-                    </h2>
-                    <div className={styles.eventInfo}>
-                      <span>
-                        📅{" "}
-                        {eventData.subEvents?.[currentSubEventIndex]?.date
-                          ? new Date(
-                            eventData.subEvents[currentSubEventIndex].date,
-                          ).toLocaleDateString()
-                          : "Event Date"}
-                      </span>
-                      <span>
-                        📍{" "}
-                        {eventData.subEvents?.[currentSubEventIndex]
-                          ?.location || "Event Location"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.guestResponses}>
-                    <div className={styles.guestResponse}>
-                      <span className={styles.guestResponseName}>
-                        Jumana Motiwala
-                      </span>
-                      <div className={styles.responseButtons}>
-                        <button
-                          type="button"
-                          className={`${styles.responseBtn} ${styles.yesBtn}`}
-                        >
-                          Yes
-                        </button>
-                        <button type="button" className={styles.responseBtn}>
-                          No
-                        </button>
-                      </div>
-                    </div>
-                    <div className={styles.guestResponse}>
-                      <span className={styles.guestResponseName}>
-                        Burhanuddin Mogul
-                      </span>
-                      <div className={styles.responseButtons}>
-                        <button type="button" className={styles.responseBtn}>
-                          Yes
-                        </button>
-                        <button type="button" className={styles.responseBtn}>
-                          No
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Custom Questions */}
-                  <div className={styles.customQuestions}>
-                    {rsvpSettings.customQuestions?.includes("dietary") && (
-                      <div className={styles.customQuestion}>
-                        <label>Dietary Restrictions</label>
-                        <textarea placeholder="Let us know about any dietary restrictions..."></textarea>
-                      </div>
-                    )}
-
-                    {rsvpSettings.customQuestions?.includes("message") && (
-                      <div className={styles.customQuestion}>
-                        <label>Personal Message</label>
-                        <textarea placeholder="Share a message with us..."></textarea>
-                      </div>
-                    )}
-
-                    {rsvpSettings.customQuestions?.includes("contact") && (
-                      <div className={styles.customQuestion}>
-                        <label>Contact Information</label>
-                        <input type="email" placeholder="Email address..." />
-                      </div>
-                    )}
-
-                    {rsvpSettings.customQuestions?.includes("song") && (
-                      <div className={styles.customQuestion}>
-                        <label>Song Requests</label>
-                        <input
-                          type="text"
-                          placeholder="What songs would you like to hear?"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Form Navigation */}
-                  <div className={styles.rsvpFormFooter}>
-                    {currentSubEventIndex > 0 && (
-                      <button
-                        type="button"
-                        className={styles.prevBtn}
-                        onClick={previousSubEvent}
-                      >
-                        ← Previous
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.nextBtn}
-                      onClick={nextSubEvent}
-                      style={{ backgroundColor: rsvpSettings.primaryColor }}
-                    >
-                      {currentSubEventIndex <
-                        (eventData.subEvents?.length || 1) - 1
-                        ? "Next Sub-Event →"
-                        : "Submit RSVP"}
-                    </button>
-                  </div>
-                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Image Expansion Modal */}
-      {expandedImage && (
-        <div
-          className={styles.imageExpansionOverlay}
-          onClick={() => setExpandedImage(null)}
-        >
-          <div
-            className={styles.imageExpansionContainer}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className={styles.imageExpansionClose}
-              onClick={() => setExpandedImage(null)}
-            >
-              ✕
-            </button>
-            <img
-              src={expandedImage}
-              alt="Expanded Event Image"
-              className={styles.expandedImage}
-            />
-            <div className={styles.imageExpansionHint}>
-              Click outside or press ESC to close
+
+      {/* RSVP Modal */}
+      {showRSVPModal && (
+        <div className={styles.modalOverlay} onClick={closeRSVPModal}>
+          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <button 
+                type="button"
+                className={styles.closeBtn} 
+                onClick={closeRSVPModal}
+              >
+                ✕
+              </button>
+              <h3>{eventData.subEvents?.[currentSubEventIndex]?.title || `Sub-Event ${currentSubEventIndex + 1}`}</h3>
+              <div className={styles.modalInfo}>
+                <span>📅 {eventData.subEvents?.[currentSubEventIndex]?.date ? 
+                  new Date(eventData.subEvents[currentSubEventIndex].date).toLocaleDateString() : 
+                  'Event Date'}</span>
+                <span>📍 {eventData.subEvents?.[currentSubEventIndex]?.location || 'Event Location'}</span>
+              </div>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.guestResponse}>
+                <span>Sarah Johnson</span>
+                <div className={styles.responseButtons}>
+                  <button 
+                    type="button"
+                    className={`${styles.responseBtn} ${styles.yesBtn}`}
+                  >
+                    Yes
+                  </button>
+                  <button 
+                    type="button"
+                    className={styles.responseBtn}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+              <div className={styles.guestResponse}>
+                <span>Michael Johnson</span>
+                <div className={styles.responseButtons}>
+                  <button 
+                    type="button"
+                    className={styles.responseBtn}
+                  >
+                    Yes
+                  </button>
+                  <button 
+                    type="button"
+                    className={styles.responseBtn}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+              <div className={styles.guestResponse}>
+                <span>Emma Johnson</span>
+                <div className={styles.responseButtons}>
+                  <button 
+                    type="button"
+                    className={styles.responseBtn}
+                  >
+                    Yes
+                  </button>
+                  <button 
+                    type="button"
+                    className={styles.responseBtn}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+              
+              {rsvpSettings.customQuestions?.includes('dietary') && (
+                <div className={styles.customQuestion}>
+                  <label>Dietary Restrictions</label>
+                  <textarea placeholder="Let us know about any dietary restrictions..."></textarea>
+                </div>
+              )}
+              
+              {rsvpSettings.customQuestions?.includes('message') && (
+                <div className={styles.customQuestion}>
+                  <label>Personal Message</label>
+                  <textarea placeholder="Share a message with us..."></textarea>
+                </div>
+              )}
+              
+              {rsvpSettings.customQuestions?.includes('contact') && (
+                <div className={styles.customQuestion}>
+                  <label>Contact Information</label>
+                  <input type="email" placeholder="Email address..." />
+                </div>
+              )}
+              
+              {rsvpSettings.customQuestions?.includes('song') && (
+                <div className={styles.customQuestion}>
+                  <label>Song Requests</label>
+                  <input type="text" placeholder="What songs would you like to hear?" />
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              {currentSubEventIndex > 0 && (
+                <button 
+                  type="button"
+                  className={styles.prevBtn} 
+                  onClick={previousSubEvent}
+                >
+                  ← Previous
+                </button>
+              )}
+              <button 
+                type="button"
+                className={styles.nextBtn} 
+                onClick={nextSubEvent}
+                style={{ backgroundColor: rsvpSettings.primaryColor }}
+              >
+                {currentSubEventIndex < (eventData.subEvents?.length || 1) - 1 ? 'Next Sub-Event →' : 'Submit RSVP'}
+              </button>
             </div>
           </div>
         </div>

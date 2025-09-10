@@ -8,7 +8,7 @@ const Header = ({ onSaveDraft, isLoading }) => {
       <div className={styles.container}>
         <nav className={styles.nav}>
           <Link href="/" className={styles.logo}>
-            EventSync
+            Event-Sync
           </Link>
           <div className={styles.navActions}>
             <Link href="/" className={`${styles.btn} ${styles.btnGhost}`}>

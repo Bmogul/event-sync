@@ -1,100 +1,106 @@
-/* RSVP Customization Component Styles */
+/* RSVP Customization Component Styles - Elementor/Figma Style */
 .formSection {
   background: white;
   border-radius: var(--radius-2xl);
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-lg);
   box-shadow: var(--shadow-lg);
   margin-bottom: var(--spacing-xl);
   border: 1px solid var(--color-gray-200);
   animation: fadeIn 0.6s ease-out;
+  height: calc(100vh);
+  overflow: hidden;
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 2px solid var(--color-gray-100);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-gray-200);
+  flex-shrink: 0;
 }
 
 .sectionIcon {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
   background: var(--gradient-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xl);
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+  font-size: var(--text-lg);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   flex-shrink: 0;
 }
 
 .sectionTitle {
-  font-size: var(--text-3xl);
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--color-primary-dark);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 4px;
 }
 
 .sectionDescription {
   color: var(--color-gray-600);
-  font-size: var(--text-base);
-  line-height: 1.6;
+  font-size: var(--text-sm);
+  line-height: 1.4;
 }
 
-/* Editor Layout */
+/* Editor Layout - Elementor/Figma Style */
 .editorLayout {
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: var(--spacing-xl);
-  min-height: 700px;
+  display: flex;
+  height: calc(100vh - 300px);
+  gap: 0;
+  overflow: hidden;
 }
 
-/* Controls Panel */
+/* Controls Panel - Sidebar Style */
 .controlsPanel {
+  width: 320px;
   background: var(--color-gray-50);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+  border-right: 1px solid var(--color-gray-200);
+  padding: var(--spacing-md);
   overflow-y: auto;
-  max-height: 700px;
+  flex-shrink: 0;
 }
 
 .controlSection {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .controlTitle {
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-gray-900);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   padding-bottom: var(--spacing-xs);
-  border-bottom: 2px solid var(--color-gray-200);
+  border-bottom: 1px solid var(--color-gray-200);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Form Elements */
+/* Form Elements - Compact Style */
 .formGroup {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .formLabel {
   display: block;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-gray-700);
-  margin-bottom: var(--spacing-xs);
-  font-size: var(--text-sm);
+  margin-bottom: 4px;
+  font-size: var(--text-xs);
 }
 
 .formInput,
 .formTextarea,
 .formSelect {
   width: 100%;
-  padding: var(--spacing-sm);
-  border: 2px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  padding: 8px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   font-family: inherit;
   transition: all var(--transition-base);
   background: white;
@@ -114,7 +120,7 @@
 }
 
 .formTextarea {
-  min-height: 80px;
+  min-height: 60px;
   resize: vertical;
 }
 
@@ -124,21 +130,21 @@
   margin-top: var(--spacing-xs);
 }
 
-/* Theme Selection */
+/* Theme Selection - Compact */
 .themeGrid {
   display: grid;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
+  gap: 4px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .themeButton {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   cursor: pointer;
   transition: all var(--transition-base);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 500;
   text-align: left;
 }
@@ -153,117 +159,136 @@
   color: var(--color-primary-dark);
 }
 
-/* Questions Grid */
+/* Questions Grid - Compact */
 .questionsGrid {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: 4px;
 }
 
 .questionItem {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs);
-  background: white;
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 4px 0;
+  background: transparent;
 }
 
 .questionItem input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--color-primary);
 }
 
 .questionItem label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-gray-700);
   margin: 0;
 }
 
-/* Preview Panel */
+/* Preview Panel - Full Page View */
 .previewPanel {
+  flex: 1;
   background: var(--color-gray-100);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .previewHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: white;
+  border-bottom: 1px solid var(--color-gray-200);
+  flex-shrink: 0;
 }
 
 .previewHeader h3 {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--color-gray-900);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin: 0;
 }
 
 .deviceToggle {
   display: flex;
-  gap: 4px;
-  background: white;
-  border-radius: var(--radius-md);
-  padding: 4px;
-  box-shadow: var(--shadow-md);
+  gap: 2px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  padding: 2px;
 }
 
 .deviceBtn {
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 6px 10px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: 12px;
   transition: all var(--transition-base);
+  color: var(--color-gray-600);
 }
 
 .deviceBtn.active {
-  background: var(--color-primary);
-  color: white;
+  background: white;
+  color: var(--color-gray-900);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Preview Frame */
+/* Preview Frame - Full Screen */
 .previewFrame {
-  background: white;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
   flex: 1;
-  position: relative;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-lg);
+  background: var(--color-gray-50);
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--spacing-lg);
 }
 
 .previewFrame.mobile {
-  max-width: 375px;
-  margin: 0 auto;
-  min-height: 600px;
+  padding: var(--spacing-md);
 }
 
 .previewFrame.tablet {
-  max-width: 600px;
-  margin: 0 auto;
-  min-height: 600px;
+  padding: var(--spacing-lg);
 }
 
 .previewFrame.desktop {
-  width: 100%;
-  min-height: 600px;
+  padding: var(--spacing-xl);
 }
 
-/* RSVP Preview Content */
+/* RSVP Preview Content - Responsive Full Page */
 .rsvpPreview {
-  min-height: 600px;
-  padding: var(--spacing-lg);
-  overflow-y: auto;
+  width: 100%;
+  min-height: calc(100vh - 400px);
+  padding: var(--spacing-xl);
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   background-size: cover;
   background-position: center;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  transition: all var(--transition-base);
+}
+
+/* Device-specific preview sizing */
+.previewFrame.mobile .rsvpPreview {
+  max-width: 375px;
+  margin: 0 auto;
+}
+
+.previewFrame.tablet .rsvpPreview {
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.previewFrame.desktop .rsvpPreview {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .rsvpHeader {
@@ -505,14 +530,25 @@
   transform: translateY(-1px);
 }
 
-/* Form Actions */
+/* Form Actions - Fixed Bottom */
 .formActions {
   display: flex;
   gap: var(--spacing-md);
-  justify-content: flex-end;
-  padding-top: var(--spacing-xl);
-  border-top: 2px solid var(--color-gray-100);
-  margin-top: var(--spacing-xl);
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: white;
+  border-top: 1px solid var(--color-gray-200);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-shrink: 0;
+}
+
+/* Add padding to form section for fixed buttons */
+.formSection.customization {
+  position: relative;
+  padding-bottom: calc(var(--spacing-xl) + 60px);
 }
 
 .btn {
@@ -557,69 +593,78 @@
   color: var(--color-primary-dark);
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .editorLayout {
-    grid-template-columns: 350px 1fr;
-    min-height: 650px;
-  }
-}
-
-@media (max-width: 900px) {
-  .editorLayout {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
-    min-height: auto;
-  }
-
+/* Responsive Design - Elementor/Figma Style */
+@media (max-width: 1024px) {
   .controlsPanel {
-    max-height: 400px;
+    width: 280px;
   }
-
-  .previewFrame.mobile,
-  .previewFrame.tablet,
-  .previewFrame.desktop {
-    min-height: 500px;
+  
+  .formSection {
+    height: calc(100vh - 180px);
   }
-
-  .rsvpPreview {
-    min-height: 500px;
+  
+  .editorLayout {
+    height: calc(100vh - 280px);
   }
 }
 
 @media (max-width: 768px) {
   .formSection {
-    padding: var(--spacing-lg);
-  }
-
-  .editorLayout {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
-  }
-
-  .sectionHeader {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .formActions {
-    flex-direction: column;
-  }
-
-  .controlsPanel {
-    max-height: 350px;
-  }
-
-  .previewFrame.mobile,
-  .previewFrame.tablet,
-  .previewFrame.desktop {
-    min-height: 400px;
-    max-width: 100%;
-  }
-
-  .rsvpPreview {
     padding: var(--spacing-md);
-    min-height: 400px;
+    height: calc(100vh - 160px);
+  }
+  
+  .formSection.customization {
+    padding-bottom: calc(var(--spacing-lg) + 60px);
+  }
+  
+  .formActions {
+    padding: var(--spacing-sm) var(--spacing-md);
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .sectionHeader {
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+  
+  .sectionIcon {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-base);
+  }
+  
+  .sectionTitle {
+    font-size: var(--text-lg);
+  }
+  
+  .editorLayout {
+    flex-direction: column;
+    height: calc(100vh - 240px);
+  }
+  
+  .controlsPanel {
+    width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--color-gray-200);
+    overflow-x: auto;
+  }
+  
+  .controlSection {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .rsvpPreview {
+    min-height: calc(100vh - 500px);
+    padding: var(--spacing-md);
+  }
+  
+  .previewFrame.mobile .rsvpPreview,
+  .previewFrame.tablet .rsvpPreview,
+  .previewFrame.desktop .rsvpPreview {
+    max-width: 100%;
   }
 
   .rsvpTitle {
@@ -682,5 +727,42 @@
   
   .responseButtons {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .formSection {
+    padding: var(--spacing-sm);
+    height: calc(100vh - 120px);
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .formSection.customization {
+    padding-bottom: calc(var(--spacing-md) + 70px);
+  }
+  
+  .formActions {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .controlsPanel {
+    padding: var(--spacing-sm);
+    max-height: 160px;
+  }
+  
+  .controlTitle {
+    font-size: 10px;
+  }
+  
+  .formLabel {
+    font-size: 10px;
+  }
+  
+  .formInput,
+  .formTextarea,
+  .formSelect {
+    font-size: 12px;
+    padding: 6px;
   }
 }

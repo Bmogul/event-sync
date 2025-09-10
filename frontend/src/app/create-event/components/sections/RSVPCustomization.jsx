@@ -150,7 +150,7 @@ const RSVPCustomization = ({
   const rsvpSettings = eventData.rsvpSettings || {}
 
   return (
-    <form className={styles.formSection} onSubmit={handleSubmit}>
+    <form className={styles.formSection+" "+styles.customization} onSubmit={handleSubmit}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionIcon}>💌</div>
         <div>

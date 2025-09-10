@@ -8,6 +8,7 @@ import Header from "./components/Header";
 import ProgressSteps from "./components/ProgressSteps";
 import EventDetailsForm from "./components/sections/EventDetailsForm";
 import GuestListSection from "./components/sections/GuestListSection";
+import RSVPCustomization from "./components/sections/RSVPCustomization";
 import LaunchSection from "./components/sections/LaunchSection";
 
 const CreateEvent = () => {
@@ -29,7 +30,7 @@ const CreateEvent = () => {
       subtitle:
         "Organize your guests into groups and select which sub-events each person is invited to attend.",
     },
-    { title: "Customize RSVP Page", subtitle: "" },
+    { title: "Customize RSVP Page", subtitle: "Design your RSVP page to match your event's style and gather the information you need." },
     {
       title: "Ready to Launch",
       subtitle:
@@ -61,6 +62,21 @@ const CreateEvent = () => {
     requireRSVP: true,
     allowPlusOnes: false,
     rsvpDeadline: "",
+
+    // RSVP Page Settings
+    rsvpSettings: {
+      pageTitle: "You're Invited!",
+      subtitle: "Join us for our special celebration",
+      welcomeMessage: "We're so excited to celebrate with you! Please let us know if you can make it.",
+      theme: 'elegant',
+      fontFamily: 'Playfair Display',
+      backgroundColor: '#faf5ff',
+      textColor: '#581c87',
+      primaryColor: '#8b5cf6',
+      customQuestions: ['dietary', 'message'],
+      backgroundImage: null,
+      backgroundOverlay: 20
+    },
   });
 
   const updateEventData = (updates) => {
@@ -71,7 +87,7 @@ const CreateEvent = () => {
   };
 
   const nextStep = () => {
-    if (currentStep < 4) {
+    if (currentStep < 5) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -171,6 +187,16 @@ const CreateEvent = () => {
 
               {currentStep === 3 && (
                 <GuestListSection
+                  eventData={eventData}
+                  updateEventData={updateEventData}
+                  onNext={nextStep}
+                  onPrevious={previousStep}
+                  isLoading={isLoading}
+                />
+              )}
+
+              {currentStep === 4 && (
+                <RSVPCustomization
                   eventData={eventData}
                   updateEventData={updateEventData}
                   onNext={nextStep}

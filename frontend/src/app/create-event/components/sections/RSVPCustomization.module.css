@@ -1,0 +1,442 @@
+/* RSVP Customization Component Styles */
+.formSection {
+  background: white;
+  border-radius: 20px;
+  padding: 48px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 32px;
+  border: 1px solid #e5e7eb;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.sectionIcon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.sectionTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 8px;
+}
+
+.sectionDescription {
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Editor Layout */
+.editorLayout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 32px;
+  min-height: 600px;
+}
+
+/* Controls Panel */
+.controlsPanel {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 24px;
+  overflow-y: auto;
+  max-height: 800px;
+}
+
+.controlSection {
+  margin-bottom: 32px;
+}
+
+.controlTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Form Elements */
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.formInput,
+.formTextarea,
+.formSelect {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.formInput:focus,
+.formTextarea:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.formInput.error,
+.formTextarea.error {
+  border-color: #ef4444;
+}
+
+.formTextarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.errorText {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Theme Selection */
+.themeGrid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.themeButton {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.themeButton:hover {
+  border-color: #10b981;
+}
+
+.themeButton.active {
+  border-color: #10b981;
+  background: #f0fdf4;
+  color: #065f46;
+}
+
+/* Questions Grid */
+.questionsGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.questionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+}
+
+.questionItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #10b981;
+}
+
+.questionItem label {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+}
+
+/* Preview Panel */
+.previewPanel {
+  background: #f3f4f6;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.previewHeader h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.deviceToggle {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.deviceBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.deviceBtn.active {
+  background: #10b981;
+  color: white;
+}
+
+/* Preview Frame */
+.previewFrame {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  flex: 1;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.previewFrame.mobile {
+  max-width: 375px;
+  margin: 0 auto;
+}
+
+.previewFrame.tablet {
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.previewFrame.desktop {
+  width: 100%;
+}
+
+/* RSVP Preview Content */
+.rsvpPreview {
+  height: 100%;
+  padding: 32px;
+  overflow-y: auto;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.rsvpHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.rsvpTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.rsvpSubtitle {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  margin-bottom: 24px;
+}
+
+.rsvpCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 32px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.eventInfo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.eventInfo h2 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  color: #065f46;
+}
+
+.eventInfo p {
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.rsvpForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formField label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.formField input,
+.formField select,
+.formField textarea {
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.formField textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.submitBtn {
+  padding: 16px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
+}
+
+/* Form Actions */
+.formActions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding-top: 32px;
+  border-top: 2px solid #f3f4f6;
+  margin-top: 32px;
+}
+
+.btn {
+  padding: 16px 32px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: white;
+  color: #374151;
+  border: 2px solid #e5e7eb;
+}
+
+.btnSecondary:hover {
+  border-color: #10b981;
+  color: #065f46;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .formSection {
+    padding: 24px;
+  }
+
+  .editorLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .controlsPanel {
+    max-height: none;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .rsvpPreview {
+    padding: 16px;
+  }
+
+  .rsvpTitle {
+    font-size: 2rem;
+  }
+
+  .rsvpCard {
+    padding: 24px;
+  }
+}

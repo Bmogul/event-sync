@@ -1,0 +1,507 @@
+/* Pricing Page Styles - Purple Theme */
+
+.pricingPage {
+  background: #f9fafb;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Hero Section */
+.pricingHero {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #faf5ff 100%);
+  padding: 140px 0 80px 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricingHero::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(124,58,237,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+  animation: float 30s infinite linear;
+  opacity: 0.5;
+}
+
+@keyframes float {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.heroTitle {
+  font-size: 56px;
+  font-weight: 800;
+  color: #581c87;
+  margin-bottom: 24px;
+  letter-spacing: -2px;
+  line-height: 1.1;
+}
+
+.highlight {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: 20px;
+  color: #4b5563;
+  margin-bottom: 48px;
+  line-height: 1.6;
+}
+
+.billingToggle {
+  display: inline-flex;
+  align-items: center;
+  background: white;
+  padding: 8px 24px;
+  border-radius: 50px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.billingLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #581c87;
+}
+
+/* Pricing Plans */
+.pricingPlans {
+  padding: 80px 0;
+}
+
+.plansGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricingCard {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 48px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricingCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+.pricingCard.popular {
+  border-color: #7c3aed;
+  border-width: 3px;
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.2);
+}
+
+.pricingCard.popular:hover {
+  transform: scale(1.05) translateY(-4px);
+}
+
+.popularBadge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  padding: 8px 32px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.cardHeader {
+  margin-bottom: 32px;
+}
+
+.planBadge {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.popular .planBadge {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.planName {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.planDescription {
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.pricingSection {
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.currency {
+  font-size: 24px;
+  font-weight: 600;
+  color: #581c87;
+}
+
+.amount {
+  font-size: 64px;
+  font-weight: 800;
+  color: #581c87;
+  line-height: 1;
+}
+
+.period {
+  font-size: 18px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.savings {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 600;
+  background: #ecfdf5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.featuresSection {
+  flex: 1;
+  margin-bottom: 40px;
+}
+
+.featuresList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature,
+.featureDisabled {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.feature {
+  color: #374151;
+}
+
+.featureDisabled {
+  color: #9ca3af;
+}
+
+.featureIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.feature .featureIcon {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+}
+
+.featureDisabled .featureIcon {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.cardFooter {
+  margin-top: auto;
+}
+
+.planButton {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cardFooterText {
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* FAQ Section */
+.faqSection {
+  background: white;
+  padding: 120px 0;
+}
+
+.faqHeader {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.faqTitle {
+  font-size: 48px;
+  font-weight: 800;
+  color: #581c87;
+  margin-bottom: 24px;
+  letter-spacing: -1px;
+}
+
+.faqSubtitle {
+  font-size: 20px;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.faqGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 40px;
+  margin-bottom: 80px;
+}
+
+.faqItem {
+  padding: 32px;
+  background: #f9fafb;
+  border-radius: 16px;
+  border-left: 4px solid #7c3aed;
+}
+
+.faqQuestion {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.faqAnswer {
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.contactSection {
+  display: flex;
+  justify-content: center;
+}
+
+.contactCard {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  padding: 48px;
+  border-radius: 24px;
+  text-align: center;
+  max-width: 600px;
+  border: 2px solid #e9d5ff;
+}
+
+.contactTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 16px;
+}
+
+.contactDescription {
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.contactButton {
+  border-color: #7c3aed;
+  color: #581c87;
+}
+
+.contactButton:hover {
+  background: #7c3aed;
+  color: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .pricingHero {
+    padding: 120px 20px 60px 20px;
+  }
+
+  .heroTitle {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+
+  .heroSubtitle {
+    font-size: 18px;
+    margin-bottom: 32px;
+    padding: 0 10px;
+  }
+
+  .pricingPlans {
+    padding: 60px 20px;
+  }
+
+  .plansGrid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    max-width: 500px;
+  }
+
+  .pricingCard {
+    padding: 32px 24px;
+  }
+
+  .pricingCard.popular {
+    transform: none;
+    margin-top: 24px;
+  }
+
+  .pricingCard.popular:hover {
+    transform: translateY(-4px);
+  }
+
+  .amount {
+    font-size: 48px;
+  }
+
+  .faqSection {
+    padding: 80px 20px;
+  }
+
+  .faqTitle {
+    font-size: 32px;
+  }
+
+  .faqSubtitle {
+    font-size: 18px;
+    padding: 0 10px;
+  }
+
+  .faqGrid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 60px;
+  }
+
+  .faqItem {
+    padding: 24px;
+  }
+
+  .contactCard {
+    padding: 32px 24px;
+    margin: 0 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .heroSubtitle {
+    font-size: 16px;
+  }
+
+  .pricingCard {
+    padding: 24px 20px;
+  }
+
+  .planName {
+    font-size: 24px;
+  }
+
+  .amount {
+    font-size: 40px;
+  }
+
+  .faqTitle {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .contactTitle {
+    font-size: 20px;
+  }
+
+  .faqGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .faqItem {
+    padding: 20px;
+  }
+}
+
+/* Animations */
+.pricingPlans,
+.faqSection {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

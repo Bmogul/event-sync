@@ -34,8 +34,8 @@ const SignIn = () => {
     // Simulate loading state
     setTimeout(() => {
       setIsLoading(false)
-      // For demo purposes, redirect to create-event
-      router.push('/create-event')
+      // Redirect to user dashboard after successful authentication
+      router.push('/dashboard')
     }, 2000)
   }
 

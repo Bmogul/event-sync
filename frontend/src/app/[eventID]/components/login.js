@@ -34,10 +34,6 @@ const Login = ({ event, password, setPassword, handleLogin}) => {
         </div>
       </div>
       <div className={styles.verticalLine} />
-      <div className={styles.logoContainerB}>
-        <Image className={styles.responsiveLogo} src={"/logo.svg"} alt="Event-Sync" fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-      </div>
     </div>)
 }
 

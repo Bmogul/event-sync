@@ -123,52 +123,105 @@ const Page = () => {
   };
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
-  // While still loading
-  /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-  if (loading)
-    return (
-      <div className={styles.page}>
-        <Loading />
-      </div>
-    );
+
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.logoContainer}>
-          <Image
-            className={styles.responsiveLogo}
-            src={"/logo.svg"}
-            alt="Event-Sync"
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.container}>
+          <nav className={styles.nav}>
+            <div className={styles.logoSection}>
+              <a href="/" className={styles.logo}>Event-Sync</a>
+              <span className={styles.breadcrumb}>/ Event Portal</span>
+            </div>
+            <div className={styles.navActions}>
+              <button className={styles.btnSecondary}>Export Data</button>
+              <button className={styles.btnOutline}>Event Settings</button>
+              <button 
+                className={styles.btnPrimary}
+                onClick={() => window.open(`/${params.eventID}/rsvp`, '_blank')}
+              >
+                View Public Page
+              </button>
+            </div>
+          </nav>
         </div>
-        <p>Event Portal</p>
-      </div>
-      <div className={styles.main}>
-        {menu === "login" ? (
-          <Login
-            event={event}
-            password={password}
-            setPassword={setPassword}
-            handleLogin={handleLogin}
-          />
-        ) : menu === "email" ? (
-          <Email
-            toast={toast}
-            event={event}
-            params={params}
-            guestList={guestList}
-            password={password}
-            getGuestList={getGuestList}
-            updateGuestList={updateGuestList}
-          />
-        ) : (
-          <></>
-        )}
-      </div>
+      </header>
+
+      {/* Main Content */}
+      <main className={styles.main}>
+        <div className={styles.container}>
+          {menu === "login" ? (
+            <Login
+              event={event}
+              password={password}
+              setPassword={setPassword}
+              handleLogin={handleLogin}
+            />
+          ) : menu === "email" ? (
+            <>
+              {/* Event Header */}
+              <div className={styles.eventHeader}>
+                <h1 className={styles.eventTitle}>{event?.eventTitle || "Event Management"}</h1>
+                <p className={styles.eventSubtitle}>
+                  Event Management Portal • Guest Communication & Analytics
+                </p>
+                <div className={styles.eventActions}>
+                  <button className={styles.btnPrimary} onClick={() => {}}>
+                    ✉️ Send Mail
+                  </button>
+                  <button className={styles.btnOutline}>📊 View Analytics</button>
+                  <button className={styles.btnOutline}>📱 Share Event</button>
+                  <button className={styles.btnOutline}>🎨 Customize RSVP</button>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                  <div className={styles.statNumber}>{guestList?.length || 0}</div>
+                  <div className={styles.statLabel}>Total Guests</div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statNumber}>
+                    {guestList?.filter(guest => guest.Sent === "Yes").length || 0}
+                  </div>
+                  <div className={styles.statLabel}>Invites Sent</div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statNumber}>
+                    {guestList?.filter(guest => guest.MainResponse === "1" || guest.MainResponse === 1).length || 0}
+                  </div>
+                  <div className={styles.statLabel}>Responses</div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statNumber}>
+                    {guestList?.filter(guest => guest.Sent === "Yes" && (!guest.MainResponse || guest.MainResponse === "")).length || 0}
+                  </div>
+                  <div className={styles.statLabel}>Pending</div>
+                </div>
+              </div>
+
+              {/* Email Portal Component */}
+              <Email
+                toast={toast}
+                event={event}
+                params={params}
+                guestList={guestList}
+                password={password}
+                getGuestList={getGuestList}
+                updateGuestList={updateGuestList}
+              />
+            </>
+          ) : (
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingSpinner}></div>
+            </div>
+          )}
+        </div>
+      </main>
       <ToastContainer />
     </div>
   );

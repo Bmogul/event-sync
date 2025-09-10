@@ -199,68 +199,121 @@ const EmailPortal = ({
   };
 
   return (
-    <div className={styles.Mailbox}>
-      <div className={styles.MailboxHeader}>
-        <h2>{event.eventTitle}</h2>
-        <div className={styles.verticalLine} />
-        <div className={styles.menuTitle}>
-          <h3>Send Mail</h3>
-          <Image
-            src={"/Send_fill.svg"}
-            alt="Close Form"
-            height={30}
-            width={30}
-            className={styles.closeBtn}
+    <>
+      {/* Quick Actions */}
+      <div className={styles.actionButtons}>
+        <button 
+          className={styles.actionBtn} 
+          onClick={SendMail}
+          title="Send invite to selected guests"
+        >
+          <div className={styles.actionBtnIcon}>📮</div>
+          <div>
+            <div>Send Invites</div>
+            <div className={styles.actionBtnSubtitle}>
+              Send to selected guests
+            </div>
+          </div>
+        </button>
+        <button 
+          className={styles.actionBtn} 
+          onClick={SendReminder}
+          title="Send reminders to selected guests"
+        >
+          <div className={styles.actionBtnIcon}>⏰</div>
+          <div>
+            <div>Send Reminders</div>
+            <div className={styles.actionBtnSubtitle}>
+              Remind selected guests
+            </div>
+          </div>
+        </button>
+        <button 
+          className={styles.actionBtn} 
+          onClick={SendReminderAll}
+          title="Send reminders to all non-responders"
+        >
+          <div className={styles.actionBtnIcon}>📢</div>
+          <div>
+            <div>Send Reminder All</div>
+            <div className={styles.actionBtnSubtitle}>
+              Remind non-responders
+            </div>
+          </div>
+        </button>
+        <button 
+          className={styles.actionBtn} 
+          onClick={SendUpdateAll}
+          title="Send updates to all respondents"
+        >
+          <div className={styles.actionBtnIcon}>🔄</div>
+          <div>
+            <div>Send Update All</div>
+            <div className={styles.actionBtnSubtitle}>
+              Event updates
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Guest List Section */}
+      <div className={styles.guestSection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Guest Management</h2>
+          <div className={styles.sectionControls}>
+            <button className={styles.btnOutlineSmall}>Add Guest</button>
+            <button className={styles.btnPrimarySmall}>Import List</button>
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        {selectedRows.length > 0 && (
+          <div className={styles.bulkActions}>
+            <span className={styles.bulkCount}>{selectedRows.length} guests selected</span>
+            <button className={styles.btnPrimarySmall} onClick={SendMail}>Send Invites</button>
+            <button className={styles.btnOutlineSmall} onClick={SendReminder}>Send Reminders</button>
+            <button className={styles.btnSecondarySmall}>Export Selected</button>
+          </div>
+        )}
+
+        {/* Table Controls */}
+        <div className={styles.tableControls}>
+          <input
+            type="search"
+            className={styles.searchInput}
+            placeholder="Search guests by name or email..."
           />
+          <select className={styles.filterSelect}>
+            <option value="">All Guests</option>
+            <option value="sent">Invited</option>
+            <option value="responded">Responded</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select className={styles.filterSelect}>
+            <option value="">All Families</option>
+            <option value="1">Family 1</option>
+            <option value="2">Family 2</option>
+            <option value="3">Family 3</option>
+          </select>
+        </div>
+
+        {/* Guest Table */}
+        <div className={styles.tableContainer}>
+          <div
+            className="ag-theme-quartz"
+            style={{ height: "500px", width: "100%" }}
+          >
+            <AgGridReact
+              rowData={rowData}
+              columnDefs={cols}
+              selection={selection}
+              onGridSizeChanged={onGridSizeChanged}
+              onSelectionChanged={onRowSelection}
+            />
+          </div>
         </div>
       </div>
-      <div className={styles.mailControlBox}>
-        {/*<div className={styles.reminderMenu}>
-          <label>Set reminder</label>{" "}
-          <input type="datetime-local" value={reminderDate}></input>
-        </div>*/}
-        <button
-          title={"Send invite to rows selected"}
-          className={styles.sendMailBtn}
-          onClick={SendMail}
-        >
-          Send Invite
-        </button>
-        <button
-          title={"Send reminders to rows selected"}
-          className={styles.sendMailBtn}
-          onClick={SendReminder}
-        >
-          Send Reminder
-        </button>
-        <button
-          title="Send reminders to everyone who has been sent an invite and has not responded"
-          className={styles.sendMailBtn}
-          onClick={SendReminderAll}
-        >
-          Send Reminder All
-        </button>
-        <button
-          title="Send updates to all who have responded"
-          className={styles.sendMailBtn}
-          onClick={SendReminderAll}
-        >
-          Send Update All
-        </button>
-      </div>
-      <div
-        className="ag-theme-quartz" // applying the Data Grid theme
-        style={{ height: "100%", width: "100%" }} // the Data Grid will fill the size of the parent container
-      >
-        <AgGridReact
-          rowData={rowData}
-          columnDefs={cols}
-          selection={selection}
-          onGridSizeChanged={onGridSizeChanged}
-          onSelectionChanged={onRowSelection}
-        />
-      </div>
-    </div>
+    </>
   );
 };
 

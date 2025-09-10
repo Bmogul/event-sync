@@ -115,6 +115,13 @@ const Dashboard = () => {
     toast.success("Collaboration declined");
   };
 
+  const handleSignOut = () => {
+    // Clear any authentication tokens/session data here if needed
+    // For now, just redirect to homepage
+    toast.success("Successfully signed out");
+    router.push("/");
+  };
+
   return (
     <div className={styles.dashboard}>
       {/* Header */}
@@ -122,7 +129,7 @@ const Dashboard = () => {
         <div className={styles.container}>
           <nav className={styles.nav}>
             <div className={styles.logoSection}>
-              <a href="/" className={styles.logo}>EventSync</a>
+              <a href="/" className={styles.logo}>Event-Sync</a>
               <span className={styles.breadcrumb}>/ Dashboard</span>
             </div>
             <div className={styles.navActions}>
@@ -137,6 +144,12 @@ const Dashboard = () => {
                 onClick={handleCreateEvent}
               >
                 ➕ Create Event
+              </button>
+              <button 
+                className={styles.btnOutline}
+                onClick={handleSignOut}
+              >
+                🚪 Sign Out
               </button>
             </div>
           </nav>

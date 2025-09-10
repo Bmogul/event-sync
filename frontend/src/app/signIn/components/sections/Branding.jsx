@@ -3,7 +3,7 @@ import styles from '../../page.module.css'
 const Branding = () => {
   return (
     <div className={styles.authBrand}>
-      <div className={styles.brandLogo}>EventSync</div>
+      <div className={styles.brandLogo}>Event-Sync</div>
       <div className={styles.brandTagline}>Seamless Event Management</div>
       <div className={styles.brandDescription}>
         Create beautiful multi-day events, manage RSVPs, and bring your

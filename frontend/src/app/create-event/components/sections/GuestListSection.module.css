@@ -803,3 +803,9 @@
   margin-top: var(--spacing-xs);
   line-height: 1.4;
 }
+
+/* Manual Add section */
+.addButtonsContainer{
+  display:flex;
+  gap:20px;
+}

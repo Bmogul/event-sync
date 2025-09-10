@@ -5,7 +5,8 @@ const ProgressSteps = ({ currentStep, onStepClick }) => {
     { number: 1, icon: '📝', label: 'Event Details' },
     { number: 2, icon: '🎯', label: 'Sub-Events' },
     { number: 3, icon: '👥', label: 'Guest List' },
-    { number: 4, icon: '🚀', label: 'Launch' },
+    { number: 4, icon: '👥', label: 'RSVP Page' },
+    { number: 5, icon: '🚀', label: 'Launch' },
   ]
 
   return (

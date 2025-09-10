@@ -289,7 +289,7 @@ const EventDetailsForm = ({
             className={`${styles.formInput} ${errors.title ? styles.error : ''}`}
             value={eventData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
-            placeholder="e.g., Sarah & John's Wedding Weekend"
+            placeholder="e.g., Jumana & Burhanuddin Wedding Weekend"
           />
           {errors.title && <div className={styles.errorText}>{errors.title}</div>}
         </div>

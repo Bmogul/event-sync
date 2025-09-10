@@ -72,7 +72,7 @@ const CreateEvent = () => {
       fontFamily: 'Playfair Display',
       backgroundColor: '#faf5ff',
       textColor: '#581c87',
-      primaryColor: '#8b5cf6',
+      primaryColor: '#7c3aed',
       customQuestions: ['dietary', 'message'],
       backgroundImage: null,
       backgroundOverlay: 20

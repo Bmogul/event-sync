@@ -1,44 +1,46 @@
 /* RSVP Customization Component Styles */
 .formSection {
   background: white;
-  border-radius: 20px;
-  padding: 48px;
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-  margin-bottom: 32px;
-  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-lg);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--color-gray-200);
+  animation: fadeIn 0.6s ease-out;
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: 24px;
-  margin-bottom: 48px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid #f3f4f6;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--color-gray-100);
 }
 
 .sectionIcon {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 16px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+  font-size: var(--text-2xl);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+  flex-shrink: 0;
 }
 
 .sectionTitle {
-  font-size: 28px;
+  font-size: var(--text-3xl);
   font-weight: 700;
-  color: #065f46;
-  margin-bottom: 8px;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-xs);
 }
 
 .sectionDescription {
-  color: #6b7280;
-  font-size: 16px;
+  color: var(--color-gray-600);
+  font-size: var(--text-base);
   line-height: 1.6;
 }
 
@@ -46,55 +48,55 @@
 .editorLayout {
   display: grid;
   grid-template-columns: 400px 1fr;
-  gap: 32px;
-  min-height: 600px;
+  gap: var(--spacing-xl);
+  min-height: 700px;
 }
 
 /* Controls Panel */
 .controlsPanel {
-  background: #f9fafb;
-  border-radius: 16px;
-  padding: 24px;
+  background: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
   overflow-y: auto;
-  max-height: 800px;
+  max-height: 700px;
 }
 
 .controlSection {
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .controlTitle {
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
-  color: #111827;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e5e7eb;
+  color: var(--color-gray-900);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 2px solid var(--color-gray-200);
 }
 
 /* Form Elements */
 .formGroup {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .formLabel {
   display: block;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-  font-size: 14px;
+  color: var(--color-gray-700);
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--text-sm);
 }
 
 .formInput,
 .formTextarea,
 .formSelect {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
   font-family: inherit;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   background: white;
 }
 
@@ -102,13 +104,13 @@
 .formTextarea:focus,
 .formSelect:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 .formInput.error,
 .formTextarea.error {
-  border-color: #ef4444;
+  border-color: var(--color-red-500);
 }
 
 .formTextarea {
@@ -117,72 +119,72 @@
 }
 
 .errorText {
-  color: #ef4444;
-  font-size: 12px;
-  margin-top: 4px;
+  color: var(--color-red-500);
+  font-size: var(--text-xs);
+  margin-top: var(--spacing-xs);
 }
 
 /* Theme Selection */
 .themeGrid {
   display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
 }
 
 .themeButton {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   background: white;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
+  transition: all var(--transition-base);
+  font-size: var(--text-sm);
   font-weight: 500;
   text-align: left;
 }
 
 .themeButton:hover {
-  border-color: #10b981;
+  border-color: var(--color-primary);
 }
 
 .themeButton.active {
-  border-color: #10b981;
-  background: #f0fdf4;
-  color: #065f46;
+  border-color: var(--color-primary);
+  background: var(--color-purple-50);
+  color: var(--color-primary-dark);
 }
 
 /* Questions Grid */
 .questionsGrid {
   display: grid;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .questionItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
   background: white;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .questionItem input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #10b981;
+  accent-color: var(--color-primary);
 }
 
 .questionItem label {
-  font-size: 14px;
-  color: #374151;
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
   margin: 0;
 }
 
 /* Preview Panel */
 .previewPanel {
-  background: #f3f4f6;
-  border-radius: 16px;
-  padding: 24px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
 }
@@ -191,201 +193,352 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .previewHeader h3 {
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .deviceToggle {
   display: flex;
   gap: 4px;
   background: white;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 4px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .deviceBtn {
-  padding: 8px 12px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  font-size: var(--text-sm);
+  transition: all var(--transition-base);
 }
 
 .deviceBtn.active {
-  background: #10b981;
+  background: var(--color-primary);
   color: white;
 }
 
 /* Preview Frame */
 .previewFrame {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   flex: 1;
   position: relative;
-  transition: all 0.3s ease;
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-lg);
 }
 
 .previewFrame.mobile {
   max-width: 375px;
   margin: 0 auto;
+  min-height: 600px;
 }
 
 .previewFrame.tablet {
-  max-width: 768px;
+  max-width: 600px;
   margin: 0 auto;
+  min-height: 600px;
 }
 
 .previewFrame.desktop {
   width: 100%;
+  min-height: 600px;
 }
 
 /* RSVP Preview Content */
 .rsvpPreview {
-  height: 100%;
-  padding: 32px;
+  min-height: 600px;
+  padding: var(--spacing-lg);
   overflow-y: auto;
   background-size: cover;
   background-position: center;
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
 .rsvpHeader {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 0;
 }
 
 .rsvpTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-md);
+  transition: all var(--transition-base);
 }
 
 .rsvpSubtitle {
   font-size: 1.2rem;
   opacity: 0.8;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
-.rsvpCard {
-  background: rgba(255, 255, 255, 0.95);
+
+/* Event Cards Section */
+.cardsSection {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+.cardStack {
+  position: relative;
+  width: 200px;
+  height: 120px;
+}
+
+.eventCard {
+  position: absolute;
+  width: 180px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.eventCard:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.cardContent {
+  padding: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cardContent h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--color-primary-dark);
+}
+
+.cardContent p {
+  font-size: 10px;
+  margin: 2px 0;
+  color: var(--color-gray-500);
+}
+
+/* Guest List / Invite Section */
+.inviteSection {
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
-  padding: 32px;
+  padding: 24px;
+  text-align: center;
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
 }
 
-.eventInfo {
+.inviteHeader {
+  margin-bottom: 16px;
+}
+
+.inviteHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin: 0;
+}
+
+.guestList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: 20px;
+}
+
+.guestName {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-gray-700);
+  padding: 4px 0;
+}
+
+.rsvpButton {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+}
+
+.rsvpButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4);
+}
+
+/* Modal Preview */
+.modalPreview {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-lg);
+  border: 2px solid rgba(124, 58, 237, 0.2);
+}
+
+.modalContent {
+  width: 100%;
+}
+
+.modalHeader {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.eventInfo h2 {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  color: #065f46;
+.modalHeader h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin: 0 0 8px 0;
 }
 
-.eventInfo p {
-  font-size: 1.1rem;
-  color: #6b7280;
-}
-
-.rsvpForm {
+.modalInfo {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-.formField {
+.modalInfo span {
+  font-size: 12px;
+  color: var(--color-gray-500);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.modalBody {
+  margin: 16px 0;
+}
+
+.guestResponse {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.guestResponse:last-child {
+  border-bottom: none;
+}
+
+.guestResponse span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+.responseButtons {
+  display: flex;
   gap: 8px;
 }
 
-.formField label {
-  font-weight: 600;
-  color: #374151;
+.responseBtn {
+  padding: 6px 16px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-gray-500);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.formField input,
-.formField select,
-.formField textarea {
-  padding: 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  font-family: inherit;
+.responseBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
-.formField textarea {
-  min-height: 80px;
-  resize: vertical;
+.responseBtn.yesBtn {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
 }
 
-.submitBtn {
-  padding: 16px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.modalFooter {
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.nextBtn {
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.submitBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
+.nextBtn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
 }
 
 /* Form Actions */
 .formActions {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-md);
   justify-content: flex-end;
-  padding-top: 32px;
-  border-top: 2px solid #f3f4f6;
-  margin-top: 32px;
+  padding-top: var(--spacing-xl);
+  border-top: 2px solid var(--color-gray-100);
+  margin-top: var(--spacing-xl);
 }
 
 .btn {
-  padding: 16px 32px;
+  padding: var(--spacing-md) var(--spacing-xl);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
   font-family: inherit;
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
 }
 
 .btnPrimary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4);
 }
 
 .btnPrimary:disabled {
@@ -395,28 +548,53 @@
 
 .btnSecondary {
   background: white;
-  color: #374151;
-  border: 2px solid #e5e7eb;
+  color: var(--color-gray-700);
+  border: 2px solid var(--color-gray-200);
 }
 
 .btnSecondary:hover {
-  border-color: #10b981;
-  color: #065f46;
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+  .editorLayout {
+    grid-template-columns: 350px 1fr;
+    min-height: 650px;
+  }
+}
+
+@media (max-width: 900px) {
+  .editorLayout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    min-height: auto;
+  }
+
+  .controlsPanel {
+    max-height: 400px;
+  }
+
+  .previewFrame.mobile,
+  .previewFrame.tablet,
+  .previewFrame.desktop {
+    min-height: 500px;
+  }
+
+  .rsvpPreview {
+    min-height: 500px;
+  }
+}
+
 @media (max-width: 768px) {
   .formSection {
-    padding: 24px;
+    padding: var(--spacing-lg);
   }
 
   .editorLayout {
     grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .controlsPanel {
-    max-height: none;
+    gap: var(--spacing-md);
   }
 
   .sectionHeader {
@@ -428,15 +606,81 @@
     flex-direction: column;
   }
 
+  .controlsPanel {
+    max-height: 350px;
+  }
+
+  .previewFrame.mobile,
+  .previewFrame.tablet,
+  .previewFrame.desktop {
+    min-height: 400px;
+    max-width: 100%;
+  }
+
   .rsvpPreview {
-    padding: 16px;
+    padding: var(--spacing-md);
+    min-height: 400px;
   }
 
   .rsvpTitle {
     font-size: 2rem;
   }
 
-  .rsvpCard {
-    padding: 24px;
+  .cardStack {
+    width: 160px;
+    height: 100px;
+  }
+  
+  .eventCard {
+    width: 140px;
+    height: 80px;
+  }
+  
+  .cardContent h3 {
+    font-size: 12px;
+  }
+  
+  .cardContent p {
+    font-size: 9px;
+  }
+  
+  .inviteSection {
+    padding: var(--spacing-md);
+  }
+  
+  .inviteHeader h2 {
+    font-size: 1.2rem;
+  }
+  
+  .guestName {
+    font-size: 14px;
+  }
+  
+  .rsvpButton {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  
+  .modalPreview {
+    padding: var(--spacing-md);
+  }
+  
+  .modalHeader h3 {
+    font-size: 1rem;
+  }
+  
+  .modalInfo {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .guestResponse {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    text-align: center;
+  }
+  
+  .responseButtons {
+    justify-content: center;
   }
 }

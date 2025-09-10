@@ -50,31 +50,31 @@ const RSVPCustomization = ({
         fontFamily: 'Playfair Display',
         backgroundColor: '#faf5ff',
         textColor: '#581c87',
-        primaryColor: '#8b5cf6'
+        primaryColor: '#7c3aed'
       },
       modern: {
         fontFamily: 'Inter',
         backgroundColor: '#f8fafc',
         textColor: '#1e293b',
-        primaryColor: '#3b82f6'
+        primaryColor: '#7c3aed'
       },
       rustic: {
         fontFamily: 'Cormorant Garamond',
         backgroundColor: '#f0fdf4',
         textColor: '#065f46',
-        primaryColor: '#10b981'
+        primaryColor: '#7c3aed'
       },
       glamorous: {
         fontFamily: 'Great Vibes',
         backgroundColor: '#111827',
         textColor: '#fbbf24',
-        primaryColor: '#f59e0b'
+        primaryColor: '#7c3aed'
       },
       beach: {
         fontFamily: 'Dancing Script',
         backgroundColor: '#eff6ff',
         textColor: '#1e40af',
-        primaryColor: '#3b82f6'
+        primaryColor: '#7c3aed'
       }
     }
 
@@ -138,7 +138,7 @@ const RSVPCustomization = ({
           fontFamily: 'Playfair Display',
           backgroundColor: '#faf5ff',
           textColor: '#581c87',
-          primaryColor: '#8b5cf6',
+          primaryColor: '#7c3aed',
           customQuestions: ['dietary', 'message'],
           backgroundImage: null,
           backgroundOverlay: 20
@@ -333,68 +333,84 @@ const RSVPCustomization = ({
                 <p className={styles.rsvpSubtitle}>{rsvpSettings.subtitle || "Join us for our special celebration"}</p>
               </div>
               
-              <div className={styles.rsvpCard}>
-                <div className={styles.eventInfo}>
-                  <h2>{eventData.title || 'Event Name'}</h2>
-                  <p>{eventData.startDate && eventData.endDate ? 
-                    `${new Date(eventData.startDate).toLocaleDateString()} - ${new Date(eventData.endDate).toLocaleDateString()}` : 
-                    'Date will appear here'} • {eventData.location || 'Location will appear here'}</p>
+              {/* Event Cards Section */}
+              {eventData.subEvents && eventData.subEvents.length > 0 && (
+                <div className={styles.cardsSection}>
+                  <div className={styles.cardStack}>
+                    {eventData.subEvents.slice(0, 3).map((subEvent, index) => (
+                      <div 
+                        key={index} 
+                        className={styles.eventCard}
+                        style={{ 
+                          zIndex: eventData.subEvents.length - index,
+                          transform: `translate(${index * 10}px, ${index * 20}px)`
+                        }}
+                      >
+                        <div className={styles.cardContent}>
+                          <h3>{subEvent.title || `Sub-Event ${index + 1}`}</h3>
+                          <p>{subEvent.date && subEvent.startTime ? 
+                            `${new Date(subEvent.date).toLocaleDateString()} at ${subEvent.startTime}` : 
+                            'Date & Time'}
+                          </p>
+                          <p>{subEvent.location || 'Location'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                
-                <div className={styles.rsvpForm}>
-                  <div className={styles.formField}>
-                    <label>Will you be attending?</label>
-                    <select>
-                      <option>Please select...</option>
-                      <option>Yes, I'll be there!</option>
-                      <option>Sorry, can't make it</option>
-                    </select>
+              )}
+              
+              {/* Guest List Section */}
+              <div className={styles.inviteSection}>
+                <div className={styles.inviteHeader}>
+                  <h2>Please Join Us</h2>
+                </div>
+                <div className={styles.guestList}>
+                  <div className={styles.guestName}>Sarah Johnson</div>
+                  <div className={styles.guestName}>Michael Johnson</div>
+                  <div className={styles.guestName}>Emma Johnson</div>
+                </div>
+                <button 
+                  type="button" 
+                  className={styles.rsvpButton}
+                  style={{ backgroundColor: rsvpSettings.primaryColor }}
+                  onClick={() => {/* This would open the RSVP modal */}}
+                >
+                  RSVP Now
+                </button>
+              </div>
+
+              {/* RSVP Modal Preview - Shows what happens when RSVP is clicked */}
+              <div className={styles.modalPreview}>
+                <div className={styles.modalContent}>
+                  <div className={styles.modalHeader}>
+                    <h3>{eventData.subEvents?.[0]?.title || 'Sub-Event 1'}</h3>
+                    <div className={styles.modalInfo}>
+                      <span>📅 {eventData.subEvents?.[0]?.date ? 
+                        new Date(eventData.subEvents[0].date).toLocaleDateString() : 
+                        'Event Date'}</span>
+                      <span>📍 {eventData.subEvents?.[0]?.location || 'Event Location'}</span>
+                    </div>
                   </div>
-                  
-                  <div className={styles.formField}>
-                    <label>Number of Guests</label>
-                    <select>
-                      <option>Just me</option>
-                      <option>2 people</option>
-                      <option>3 people</option>
-                    </select>
+                  <div className={styles.modalBody}>
+                    <div className={styles.guestResponse}>
+                      <span>Sarah Johnson</span>
+                      <div className={styles.responseButtons}>
+                        <button className={`${styles.responseBtn} ${styles.yesBtn}`}>Yes</button>
+                        <button className={styles.responseBtn}>No</button>
+                      </div>
+                    </div>
+                    <div className={styles.guestResponse}>
+                      <span>Michael Johnson</span>
+                      <div className={styles.responseButtons}>
+                        <button className={styles.responseBtn}>Yes</button>
+                        <button className={styles.responseBtn}>No</button>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {rsvpSettings.customQuestions?.includes('dietary') && (
-                    <div className={styles.formField}>
-                      <label>Dietary Restrictions</label>
-                      <textarea placeholder="Let us know about any dietary restrictions..."></textarea>
-                    </div>
-                  )}
-                  
-                  {rsvpSettings.customQuestions?.includes('contact') && (
-                    <div className={styles.formField}>
-                      <label>Contact Information</label>
-                      <input type="email" placeholder="your@email.com" />
-                    </div>
-                  )}
-                  
-                  {rsvpSettings.customQuestions?.includes('song') && (
-                    <div className={styles.formField}>
-                      <label>Song Requests</label>
-                      <input type="text" placeholder="Any songs you'd love to hear?" />
-                    </div>
-                  )}
-                  
-                  {rsvpSettings.customQuestions?.includes('message') && (
-                    <div className={styles.formField}>
-                      <label>Personal Message</label>
-                      <textarea placeholder="Share a message with us..."></textarea>
-                    </div>
-                  )}
-                  
-                  <button 
-                    type="button" 
-                    className={styles.submitBtn}
-                    style={{ backgroundColor: rsvpSettings.primaryColor }}
-                  >
-                    Submit RSVP
-                  </button>
+                  <div className={styles.modalFooter}>
+                    <button className={styles.nextBtn}>Next Sub-Event →</button>
+                  </div>
                 </div>
               </div>
             </div>

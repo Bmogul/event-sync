@@ -69,11 +69,10 @@ const NotFound = () => {
               </div>
               
               <h1 className={styles.title}>
-                Oops! This page is still <span className={styles.highlight}>coming soon</span>
+                Oops! This page does not exist<span className={styles.highlight}>coming soon</span>
               </h1>
               
               <p className={styles.subtitle}>
-                We're working hard to bring you this feature. In the meantime, 
                 let's get you back to planning amazing events!
               </p>
 

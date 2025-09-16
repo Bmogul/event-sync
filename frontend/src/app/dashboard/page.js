@@ -3,68 +3,129 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useAuth } from "../contexts/AuthContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import styles from "./Dashboard.module.css";
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const router = useRouter();
-  const [user, setUser] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "/avatar-placeholder.svg"
-  });
+  const { user, userProfile, session, loading, signOut, supabase } = useAuth();
   
   const [activeSection, setActiveSection] = useState("events");
-  const [events, setEvents] = useState([
-    {
-      id: "evt_001",
-      title: "Wedding Celebration",
-      date: "2024-06-15",
-      status: "active",
-      guestsCount: 124,
-      responsesCount: 89,
-      type: "wedding",
-      location: "Mumbai, India"
-    },
-    {
-      id: "evt_002", 
-      title: "Birthday Party",
-      date: "2024-07-20",
-      status: "draft",
-      guestsCount: 45,
-      responsesCount: 0,
-      type: "birthday",
-      location: "Delhi, India"
-    },
-    {
-      id: "evt_003",
-      title: "Corporate Event", 
-      date: "2024-08-10",
-      status: "completed",
-      guestsCount: 200,
-      responsesCount: 180,
-      type: "corporate",
-      location: "Bangalore, India"
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState(null);
+  const [collaborations, setCollaborations] = useState([]);
+  const [collaborationsLoading, setCollaborationsLoading] = useState(true);
+  const [collaborationsError, setCollaborationsError] = useState(null);
+
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/signIn');
     }
-  ]);
-  
-  const [collaborations, setCollaborations] = useState([
-    {
-      id: "col_001",
-      eventTitle: "Anniversary Celebration",
-      ownerName: "Sarah Johnson",
-      role: "Co-organizer",
-      status: "active",
-      invitedDate: "2024-05-01"
-    },
-    {
-      id: "col_002",
-      eventTitle: "Conference 2024",
-      ownerName: "Michael Chen", 
-      role: "Vendor",
-      status: "pending",
-      invitedDate: "2024-04-15"
+  }, [user, loading, router]);
+
+  // Fetch user's events from database
+  const fetchEvents = async () => {
+    if (!user || !userProfile) return;
+    
+    try {
+      setEventsLoading(true);
+      setEventsError(null);
+      
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          status:event_state_lookup(state),
+          event_managers!inner(user_id)
+        `)
+        .eq('event_managers.user_id', userProfile.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Transform data to match component structure
+      const transformedEvents = data?.map(event => ({
+        id: event.public_id,
+        title: event.title,
+        date: event.start_date,
+        status: event.status?.state || 'draft',
+        guestsCount: event.capacity || 0,
+        responsesCount: event.total_yes || 0,
+        type: event.details?.type || 'event',
+        location: event.details?.location || 'Location TBD',
+        description: event.description,
+        endDate: event.end_date,
+        logoUrl: event.logo_url,
+        heroUrl: event.hero_url
+      })) || [];
+      
+      setEvents(transformedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setEventsError('Failed to load events');
+      toast.error('Failed to load events');
+    } finally {
+      setEventsLoading(false);
     }
-  ]);
+  };
+
+  // Fetch collaborations from database
+  const fetchCollaborations = async () => {
+    if (!user || !userProfile) return;
+    
+    try {
+      setCollaborationsLoading(true);
+      setCollaborationsError(null);
+      
+      const { data, error } = await supabase
+        .from('event_managers')
+        .select(`
+          *,
+          event:events(title, public_id),
+          role:event_manage_roles(role_name),
+          status:event_manage_state_lookup(state),
+          owner_user:users!events_created_by_fkey(first_name, last_name)
+        `)
+        .eq('user_id', userProfile.id)
+        .neq('role_id', 1); // Exclude owner role
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Transform data to match component structure
+      const transformedCollaborations = data?.map(collab => ({
+        id: `${collab.user_id}_${collab.event_id}`,
+        eventTitle: collab.event?.title || 'Unknown Event',
+        eventId: collab.event?.public_id,
+        ownerName: `${collab.owner_user?.first_name || ''} ${collab.owner_user?.last_name || ''}`.trim() || 'Unknown',
+        role: collab.role?.role_name || 'collaborator',
+        status: collab.status?.state || 'pending',
+        invitedDate: collab.invited_at,
+        acceptedDate: collab.accepted_at
+      })) || [];
+      
+      setCollaborations(transformedCollaborations);
+    } catch (error) {
+      console.error('Error fetching collaborations:', error);
+      setCollaborationsError('Failed to load collaborations');
+      toast.error('Failed to load collaborations');
+    } finally {
+      setCollaborationsLoading(false);
+    }
+  };
+
+  // Fetch data when component mounts and user is available
+  useEffect(() => {
+    if (user && userProfile) {
+      fetchEvents();
+      fetchCollaborations();
+    }
+  }, [user, userProfile]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -97,34 +158,87 @@ const Dashboard = () => {
     router.push(`/create-event?edit=${eventId}`);
   };
 
-  const handleAcceptCollaboration = (collaborationId) => {
-    setCollaborations(prev => 
-      prev.map(col => 
-        col.id === collaborationId 
-          ? { ...col, status: "active" }
-          : col
-      )
+  const handleAcceptCollaboration = async (collaborationId) => {
+    try {
+      const [userId, eventId] = collaborationId.split('_');
+      
+      const { error } = await supabase
+        .from('event_managers')
+        .update({ 
+          status_id: 2, // accepted status
+          accepted_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('event_id', eventId);
+
+      if (error) throw error;
+
+      setCollaborations(prev => 
+        prev.map(col => 
+          col.id === collaborationId 
+            ? { ...col, status: "accepted", acceptedDate: new Date().toISOString() }
+            : col
+        )
+      );
+      toast.success("Collaboration accepted!");
+    } catch (error) {
+      console.error('Error accepting collaboration:', error);
+      toast.error('Failed to accept collaboration');
+    }
+  };
+
+  const handleDeclineCollaboration = async (collaborationId) => {
+    try {
+      const [userId, eventId] = collaborationId.split('_');
+      
+      const { error } = await supabase
+        .from('event_managers')
+        .update({ status_id: 3 }) // declined status
+        .eq('user_id', userId)
+        .eq('event_id', eventId);
+
+      if (error) throw error;
+
+      setCollaborations(prev => 
+        prev.filter(col => col.id !== collaborationId)
+      );
+      toast.success("Collaboration declined");
+    } catch (error) {
+      console.error('Error declining collaboration:', error);
+      toast.error('Failed to decline collaboration');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Successfully signed out");
+      router.push("/");
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
+  };
+
+  // Show loading state while authenticating
+  if (loading) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.spinner}></div>
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
     );
-    toast.success("Collaboration accepted!");
-  };
+  }
 
-  const handleDeclineCollaboration = (collaborationId) => {
-    setCollaborations(prev => 
-      prev.filter(col => col.id !== collaborationId)
-    );
-    toast.success("Collaboration declined");
-  };
+  // Don't render if not authenticated
+  if (!user || !userProfile) {
+    return null;
+  }
 
-  const handleSignOut = () => {
-    // Clear any authentication tokens/session data here if needed
-    // For now, just redirect to homepage
-    toast.success("Successfully signed out");
-    router.push("/");
-  };
-
-  useEffect(()=>{
-    console.log(user)
-  },[])
+  const displayName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'User' : 'User';
+  const avatarUrl = userProfile?.settings?.avatar_url || '/avatar-placeholder.svg';
 
   return (
     <div className={styles.dashboard}>
@@ -167,12 +281,12 @@ const Dashboard = () => {
           <div className={styles.userHeader}>
             <div className={styles.userInfo}>
               <div className={styles.userAvatar}>
-                <img src={user.avatar} alt={user.name} onError={(e) => {
-                  e.target.src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%237c3aed'/><text x='30' y='35' text-anchor='middle' fill='white' font-size='24' font-family='Inter'>👤</text></svg>";
+                <img src={avatarUrl} alt={displayName} onError={(e) => {
+                  e.target.src = "/avatar-placeholder.svg";
                 }} />
               </div>
               <div className={styles.userDetails}>
-                <h1 className={styles.userName}>Welcome back, {user.name}!</h1>
+                <h1 className={styles.userName}>Welcome back, {displayName}!</h1>
                 <p className={styles.userEmail}>{user.email}</p>
               </div>
             </div>
@@ -248,58 +362,81 @@ const Dashboard = () => {
               </div>
 
               {/* Events Grid */}
-              <div className={styles.eventsGrid}>
-                {events.map(event => (
-                  <div key={event.id} className={styles.eventCard}>
-                    <div className={styles.eventCardHeader}>
-                      <div className={styles.eventIcon}>
-                        {getEventTypeIcon(event.type)}
+              {eventsLoading ? (
+                <div className={styles.loadingContainer}>
+                  <div className={styles.spinner}></div>
+                  <p>Loading events...</p>
+                </div>
+              ) : eventsError ? (
+                <div className={styles.errorContainer}>
+                  <p className={styles.errorMessage}>{eventsError}</p>
+                  <button className={styles.btnSecondary} onClick={fetchEvents}>
+                    Try Again
+                  </button>
+                </div>
+              ) : events.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>🎉</div>
+                  <h3>No events yet</h3>
+                  <p>Create your first event to get started!</p>
+                  <button className={styles.btnPrimary} onClick={handleCreateEvent}>
+                    Create Event
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.eventsGrid}>
+                  {events.map(event => (
+                    <div key={event.id} className={styles.eventCard}>
+                      <div className={styles.eventCardHeader}>
+                        <div className={styles.eventIcon}>
+                          {getEventTypeIcon(event.type)}
+                        </div>
+                        <div className={styles.eventStatus}>
+                          <span 
+                            className={styles.statusIndicator}
+                            style={{ backgroundColor: getStatusColor(event.status) }}
+                          ></span>
+                          <span className={styles.statusText}>{event.status}</span>
+                        </div>
                       </div>
-                      <div className={styles.eventStatus}>
-                        <span 
-                          className={styles.statusIndicator}
-                          style={{ backgroundColor: getStatusColor(event.status) }}
-                        ></span>
-                        <span className={styles.statusText}>{event.status}</span>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.eventContent}>
-                      <h3 className={styles.eventTitle}>{event.title}</h3>
-                      <p className={styles.eventDate}>
-                        📅 {new Date(event.date).toLocaleDateString()}
-                      </p>
-                      <p className={styles.eventLocation}>📍 {event.location}</p>
                       
-                      <div className={styles.eventStats}>
-                        <div className={styles.eventStat}>
-                          <span>{event.guestsCount}</span>
-                          <small>Guests</small>
-                        </div>
-                        <div className={styles.eventStat}>
-                          <span>{event.responsesCount}</span>
-                          <small>Responses</small>
+                      <div className={styles.eventContent}>
+                        <h3 className={styles.eventTitle}>{event.title}</h3>
+                        <p className={styles.eventDate}>
+                          📅 {new Date(event.date).toLocaleDateString()}
+                        </p>
+                        <p className={styles.eventLocation}>📍 {event.location}</p>
+                        
+                        <div className={styles.eventStats}>
+                          <div className={styles.eventStat}>
+                            <span>{event.guestsCount}</span>
+                            <small>Guests</small>
+                          </div>
+                          <div className={styles.eventStat}>
+                            <span>{event.responsesCount}</span>
+                            <small>Responses</small>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className={styles.eventActions}>
-                      <button 
-                        className={styles.btnSecondary}
-                        onClick={() => handleEditEvent(event.id)}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button 
-                        className={styles.btnPrimary}
-                        onClick={() => handleViewEvent(event.id)}
-                      >
-                        👁️ Manage
-                      </button>
+                      <div className={styles.eventActions}>
+                        <button 
+                          className={styles.btnSecondary}
+                          onClick={() => handleEditEvent(event.id)}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button 
+                          className={styles.btnPrimary}
+                          onClick={() => handleViewEvent(event.id)}
+                        >
+                          👁️ Manage
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -312,48 +449,68 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              <div className={styles.collaborationsList}>
-                {collaborations.map(collaboration => (
-                  <div key={collaboration.id} className={styles.collaborationCard}>
-                    <div className={styles.collaborationInfo}>
-                      <h3 className={styles.collaborationTitle}>
-                        {collaboration.eventTitle}
-                      </h3>
-                      <p className={styles.collaborationDetails}>
-                        Invited by <strong>{collaboration.ownerName}</strong> as {collaboration.role}
-                      </p>
-                      <p className={styles.collaborationDate}>
-                        Invited on {new Date(collaboration.invitedDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div className={styles.collaborationStatus}>
-                      <span 
-                        className={styles.statusIndicator}
-                        style={{ backgroundColor: getStatusColor(collaboration.status) }}
-                      ></span>
-                      <span className={styles.statusText}>{collaboration.status}</span>
-                    </div>
-
-                    {collaboration.status === "pending" && (
-                      <div className={styles.collaborationActions}>
-                        <button 
-                          className={styles.btnSecondary}
-                          onClick={() => handleDeclineCollaboration(collaboration.id)}
-                        >
-                          Decline
-                        </button>
-                        <button 
-                          className={styles.btnPrimary}
-                          onClick={() => handleAcceptCollaboration(collaboration.id)}
-                        >
-                          Accept
-                        </button>
+              {collaborationsLoading ? (
+                <div className={styles.loadingContainer}>
+                  <div className={styles.spinner}></div>
+                  <p>Loading collaborations...</p>
+                </div>
+              ) : collaborationsError ? (
+                <div className={styles.errorContainer}>
+                  <p className={styles.errorMessage}>{collaborationsError}</p>
+                  <button className={styles.btnSecondary} onClick={fetchCollaborations}>
+                    Try Again
+                  </button>
+                </div>
+              ) : collaborations.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>🤝</div>
+                  <h3>No collaborations</h3>
+                  <p>You haven't been invited to collaborate on any events yet.</p>
+                </div>
+              ) : (
+                <div className={styles.collaborationsList}>
+                  {collaborations.map(collaboration => (
+                    <div key={collaboration.id} className={styles.collaborationCard}>
+                      <div className={styles.collaborationInfo}>
+                        <h3 className={styles.collaborationTitle}>
+                          {collaboration.eventTitle}
+                        </h3>
+                        <p className={styles.collaborationDetails}>
+                          Invited by <strong>{collaboration.ownerName}</strong> as {collaboration.role}
+                        </p>
+                        <p className={styles.collaborationDate}>
+                          Invited on {new Date(collaboration.invitedDate).toLocaleDateString()}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      
+                      <div className={styles.collaborationStatus}>
+                        <span 
+                          className={styles.statusIndicator}
+                          style={{ backgroundColor: getStatusColor(collaboration.status) }}
+                        ></span>
+                        <span className={styles.statusText}>{collaboration.status}</span>
+                      </div>
+
+                      {collaboration.status === "pending" && (
+                        <div className={styles.collaborationActions}>
+                          <button 
+                            className={styles.btnSecondary}
+                            onClick={() => handleDeclineCollaboration(collaboration.id)}
+                          >
+                            Decline
+                          </button>
+                          <button 
+                            className={styles.btnPrimary}
+                            onClick={() => handleAcceptCollaboration(collaboration.id)}
+                          >
+                            Accept
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -375,8 +532,9 @@ const Dashboard = () => {
                       <input 
                         type="text" 
                         className={styles.formInput}
-                        value={user.name}
-                        onChange={(e) => setUser(prev => ({...prev, name: e.target.value}))}
+                        value={displayName}
+                        readOnly
+                        placeholder="Update in profile settings"
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -385,7 +543,7 @@ const Dashboard = () => {
                         type="email" 
                         className={styles.formInput}
                         value={user.email}
-                        onChange={(e) => setUser(prev => ({...prev, email: e.target.value}))}
+                        readOnly
                       />
                     </div>
                     <button className={styles.btnPrimary}>Update Profile</button>
@@ -447,6 +605,14 @@ const Dashboard = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+const Dashboard = () => {
+  return (
+    <AuthProvider>
+      <DashboardContent />
+    </AuthProvider>
   );
 };
 

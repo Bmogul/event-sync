@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [user, setUser] = useState({
     name: "John Doe",
     email: "john.doe@example.com",
-    avatar: "/avatar-placeholder.jpg"
+    avatar: "/avatar-placeholder.svg"
   });
   
   const [activeSection, setActiveSection] = useState("events");
@@ -121,6 +121,10 @@ const Dashboard = () => {
     toast.success("Successfully signed out");
     router.push("/");
   };
+
+  useEffect(()=>{
+    console.log(user)
+  },[])
 
   return (
     <div className={styles.dashboard}>

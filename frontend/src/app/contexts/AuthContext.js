@@ -7,9 +7,31 @@ const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
   const supabase = createClient()
+
+  // Function to fetch user profile from database
+  const fetchUserProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('supa_id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error)
+      return null
+    }
+  }
 
   useEffect(() => {
     // Get initial session
@@ -22,6 +44,12 @@ export const AuthProvider = ({ children }) => {
         } else {
           setSession(session)
           setUser(session?.user ?? null)
+          
+          // Fetch user profile if user exists
+          if (session?.user) {
+            const profile = await fetchUserProfile(session.user.id)
+            setUserProfile(profile)
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error)
@@ -39,12 +67,22 @@ export const AuthProvider = ({ children }) => {
         
         setSession(session)
         setUser(session?.user ?? null)
+        
+        // Fetch user profile if user exists
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id)
+          setUserProfile(profile)
+        } else {
+          setUserProfile(null)
+        }
+        
         setLoading(false)
 
         // Handle specific auth events
         if (event === 'SIGNED_OUT') {
           setUser(null)
           setSession(null)
+          setUserProfile(null)
         }
       }
     )
@@ -95,11 +133,13 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    userProfile,
     session,
     loading,
     signOut,
     signInWithProvider,
-    supabase
+    supabase,
+    fetchUserProfile
   }
 
   return (

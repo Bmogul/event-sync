@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import styles from "./RSVPCustomization.module.css";
+import { uploadImage, validateImageFile, createPreviewUrl, revokePreviewUrl, formatFileSize } from "../../../utils/imageUpload";
 
 // EventCards component matching the [eventID]/rsvp/page.js layout
 const EventCards = ({ subEvents }) => {
@@ -450,26 +451,89 @@ const RSVPCustomization = ({
 
   const handleSubEventImageUpload = async (subEventIndex, event) => {
     const file = event.target.files[0];
-    if (file) {
-      // Create a file URL for preview (in production, you'd upload to a server)
-      const imageUrl = URL.createObjectURL(file);
+    if (!file) return;
 
-      const updatedSubEvents = [...eventData.subEvents];
-      updatedSubEvents[subEventIndex] = {
-        ...updatedSubEvents[subEventIndex],
-        image: imageUrl,
-        imageFile: file, // Store the file for actual upload later
+    // Validate file first
+    const validation = validateImageFile(file, 'sub-event');
+    if (!validation.isValid) {
+      toast.error(`Upload failed: ${validation.errors.join(', ')}`, {
+        position: "top-center",
+        autoClose: 4000,
+      });
+      return;
+    }
+
+    const subEventTitle = eventData.subEvents[subEventIndex]?.title || `Sub-Event ${subEventIndex + 1}`;
+
+    // Show preview immediately
+    const previewUrl = createPreviewUrl(file);
+
+    // Update state with preview
+    const updatedSubEvents = [...eventData.subEvents];
+    updatedSubEvents[subEventIndex] = {
+      ...updatedSubEvents[subEventIndex],
+      image: previewUrl,
+      imageFile: file,
+      imageUploading: true,
+    };
+
+    updateEventData({
+      subEvents: updatedSubEvents,
+    });
+
+    toast.info(`Uploading image for ${subEventTitle} (${formatFileSize(file.size)})...`, {
+      position: "top-center",
+      autoClose: 3000,
+    });
+
+    try {
+      // Upload to server
+      const result = await uploadImage(file, eventData.id || 'temp', 'sub-event');
+
+      // Clean up preview URL
+      revokePreviewUrl(previewUrl);
+
+      // Update with permanent URL
+      const finalSubEvents = [...eventData.subEvents];
+      finalSubEvents[subEventIndex] = {
+        ...finalSubEvents[subEventIndex],
+        image: result.url,
+        imageFile: null, // Clear temporary file
+        imageUploading: false,
       };
 
-      updateEventData({ subEvents: updatedSubEvents });
+      updateEventData({
+        subEvents: finalSubEvents,
+      });
 
-      toast.success(
-        `Image uploaded for ${updatedSubEvents[subEventIndex].title || `Sub-Event ${subEventIndex + 1}`}!`,
-        {
-          position: "top-center",
-          autoClose: 2000,
-        },
-      );
+      toast.success(`Image uploaded for ${subEventTitle}! (${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)})`, {
+        position: "top-center",
+        autoClose: 3000,
+      });
+
+    } catch (error) {
+      console.error('Sub-event image upload failed:', error);
+      
+      // Clean up preview URL
+      revokePreviewUrl(previewUrl);
+
+      // Reset state
+      const resetSubEvents = [...eventData.subEvents];
+      resetSubEvents[subEventIndex] = {
+        ...resetSubEvents[subEventIndex],
+        image: null,
+        imageFile: null,
+        imageUploading: false,
+      };
+
+      updateEventData({
+        subEvents: resetSubEvents,
+      });
+
+      toast.error(`Upload failed: ${error.message}`, {
+        position: "top-center",
+        autoClose: 4000,
+      });
     }
   };
 
@@ -478,7 +542,7 @@ const RSVPCustomization = ({
 
     // Clean up the object URL to prevent memory leaks
     if (updatedSubEvents[subEventIndex].image) {
-      URL.revokeObjectURL(updatedSubEvents[subEventIndex].image);
+      revokePreviewUrl(updatedSubEvents[subEventIndex].image);
     }
 
     updatedSubEvents[subEventIndex] = {
@@ -497,37 +561,113 @@ const RSVPCustomization = ({
 
   const handleLogoUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
+    if (!file) return;
 
-      // Update both new schema and legacy format
-      const currentLandingConfig = eventData.landingPageConfig || {};
-      const updatedLandingConfig = {
-        ...currentLandingConfig,
-        logo: imageUrl,
+    // Validate file first
+    const validation = validateImageFile(file, 'logo');
+    if (!validation.isValid) {
+      toast.error(`Upload failed: ${validation.errors.join(', ')}`, {
+        position: "top-center",
+        autoClose: 4000,
+      });
+      return;
+    }
+
+    // Show preview immediately
+    const previewUrl = createPreviewUrl(file);
+
+    // Update state with preview
+    const currentLandingConfig = eventData.landingPageConfig || {};
+    const updatedLandingConfig = {
+      ...currentLandingConfig,
+      logo: previewUrl,
+      logoFile: file,
+      logoUploading: true,
+    };
+
+    updateEventData({
+      landingPageConfig: updatedLandingConfig,
+      rsvpSettings: {
+        ...eventData.rsvpSettings,
+        logo: previewUrl,
         logoFile: file,
+        logoUploading: true,
+      },
+    });
+
+    toast.info(`Uploading logo (${formatFileSize(file.size)})...`, {
+      position: "top-center",
+      autoClose: 3000,
+    });
+
+    try {
+      // Upload to server
+      const result = await uploadImage(file, eventData.id || 'temp', 'logo');
+
+      // Clean up preview URL
+      revokePreviewUrl(previewUrl);
+
+      // Update with permanent URL
+      const finalLandingConfig = {
+        ...currentLandingConfig,
+        logo: result.url,
+        logoFile: null, // Clear temporary file
+        logoUploading: false,
       };
 
       updateEventData({
-        landingPageConfig: updatedLandingConfig,
+        landingPageConfig: finalLandingConfig,
         rsvpSettings: {
           ...eventData.rsvpSettings,
-          logo: imageUrl,
-          logoFile: file,
+          logo: result.url,
+          logoFile: null,
+          logoUploading: false,
         },
       });
 
-      toast.success("Logo uploaded successfully!", {
+      toast.success(`Logo uploaded successfully! (${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)})`, {
         position: "top-center",
-        autoClose: 2000,
+        autoClose: 3000,
+      });
+
+    } catch (error) {
+      console.error('Logo upload failed:', error);
+      
+      // Clean up preview URL
+      revokePreviewUrl(previewUrl);
+
+      // Reset state
+      const resetLandingConfig = {
+        ...currentLandingConfig,
+        logo: null,
+        logoFile: null,
+        logoUploading: false,
+      };
+
+      updateEventData({
+        landingPageConfig: resetLandingConfig,
+        rsvpSettings: {
+          ...eventData.rsvpSettings,
+          logo: null,
+          logoFile: null,
+          logoUploading: false,
+        },
+      });
+
+      toast.error(`Upload failed: ${error.message}`, {
+        position: "top-center",
+        autoClose: 4000,
       });
     }
   };
 
   const handleRemoveLogo = () => {
-    // Clean up the object URL
+    // Clean up any preview URLs
     if (eventData.rsvpSettings?.logo) {
-      URL.revokeObjectURL(eventData.rsvpSettings.logo);
+      revokePreviewUrl(eventData.rsvpSettings.logo);
+    }
+    if (eventData.landingPageConfig?.logo) {
+      revokePreviewUrl(eventData.landingPageConfig.logo);
     }
 
     // Update both new schema and legacy format
@@ -536,6 +676,7 @@ const RSVPCustomization = ({
       ...currentLandingConfig,
       logo: null,
       logoFile: null,
+      logoUploading: false,
     };
 
     updateEventData({
@@ -544,6 +685,7 @@ const RSVPCustomization = ({
         ...eventData.rsvpSettings,
         logo: null,
         logoFile: null,
+        logoUploading: false,
       },
     });
 
@@ -828,10 +970,17 @@ const RSVPCustomization = ({
                     alt="Event Logo"
                     className={styles.previewImage}
                   />
+                  {rsvpSettings.logoUploading && (
+                    <div className={styles.uploadingOverlay}>
+                      <div className={styles.spinner}></div>
+                      <span>Uploading...</span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     className={styles.removeImageBtn}
                     onClick={handleRemoveLogo}
+                    disabled={rsvpSettings.logoUploading}
                   >
                     ✕
                   </button>
@@ -973,10 +1122,17 @@ const RSVPCustomization = ({
                           alt={subEvent.title || `Sub-Event ${index + 1}`}
                           className={styles.previewImage}
                         />
+                        {subEvent.imageUploading && (
+                          <div className={styles.uploadingOverlay}>
+                            <div className={styles.spinner}></div>
+                            <span>Uploading...</span>
+                          </div>
+                        )}
                         <button
                           type="button"
                           className={styles.removeImageBtn}
                           onClick={() => handleRemoveSubEventImage(index)}
+                          disabled={subEvent.imageUploading}
                         >
                           ✕
                         </button>

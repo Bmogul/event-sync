@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -15,6 +15,7 @@ const CreateEvent = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedImages, setHasUnsavedImages] = useState(false);
   const heroContent = [
     {
       tile: "Create Your Event",
@@ -96,7 +97,66 @@ const CreateEvent = () => {
       ...prev,
       ...updates,
     }));
+    
+    // Check if any temporary images were added
+    const newData = { ...eventData, ...updates };
+    const hasTemporaryImages = 
+      (newData.rsvpSettings?.logo && newData.rsvpSettings.logo.includes('/temp/')) ||
+      (newData.rsvpSettings?.backgroundImage && newData.rsvpSettings.backgroundImage.includes('/temp/')) ||
+      (newData.subEvents && newData.subEvents.some(se => se.image && se.image.includes('/temp/')));
+    
+    setHasUnsavedImages(hasTemporaryImages);
   };
+
+  // Cleanup temporary images when leaving page without saving
+  useEffect(() => {
+    const handleBeforeUnload = async (event) => {
+      if (hasUnsavedImages) {
+        // Try to cleanup temp images on page unload
+        try {
+          const { cleanupTempImages, extractTempImageUrls } = await import('../utils/imageUpload');
+          const tempUrls = extractTempImageUrls(eventData);
+          if (tempUrls.length > 0) {
+            // Use sendBeacon for reliable cleanup during page unload
+            navigator.sendBeacon('/api/cleanup-temp-images', JSON.stringify({
+              imageUrls: tempUrls
+            }));
+          }
+        } catch (error) {
+          console.warn("Failed to cleanup temp images on unload:", error);
+        }
+        
+        // Show confirmation dialog
+        event.preventDefault();
+        event.returnValue = 'You have unsaved images. Are you sure you want to leave?';
+        return 'You have unsaved images. Are you sure you want to leave?';
+      }
+    };
+
+    const handleRouteChange = async () => {
+      if (hasUnsavedImages) {
+        try {
+          const { cleanupTempImages, extractTempImageUrls } = await import('../utils/imageUpload');
+          const tempUrls = extractTempImageUrls(eventData);
+          if (tempUrls.length > 0) {
+            await cleanupTempImages(tempUrls);
+          }
+        } catch (error) {
+          console.warn("Failed to cleanup temp images on route change:", error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Cleanup on component unmount
+      if (hasUnsavedImages) {
+        handleRouteChange();
+      }
+    };
+  }, [hasUnsavedImages, eventData]);
 
   const nextStep = () => {
     if (currentStep < 5) {
@@ -117,12 +177,54 @@ const CreateEvent = () => {
   const saveDraft = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement save draft functionality
-      console.log("Saving draft...", eventData);
-      toast.success("Draft saved successfully!", {
-        position: "top-center",
-        autoClose: 2000,
+      // First create/update the event
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...eventData,
+          status: 'draft'
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to save event');
+      }
+
+      const savedEvent = await response.json();
+      const eventId = savedEvent.id || savedEvent.eventId;
+
+      // Update local event data with the saved ID
+      setEventData(prev => ({ ...prev, id: eventId }));
+
+      // Finalize any temporary images
+      try {
+        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const imageData = extractImageDataForFinalization(eventData);
+        
+        if (imageData.length > 0) {
+          console.log("Finalizing images for draft...", imageData);
+          await finalizeImages(eventId, imageData);
+          toast.success("Draft saved with images!", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+        } else {
+          toast.success("Draft saved successfully!", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+        }
+      } catch (imageError) {
+        console.warn("Image finalization failed:", imageError);
+        toast.success("Draft saved (images may need re-upload)", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      }
+
     } catch (error) {
       console.error("Error saving draft:", error);
       toast.error("Failed to save draft. Please try again.", {
@@ -137,14 +239,46 @@ const CreateEvent = () => {
   const publishEvent = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement publish event functionality
-      console.log("Publishing event...", eventData);
+      // First create/update the event
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...eventData,
+          status: 'published'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish event');
+      }
+
+      const savedEvent = await response.json();
+      const eventId = savedEvent.id || savedEvent.eventId;
+
+      // Finalize any temporary images
+      try {
+        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const imageData = extractImageDataForFinalization(eventData);
+        
+        if (imageData.length > 0) {
+          console.log("Finalizing images for published event...", imageData);
+          await finalizeImages(eventId, imageData);
+        }
+      } catch (imageError) {
+        console.warn("Image finalization failed:", imageError);
+        // Don't fail the publish if images fail
+      }
+
       toast.success("Event published successfully!", {
         position: "top-center",
         autoClose: 3000,
       });
+      
       // Redirect to event page or dashboard
-      router.push("/");
+      router.push(`/${eventId}`);
     } catch (error) {
       console.error("Error publishing event:", error);
       toast.error("Failed to publish event. Please try again.", {

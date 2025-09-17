@@ -149,26 +149,31 @@ export async function POST(request) {
       }
     }
 
-    // Handle RSVP customization
-    if (eventData.rsvpSettings) {
-      console.log("Processing RSVP settings:", eventData.rsvpSettings);
+    // Handle landing page configuration
+    if (eventData.landingPageConfig || eventData.rsvpSettings) {
+      console.log("Processing landing page config:", eventData.landingPageConfig || eventData.rsvpSettings);
+
+      // Use new structure if available, fallback to legacy rsvpSettings
+      const config = eventData.landingPageConfig || {};
+      const rsvp = eventData.rsvpSettings || {};
 
       const landingConfigPayload = {
         event_id: eventResult.id,
-        title: eventData.rsvpSettings.pageTitle,
-        greeting_config: {
-          message: eventData.rsvpSettings.welcomeMessage,
-          subtitle: eventData.rsvpSettings.subtitle,
-          theme: eventData.rsvpSettings.theme,
-          font_family: eventData.rsvpSettings.fontFamily,
-          background_color: eventData.rsvpSettings.backgroundColor,
-          text_color: eventData.rsvpSettings.textColor,
-          primary_color: eventData.rsvpSettings.primaryColor,
-          background_image: eventData.rsvpSettings.backgroundImage,
-          background_overlay: eventData.rsvpSettings.backgroundOverlay,
+        title: config.title || rsvp.pageTitle || "You're Invited!",
+        logo: config.logo || rsvp.logo || null,
+        greeting_config: config.greeting_config || {
+          message: rsvp.welcomeMessage,
+          subtitle: rsvp.subtitle,
+          theme: rsvp.theme,
+          font_family: rsvp.fontFamily,
+          background_color: rsvp.backgroundColor,
+          text_color: rsvp.textColor,
+          primary_color: rsvp.primaryColor,
+          background_image: rsvp.backgroundImage,
+          background_overlay: rsvp.backgroundOverlay,
         },
-        rsvp_config: {
-          custom_questions: eventData.rsvpSettings.customQuestions,
+        rsvp_config: config.rsvp_config || {
+          custom_questions: rsvp.customQuestions || [],
         },
         status: action === "publish" ? "published" : "draft",
       };
@@ -188,7 +193,7 @@ export async function POST(request) {
       }
       console.log("Landing page config created successfully");
     } else {
-      console.log("No rsvpSettings found in eventData");
+      console.log("No landing page config or rsvpSettings found in eventData");
     }
 
     // Handle guest groups

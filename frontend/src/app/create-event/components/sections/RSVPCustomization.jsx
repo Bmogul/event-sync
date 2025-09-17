@@ -377,12 +377,44 @@ const RSVPCustomization = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleInputChange = (field, value) => {
+    // Determine which config section this field belongs to
+    const greetingFields = ['welcomeMessage', 'subtitle', 'theme', 'fontFamily', 'backgroundColor', 'textColor', 'primaryColor', 'backgroundImage', 'backgroundOverlay'];
+    const landingFields = ['pageTitle', 'logo', 'logoFile'];
+    const rsvpFields = ['customQuestions'];
+
+    const currentLandingConfig = eventData.landingPageConfig || {};
+    const currentGreetingConfig = currentLandingConfig.greeting_config || {};
+    const currentRsvpConfig = currentLandingConfig.rsvp_config || {};
+
+    let updatedConfig = { ...currentLandingConfig };
+
+    if (greetingFields.includes(field)) {
+      updatedConfig.greeting_config = {
+        ...currentGreetingConfig,
+        [field === 'welcomeMessage' ? 'message' : field]: value,
+      };
+    } else if (landingFields.includes(field)) {
+      if (field === 'pageTitle') {
+        updatedConfig.title = value;
+      } else {
+        updatedConfig[field] = value;
+      }
+    } else if (rsvpFields.includes(field)) {
+      updatedConfig.rsvp_config = {
+        ...currentRsvpConfig,
+        [field]: value,
+      };
+    }
+
     updateEventData({
+      landingPageConfig: updatedConfig,
+      // Keep rsvpSettings for backward compatibility during transition
       rsvpSettings: {
         ...eventData.rsvpSettings,
         [field]: value,
       },
     });
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -391,21 +423,29 @@ const RSVPCustomization = ({
 
   const handleQuestionToggle = (questionType, isChecked) => {
     const currentQuestions = eventData.rsvpSettings?.customQuestions || [];
-    if (isChecked) {
-      updateEventData({
-        rsvpSettings: {
-          ...eventData.rsvpSettings,
-          customQuestions: [...currentQuestions, questionType],
-        },
-      });
-    } else {
-      updateEventData({
-        rsvpSettings: {
-          ...eventData.rsvpSettings,
-          customQuestions: currentQuestions.filter((q) => q !== questionType),
-        },
-      });
-    }
+    const newQuestions = isChecked 
+      ? [...currentQuestions, questionType]
+      : currentQuestions.filter((q) => q !== questionType);
+
+    // Update both new schema and legacy format
+    const currentLandingConfig = eventData.landingPageConfig || {};
+    const currentRsvpConfig = currentLandingConfig.rsvp_config || {};
+
+    const updatedLandingConfig = {
+      ...currentLandingConfig,
+      rsvp_config: {
+        ...currentRsvpConfig,
+        custom_questions: newQuestions,
+      },
+    };
+
+    updateEventData({
+      landingPageConfig: updatedLandingConfig,
+      rsvpSettings: {
+        ...eventData.rsvpSettings,
+        customQuestions: newQuestions,
+      },
+    });
   };
 
   const handleSubEventImageUpload = async (subEventIndex, event) => {
@@ -460,7 +500,16 @@ const RSVPCustomization = ({
     if (file) {
       const imageUrl = URL.createObjectURL(file);
 
+      // Update both new schema and legacy format
+      const currentLandingConfig = eventData.landingPageConfig || {};
+      const updatedLandingConfig = {
+        ...currentLandingConfig,
+        logo: imageUrl,
+        logoFile: file,
+      };
+
       updateEventData({
+        landingPageConfig: updatedLandingConfig,
         rsvpSettings: {
           ...eventData.rsvpSettings,
           logo: imageUrl,
@@ -481,7 +530,16 @@ const RSVPCustomization = ({
       URL.revokeObjectURL(eventData.rsvpSettings.logo);
     }
 
+    // Update both new schema and legacy format
+    const currentLandingConfig = eventData.landingPageConfig || {};
+    const updatedLandingConfig = {
+      ...currentLandingConfig,
+      logo: null,
+      logoFile: null,
+    };
+
     updateEventData({
+      landingPageConfig: updatedLandingConfig,
       rsvpSettings: {
         ...eventData.rsvpSettings,
         logo: null,
@@ -531,7 +589,21 @@ const RSVPCustomization = ({
 
     const selectedTheme = themes[themeName];
     if (selectedTheme) {
+      // Update both new schema and legacy format
+      const currentLandingConfig = eventData.landingPageConfig || {};
+      const currentGreetingConfig = currentLandingConfig.greeting_config || {};
+      
+      const updatedLandingConfig = {
+        ...currentLandingConfig,
+        greeting_config: {
+          ...currentGreetingConfig,
+          theme: themeName,
+          ...selectedTheme,
+        },
+      };
+
       updateEventData({
+        landingPageConfig: updatedLandingConfig,
         rsvpSettings: {
           ...eventData.rsvpSettings,
           theme: themeName,
@@ -631,21 +703,92 @@ const RSVPCustomization = ({
 
   // Initialize RSVP settings if not present
   useEffect(() => {
-    if (!eventData.rsvpSettings) {
+    const defaultConfig = {
+      title: "You're Invited!",
+      logo: null,
+      logoFile: null,
+      greeting_config: {
+        message: "We're so excited to celebrate with you! Please let us know if you can make it.",
+        subtitle: "Join us for our special celebration",
+        theme: "elegant",
+        font_family: "Playfair Display",
+        background_color: "#faf5ff",
+        text_color: "#581c87",
+        primary_color: "#7c3aed",
+        background_image: null,
+        background_overlay: 20,
+      },
+      rsvp_config: {
+        custom_questions: ["dietary", "message"],
+      },
+      status: "draft",
+    };
+
+    const defaultRsvpSettings = {
+      pageTitle: "You're Invited!",
+      subtitle: "Join us for our special celebration",
+      welcomeMessage: "We're so excited to celebrate with you! Please let us know if you can make it.",
+      theme: "elegant",
+      fontFamily: "Playfair Display",
+      backgroundColor: "#faf5ff",
+      textColor: "#581c87",
+      primaryColor: "#7c3aed",
+      customQuestions: ["dietary", "message"],
+      backgroundImage: null,
+      backgroundOverlay: 20,
+    };
+
+    if (!eventData.landingPageConfig && !eventData.rsvpSettings) {
+      updateEventData({
+        landingPageConfig: defaultConfig,
+        rsvpSettings: defaultRsvpSettings,
+      });
+    } else if (!eventData.landingPageConfig && eventData.rsvpSettings) {
+      // Migrate existing rsvpSettings to new schema
+      const migratedConfig = {
+        title: eventData.rsvpSettings.pageTitle || defaultConfig.title,
+        logo: eventData.rsvpSettings.logo || null,
+        logoFile: eventData.rsvpSettings.logoFile || null,
+        greeting_config: {
+          message: eventData.rsvpSettings.welcomeMessage || defaultConfig.greeting_config.message,
+          subtitle: eventData.rsvpSettings.subtitle || defaultConfig.greeting_config.subtitle,
+          theme: eventData.rsvpSettings.theme || defaultConfig.greeting_config.theme,
+          font_family: eventData.rsvpSettings.fontFamily || defaultConfig.greeting_config.font_family,
+          background_color: eventData.rsvpSettings.backgroundColor || defaultConfig.greeting_config.background_color,
+          text_color: eventData.rsvpSettings.textColor || defaultConfig.greeting_config.text_color,
+          primary_color: eventData.rsvpSettings.primaryColor || defaultConfig.greeting_config.primary_color,
+          background_image: eventData.rsvpSettings.backgroundImage || null,
+          background_overlay: eventData.rsvpSettings.backgroundOverlay || defaultConfig.greeting_config.background_overlay,
+        },
+        rsvp_config: {
+          custom_questions: eventData.rsvpSettings.customQuestions || [],
+        },
+        status: "draft",
+      };
+      
+      updateEventData({
+        landingPageConfig: migratedConfig,
+      });
+    } else if (!eventData.rsvpSettings && eventData.landingPageConfig) {
+      // Create rsvpSettings from landingPageConfig for backward compatibility
+      const greetingConfig = eventData.landingPageConfig.greeting_config || {};
+      const rsvpConfig = eventData.landingPageConfig.rsvp_config || {};
+      
       updateEventData({
         rsvpSettings: {
-          pageTitle: "You're Invited!",
-          subtitle: "Join us for our special celebration",
-          welcomeMessage:
-            "We're so excited to celebrate with you! Please let us know if you can make it.",
-          theme: "elegant",
-          fontFamily: "Playfair Display",
-          backgroundColor: "#faf5ff",
-          textColor: "#581c87",
-          primaryColor: "#7c3aed",
-          customQuestions: ["dietary", "message"],
-          backgroundImage: null,
-          backgroundOverlay: 20,
+          pageTitle: eventData.landingPageConfig.title || defaultRsvpSettings.pageTitle,
+          subtitle: greetingConfig.subtitle || defaultRsvpSettings.subtitle,
+          welcomeMessage: greetingConfig.message || defaultRsvpSettings.welcomeMessage,
+          theme: greetingConfig.theme || defaultRsvpSettings.theme,
+          fontFamily: greetingConfig.font_family || defaultRsvpSettings.fontFamily,
+          backgroundColor: greetingConfig.background_color || defaultRsvpSettings.backgroundColor,
+          textColor: greetingConfig.text_color || defaultRsvpSettings.textColor,
+          primaryColor: greetingConfig.primary_color || defaultRsvpSettings.primaryColor,
+          backgroundImage: greetingConfig.background_image || null,
+          backgroundOverlay: greetingConfig.background_overlay || defaultRsvpSettings.backgroundOverlay,
+          customQuestions: rsvpConfig.custom_questions || [],
+          logo: eventData.landingPageConfig.logo || null,
+          logoFile: eventData.landingPageConfig.logoFile || null,
         },
       });
     }

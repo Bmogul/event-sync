@@ -33,6 +33,11 @@ const GuestListSection = ({
   const [editingGuest, setEditingGuest] = useState(null);
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pocTransferData, setPocTransferData] = useState(null);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterBy, setFilterBy] = useState("all"); // all, gender, ageGroup, group, subEvent
+  const [filterValue, setFilterValue] = useState("");
 
   // Color palette for groups
   const groupColors = [
@@ -56,8 +61,50 @@ const GuestListSection = ({
     { value: "unknown", label: "Age not specified", order: 6 },
   ];
 
+  // Filter guests based on search term and filters
+  const getFilteredGuests = () => {
+    let filtered = eventData.guests || [];
+    
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(guest => 
+        guest.name.toLowerCase().includes(search) ||
+        guest.email.toLowerCase().includes(search) ||
+        (guest.phone && guest.phone.toLowerCase().includes(search)) ||
+        (guest.group && guest.group.toLowerCase().includes(search)) ||
+        (guest.tag && guest.tag.toLowerCase().includes(search))
+      );
+    }
+    
+    // Apply additional filters
+    if (filterBy !== "all" && filterValue) {
+      switch (filterBy) {
+        case "gender":
+          filtered = filtered.filter(guest => guest.gender === filterValue);
+          break;
+        case "ageGroup":
+          filtered = filtered.filter(guest => guest.ageGroup === filterValue);
+          break;
+        case "group":
+          filtered = filtered.filter(guest => guest.group === filterValue);
+          break;
+        case "subEvent":
+          filtered = filtered.filter(guest => guest.subEventRSVPs?.[filterValue] === "invited");
+          break;
+        default:
+          break;
+      }
+    }
+    
+    return filtered;
+  };
+
+  const filteredGuests = getFilteredGuests();
+
   // Statistics calculations
   const totalGuests = eventData.guests?.length || 0;
+  const filteredGuestsCount = filteredGuests.length;
   const totalGroups = eventData.guestGroups?.length || 0;
 
   // Get sub-events from event data with proper title mapping
@@ -79,6 +126,23 @@ const GuestListSection = ({
   // Get existing groups for dropdown
   const getExistingGroups = () => {
     return eventData.guestGroups?.filter(group => group.size > 0) || [];
+  };
+
+  // Get unique filter options
+  const getFilterOptions = () => {
+    const guests = eventData.guests || [];
+    return {
+      genders: [...new Set(guests.map(g => g.gender).filter(Boolean))],
+      ageGroups: [...new Set(guests.map(g => g.ageGroup).filter(Boolean))],
+      groups: [...new Set(guests.map(g => g.group).filter(Boolean))],
+    };
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterBy("all");
+    setFilterValue("");
   };
 
   // Check if a group already has a point of contact
@@ -671,11 +735,277 @@ const GuestListSection = ({
       autoClose: 3000,
     });
 
-    setTimeout(() => {
-      toast.success("File upload functionality coming soon!", {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        console.log('Total lines after filtering:', lines.length);
+        console.log('First few lines:', lines.slice(0, 5));
+        
+        if (lines.length < 2) {
+          toast.error("CSV file must have at least a header row and one data row", {
+            position: "top-center",
+          });
+          return;
+        }
+
+        // Skip first empty line if exists and get header
+        let headerIndex = 0;
+        while (headerIndex < lines.length) {
+          const line = lines[headerIndex].trim();
+          if (!line) {
+            headerIndex++;
+            continue;
+          }
+          
+          const cells = line.split(',').map(h => h.trim());
+          // Check if this line has actual header content (not all empty)
+          if (cells.some(cell => cell && cell.toLowerCase().includes('name'))) {
+            break;
+          }
+          
+          headerIndex++;
+        }
+        
+        if (headerIndex >= lines.length) {
+          toast.error("No valid header found in CSV file", {
+            position: "top-center",
+          });
+          return;
+        }
+
+        const headers = lines[headerIndex].split(',').map(h => h.trim());
+        const dataLines = lines.slice(headerIndex + 1);
+        
+        console.log('Header index:', headerIndex);
+        console.log('Headers:', headers);
+        console.log('Data lines count:', dataLines.length);
+
+        // Find column indices
+        const guidIndex = headers.findIndex(h => h.toLowerCase().includes('guid'));
+        const orderIndex = headers.findIndex(h => h.toLowerCase().includes('order'));
+        const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
+        const genderIndex = headers.findIndex(h => h.toLowerCase().includes('gender'));
+        const emailIndex = headers.findIndex(h => h.toLowerCase().includes('email'));
+        const phoneIndex = headers.findIndex(h => h.toLowerCase().includes('phone'));
+        const tagIndex = headers.findIndex(h => h.toLowerCase().includes('tag'));
+        const functionsIndex = headers.findIndex(h => h.toLowerCase().includes('functions'));
+
+        // Find sub-event columns (everything after Functions)
+        const subEventStartIndex = Math.max(functionsIndex, tagIndex) + 1;
+        
+        const subEventHeaders = headers.slice(subEventStartIndex).filter(h => h.trim());
+
+        console.log('Column indices:', {
+          guidIndex, orderIndex, nameIndex, genderIndex, 
+          emailIndex, phoneIndex, tagIndex, functionsIndex
+        });
+        console.log('Sub-event start index:', subEventStartIndex);
+        console.log('Sub-event headers:', subEventHeaders);
+        console.log('Available sub-events in event data:', subEvents);
+
+        const processedGuests = [];
+        const guestGroups = new Map();
+        let groupId = Date.now();
+
+        dataLines.forEach((line, index) => {
+          if (!line.trim()) return;
+          
+          const values = line.split(',').map(v => v.trim());
+          
+          // Skip if no name
+          if (nameIndex === -1 || !values[nameIndex] || !values[nameIndex].trim()) {
+            console.log('Skipping line due to missing name:', {nameIndex, values, line});
+            return;
+          }
+          
+            console.log('Processing guest:', values[nameIndex]);
+
+          // Determine age group based on gender field
+          const genderValue = (genderIndex !== -1) ? values[genderIndex] || '' : '';
+          let ageGroup = 'adult'; // Default
+          let actualGender = genderValue;
+          
+          // If gender is 'C', it means child age group
+          if (genderValue.toUpperCase() === 'C') {
+            ageGroup = 'child';
+            actualGender = ''; // Clear gender since C was age indicator
+          } else if (genderValue.toUpperCase() === 'M') {
+            actualGender = 'Male';
+          } else if (genderValue.toUpperCase() === 'F') {
+            actualGender = 'Female';
+          }
+
+          const guest = {
+            id: Date.now() + index + Math.random(),
+            order: (orderIndex !== -1 && values[orderIndex]) ? values[orderIndex] : (index + 1),
+            name: values[nameIndex],
+            email: (emailIndex !== -1) ? values[emailIndex] || '' : '',
+            phone: (phoneIndex !== -1) ? values[phoneIndex] || '' : '',
+            gender: actualGender,
+            ageGroup: ageGroup,
+            tag: (tagIndex !== -1) ? values[tagIndex] || '' : '',
+            group: '', // Will be set below
+            rsvpStatus: 'pending',
+            plusOne: false,
+            subEventRSVPs: {},
+            invitedAt: null,
+            respondedAt: null,
+          };
+
+          // Process sub-event RSVPs
+          subEventHeaders.forEach((subEventName, subIndex) => {
+            const subEventValue = values[subEventStartIndex + subIndex];
+            if (subEventValue && (subEventValue.toLowerCase() === 'yes' || subEventValue.toLowerCase() === 'true')) {
+              // Find matching sub-event in event data by name similarity
+              const matchingSubEvent = subEvents.find(se => {
+                const csvName = subEventName.toLowerCase().trim();
+                const eventName = se.name.toLowerCase().trim();
+                // Check for exact match or partial match
+                return eventName.includes(csvName) || csvName.includes(eventName) || eventName === csvName;
+              });
+              
+              if (matchingSubEvent) {
+                guest.subEventRSVPs[matchingSubEvent.id] = 'invited';
+              } else {
+                // If no exact match found, create a sub-event ID based on the CSV header
+                const subEventId = subEventName.replace(/\s+/g, '_').toLowerCase();
+                guest.subEventRSVPs[subEventId] = 'invited';
+              }
+            }
+          });
+
+          // Group guests by GUID (same GUID = same group)
+          const guid = (guidIndex !== -1 && values[guidIndex]) ? values[guidIndex].trim() : '';
+          if (guid) {
+            if (!guestGroups.has(guid)) {
+              guestGroups.set(guid, {
+                id: groupId++,
+                title: '',
+                members: [],
+                color: groupColors[guestGroups.size % groupColors.length]
+              });
+            }
+            guestGroups.get(guid).members.push(guest);
+          } else {
+            // Individual guest without group
+            guest.group = `${guest.name} (Individual)`;
+            processedGuests.push(guest);
+          }
+        });
+
+        // Process groups and assign group names
+        let groupNumber = 1;
+        const allNewGroups = [];
+        
+        guestGroups.forEach((groupData, guid) => {
+          if (groupData.members.length > 0) {
+            // Use first member's name for group title if multiple members
+            const groupTitle = groupData.members.length > 1 
+              ? `Group ${groupNumber++}` 
+              : `${groupData.members[0].name} (Individual)`;
+            
+            groupData.title = groupTitle;
+            
+            // Assign group to all members
+            groupData.members.forEach(member => {
+              member.group = groupTitle;
+            });
+
+            processedGuests.push(...groupData.members);
+
+            // Create group object
+            const newGroup = {
+              id: groupData.id,
+              event_id: eventData.id || null,
+              title: groupTitle,
+              size: groupData.members.length,
+              invite_sent_at: null,
+              invite_sent_by: null,
+              status: "draft",
+              details: {
+                color: groupData.color,
+                description: groupData.members.length > 1 ? "Family/Group" : "Individual guest",
+              },
+              point_of_contact: groupData.members[0].id, // First member as POC
+            };
+
+            allNewGroups.push(newGroup);
+          }
+        });
+
+        // Handle individual guests without groups
+        if (processedGuests.some(guest => !guest.group || guest.group.includes('(Individual)'))) {
+          const individualGuests = processedGuests.filter(guest => guest.group.includes('(Individual)'));
+          const individualGroups = individualGuests.map((guest, index) => ({
+            id: Date.now() + 10000 + index,
+            event_id: eventData.id || null,
+            title: guest.group,
+            size: 1,
+            invite_sent_at: null,
+            invite_sent_by: null,
+            status: "draft",
+            details: {
+              color: groupColors[(allNewGroups.length + index) % groupColors.length],
+              description: "Individual guest",
+            },
+            point_of_contact: guest.id,
+          }));
+          allNewGroups.push(...individualGroups);
+        }
+
+        console.log('Final processed guests count:', processedGuests.length);
+        console.log('Final processed guests:', processedGuests.map(g => g.name));
+        console.log('Groups created:', allNewGroups.length);
+
+        // Add all guests and groups at once
+        if (processedGuests.length > 0) {
+          updateEventData({
+            guests: [...(eventData.guests || []), ...processedGuests],
+            guestGroups: [...(eventData.guestGroups || []), ...allNewGroups],
+          });
+        }
+
+        toast.success(`Successfully imported ${processedGuests.length} guests!`, {
+          position: "top-center",
+          autoClose: 3000,
+        });
+
+      } catch (error) {
+        console.error('CSV parsing error:', error);
+        toast.error("Error parsing CSV file. Please check the format and try again.", {
+          position: "top-center",
+          autoClose: 5000,
+        });
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // Handle clearing all guests
+  const handleClearGuestList = () => {
+    if (eventData.guests?.length === 0) {
+      toast.info("Guest list is already empty", {
         position: "top-center",
+        autoClose: 2000,
       });
-    }, 2000);
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to clear all ${eventData.guests.length} guests? This action cannot be undone.`)) {
+      updateEventData({
+        guests: [],
+        guestGroups: [],
+      });
+
+      toast.success("Guest list cleared successfully!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
   };
 
   // Handle form submission
@@ -769,13 +1099,13 @@ const GuestListSection = ({
                 onChange={handleFileUpload}
               />
               <div className={styles.fieldHelp}>
-                Expected format: Name, Email, Phone, Gender, Age Group, Tag, Group,
-                [Sub-Event Names]
+                Expected format: GUID, Order, Name, Gender, Email, Phone, Tag, Functions, [Sub-Event Names]
                 <br />
-                Age Group values: infant, child, teen, adult, senior, unknown
+                GUID: Use same GUID for guests in the same group/family
                 <br />
-                Leave Group empty for individual guests, or use same Group name
-                for families
+                Sub-Events: Use "Yes" or "No" to indicate invitation status
+                <br />
+                Leave GUID empty for individual guests
               </div>
             </div>
           </div>
@@ -1310,30 +1640,138 @@ const GuestListSection = ({
         <div className={styles.guestListSection}>
           <div className={styles.subsectionHeader}>
             <h3 className={styles.subsectionTitle}>
-              All Guests ({totalGuests})
+              All Guests ({filteredGuestsCount}{totalGuests !== filteredGuestsCount ? ` of ${totalGuests}` : ''})
             </h3>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
+              onClick={handleClearGuestList}
+              title="Clear all guests from the list"
+            >
+              🗑️ Clear List
+            </button>
           </div>
 
-          <div className={styles.tableContainer}>
-            <table className={styles.guestTable}>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Contact</th>
-                  <th>Group</th>
-                  <th>Gender</th>
-                  <th>Age Group</th>
-                  <th>Tag</th>
-                  {subEvents.map((subEvent) => (
-                    <th key={subEvent.id} className={styles.subEventColumn}>
-                      {subEvent.name}
-                    </th>
-                  ))}
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(eventData.guests || []).map((guest) => {
+          {/* Filter Controls */}
+          <div className={styles.filterControls}>
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder="Search guests by name, email, phone, group, or tag..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button
+                  className={styles.clearSearchBtn}
+                  onClick={() => setSearchTerm("")}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className={styles.advancedFilters}>
+              <select
+                className={styles.filterSelect}
+                value={filterBy}
+                onChange={(e) => {
+                  setFilterBy(e.target.value);
+                  setFilterValue("");
+                }}
+              >
+                <option value="all">All Guests</option>
+                <option value="gender">Filter by Gender</option>
+                <option value="ageGroup">Filter by Age Group</option>
+                <option value="group">Filter by Group</option>
+                <option value="subEvent">Filter by Sub-Event</option>
+              </select>
+
+              {filterBy !== "all" && (
+                <select
+                  className={styles.filterSelect}
+                  value={filterValue}
+                  onChange={(e) => setFilterValue(e.target.value)}
+                >
+                  <option value="">Select {filterBy === "subEvent" ? "sub-event" : filterBy}...</option>
+                  {filterBy === "gender" && 
+                    getFilterOptions().genders.map(gender => (
+                      <option key={gender} value={gender}>{gender}</option>
+                    ))
+                  }
+                  {filterBy === "ageGroup" && 
+                    getFilterOptions().ageGroups.map(ageGroup => (
+                      <option key={ageGroup} value={ageGroup}>
+                        {ageGroups.find(ag => ag.value === ageGroup)?.label || ageGroup}
+                      </option>
+                    ))
+                  }
+                  {filterBy === "group" && 
+                    getFilterOptions().groups.map(group => (
+                      <option key={group} value={group}>{group}</option>
+                    ))
+                  }
+                  {filterBy === "subEvent" && 
+                    subEvents.map(subEvent => (
+                      <option key={subEvent.id} value={subEvent.id}>{subEvent.name}</option>
+                    ))
+                  }
+                </select>
+              )}
+
+              {(searchTerm || filterBy !== "all") && (
+                <button
+                  className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSm}`}
+                  onClick={clearFilters}
+                  title="Clear all filters"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filteredGuests.length === 0 ? (
+            <div className={styles.noResultsContainer}>
+              <div className={styles.noResultsIcon}>🔍</div>
+              <h4 className={styles.noResultsTitle}>No guests found</h4>
+              <p className={styles.noResultsText}>
+                {searchTerm || filterBy !== "all" 
+                  ? "Try adjusting your search or filter criteria"
+                  : "No guests have been added yet"}
+              </p>
+              {(searchTerm || filterBy !== "all") && (
+                <button
+                  className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSm}`}
+                  onClick={clearFilters}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className={styles.tableContainer}>
+              <table className={styles.guestTable}>
+                <thead>
+                  <tr>
+                    <th>Actions</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Group</th>
+                    <th>Gender</th>
+                    <th>Age Group</th>
+                    <th>Tag</th>
+                    {subEvents.map((subEvent) => (
+                      <th key={subEvent.id} className={styles.subEventColumn}>
+                        {subEvent.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGuests.map((guest) => {
                   const group = eventData.guestGroups?.find(
                     (g) => g.title === guest.group,
                   );
@@ -1346,6 +1784,24 @@ const GuestListSection = ({
                         isPointOfContact ? styles.pointOfContactRow : ""
                       }
                     >
+                      <td>
+                        <div className={styles.actionButtons}>
+                          <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon} ${styles.editIcon}`}
+                            onClick={() => handleEditGuest(guest)}
+                            title="Edit guest"
+                          >
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnIcon} ${styles.deleteIcon}`}
+                            onClick={() => handleRemoveGuest(guest.id)}
+                            title="Remove guest"
+                          >
+                          </button>
+                        </div>
+                      </td>
                       <td>
                         <div className={styles.guestName}>
                           {guest.name}
@@ -1401,30 +1857,13 @@ const GuestListSection = ({
                           />
                         </td>
                       ))}
-                      <td>
-                        <div className={styles.actionButtons}>
-                          <button
-                            type="button"
-                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
-                            onClick={() => handleEditGuest(guest)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
-                            onClick={() => handleRemoveGuest(guest.id)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
 

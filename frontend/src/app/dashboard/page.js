@@ -17,6 +17,9 @@ const DashboardContent = () => {
   const [collaborations, setCollaborations] = useState([]);
   const [collaborationsLoading, setCollaborationsLoading] = useState(true);
   const [collaborationsError, setCollaborationsError] = useState(null);
+  const [selectedEvents, setSelectedEvents] = useState([]);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'single', eventId } or { type: 'mass', eventIds }
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -33,14 +36,32 @@ const DashboardContent = () => {
       setEventsLoading(true);
       setEventsError(null);
       
+      // First get event IDs where user is a manager
+      const { data: managerData, error: managerError } = await supabase
+        .from('event_managers')
+        .select('event_id')
+        .eq('user_id', userProfile.id);
+      
+      if (managerError) {
+        throw managerError;
+      }
+      
+      if (!managerData || managerData.length === 0) {
+        setEvents([]);
+        return;
+      }
+      
+      // Get unique event IDs
+      const eventIds = [...new Set(managerData.map(m => m.event_id))];
+      
+      // Then fetch events using the event IDs
       const { data, error } = await supabase
         .from('events')
         .select(`
           *,
-          status:event_state_lookup(state),
-          event_managers!inner(user_id)
+          status:event_state_lookup(state)
         `)
-        .eq('event_managers.user_id', userProfile.id);
+        .in('id', eventIds);
       
       if (error) {
         throw error;
@@ -62,7 +83,12 @@ const DashboardContent = () => {
         heroUrl: event.hero_url
       })) || [];
       
-      setEvents(transformedEvents);
+      // Remove any potential duplicates based on event ID (extra safety measure)
+      const uniqueEvents = transformedEvents.filter((event, index, self) => 
+        index === self.findIndex(e => e.id === event.id)
+      );
+      
+      setEvents(uniqueEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       setEventsError('Failed to load events');
@@ -219,6 +245,82 @@ const DashboardContent = () => {
     }
   };
 
+  // Handle event selection for mass delete
+  const handleEventSelection = (eventId, checked) => {
+    if (checked) {
+      setSelectedEvents(prev => [...prev, eventId]);
+    } else {
+      setSelectedEvents(prev => prev.filter(id => id !== eventId));
+    }
+  };
+
+  // Handle select all events
+  const handleSelectAllEvents = (checked) => {
+    if (checked) {
+      setSelectedEvents(events.map(event => event.id));
+    } else {
+      setSelectedEvents([]);
+    }
+  };
+
+  // Handle single event delete
+  const handleDeleteEvent = (eventId) => {
+    setDeleteTarget({ type: 'single', eventId });
+    setShowDeleteConfirmation(true);
+  };
+
+  // Handle mass delete
+  const handleMassDelete = () => {
+    if (selectedEvents.length === 0) {
+      toast.error("Please select events to delete");
+      return;
+    }
+    setDeleteTarget({ type: 'mass', eventIds: selectedEvents });
+    setShowDeleteConfirmation(true);
+  };
+
+  // Confirm delete operation
+  const confirmDelete = async () => {
+    try {
+      if (deleteTarget.type === 'single') {
+        // Delete single event
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .eq('public_id', deleteTarget.eventId);
+
+        if (error) throw error;
+
+        setEvents(prev => prev.filter(event => event.id !== deleteTarget.eventId));
+        toast.success("Event deleted successfully");
+      } else {
+        // Delete multiple events
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .in('public_id', deleteTarget.eventIds);
+
+        if (error) throw error;
+
+        setEvents(prev => prev.filter(event => !deleteTarget.eventIds.includes(event.id)));
+        setSelectedEvents([]);
+        toast.success(`${deleteTarget.eventIds.length} events deleted successfully`);
+      }
+    } catch (error) {
+      console.error('Error deleting event(s):', error);
+      toast.error('Failed to delete event(s)');
+    } finally {
+      setShowDeleteConfirmation(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  // Cancel delete operation
+  const cancelDelete = () => {
+    setShowDeleteConfirmation(false);
+    setDeleteTarget(null);
+  };
+
   // Show loading state while authenticating
   if (loading) {
     return (
@@ -325,7 +427,29 @@ const DashboardContent = () => {
           {activeSection === "events" && (
             <div className={styles.eventsSection}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>My Events</h2>
+                <div className={styles.sectionTitleArea}>
+                  <h2 className={styles.sectionTitle}>My Events</h2>
+                  {events.length > 0 && (
+                    <div className={styles.selectionControls}>
+                      <label className={styles.selectAllLabel}>
+                        <input
+                          type="checkbox"
+                          checked={selectedEvents.length === events.length && events.length > 0}
+                          onChange={(e) => handleSelectAllEvents(e.target.checked)}
+                        />
+                        Select All ({selectedEvents.length})
+                      </label>
+                      {selectedEvents.length > 0 && (
+                        <button
+                          className={styles.btnDanger}
+                          onClick={handleMassDelete}
+                        >
+                          🗑️ Delete Selected ({selectedEvents.length})
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <button 
                   className={styles.btnPrimary}
                   onClick={handleCreateEvent}
@@ -387,6 +511,21 @@ const DashboardContent = () => {
                   {events.map(event => (
                     <div key={event.id} className={styles.eventCard}>
                       <div className={styles.eventCardHeader}>
+                        <div className={styles.eventCardControls}>
+                          <input
+                            type="checkbox"
+                            className={styles.eventCheckbox}
+                            checked={selectedEvents.includes(event.id)}
+                            onChange={(e) => handleEventSelection(event.id, e.target.checked)}
+                          />
+                          <button
+                            className={styles.deleteBtn}
+                            onClick={() => handleDeleteEvent(event.id)}
+                            title="Delete event"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                         <div className={styles.eventIcon}>
                           {getEventTypeIcon(event.type)}
                         </div>
@@ -603,6 +742,53 @@ const DashboardContent = () => {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && deleteTarget && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.confirmationModal}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {deleteTarget.type === 'single' ? 'Delete Event' : 'Delete Events'}
+              </h3>
+            </div>
+            
+            <div className={styles.confirmationContent}>
+              <div className={styles.confirmationIcon}>
+                ⚠️
+              </div>
+              <div className={styles.confirmationMessage}>
+                <p>
+                  {deleteTarget.type === 'single' 
+                    ? 'Are you sure you want to delete this event? This action cannot be undone.'
+                    : `Are you sure you want to delete ${deleteTarget.eventIds.length} events? This action cannot be undone.`
+                  }
+                </p>
+                <p className={styles.confirmationSubtext}>
+                  All associated data including guests, RSVPs, and sub-events will be permanently removed.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.confirmationActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={cancelDelete}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                onClick={confirmDelete}
+              >
+                {deleteTarget.type === 'single' ? 'Delete Event' : `Delete ${deleteTarget.eventIds.length} Events`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

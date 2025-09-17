@@ -5,12 +5,11 @@ import Hero from "@/components/sections/Hero";
 import Features from "@/components/sections/Features";
 import CTA from "@/components/sections/CTA";
 import Footer from "@/components/layout/Footer";
-import { AuthProvider } from "./contexts/AuthContext";
 
 export default function Home() {
 
   return (
-    <AuthProvider>
+    <>
       <Header />
       <main>
         <Hero />
@@ -18,7 +17,7 @@ export default function Home() {
         <CTA />
       </main>
       <Footer />
-    </AuthProvider>
+    </>
   );
 }
 

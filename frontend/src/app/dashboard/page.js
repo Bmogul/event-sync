@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
-import { AuthProvider } from "../contexts/AuthContext";
 import styles from "./Dashboard.module.css";
 
 const DashboardContent = () => {
@@ -608,12 +607,4 @@ const DashboardContent = () => {
   );
 };
 
-const Dashboard = () => {
-  return (
-    <AuthProvider>
-      <DashboardContent />
-    </AuthProvider>
-  );
-};
-
-export default Dashboard;
+export default DashboardContent;

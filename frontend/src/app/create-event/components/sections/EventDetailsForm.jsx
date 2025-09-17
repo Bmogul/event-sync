@@ -36,6 +36,7 @@ const EventDetailsForm = ({
       endTime: '',
       location: '',
       maxGuests: '',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       isRequired: true,
     }
     updateEventData({ 
@@ -44,6 +45,15 @@ const EventDetailsForm = ({
   }
 
   const removeSubEvent = (index) => {
+    // Prevent removing the last sub-event (minimum 1 required)
+    if (eventData.subEvents.length <= 1) {
+      toast.error('At least one sub-event is required', {
+        position: 'top-center',
+        autoClose: 2000,
+      })
+      return
+    }
+    
     const updatedSubEvents = eventData.subEvents.filter((_, i) => i !== index)
     updateEventData({ subEvents: updatedSubEvents })
   }
@@ -52,28 +62,19 @@ const EventDetailsForm = ({
     const newErrors = {}
     
     if (!eventData.title.trim()) newErrors.title = 'Event title is required'
-    if (!eventData.description.trim()) newErrors.description = 'Event description is required'
-    if (!eventData.location.trim()) newErrors.location = 'Event location is required'
-    if (!eventData.startDate) newErrors.startDate = 'Start date is required'
-    if (!eventData.endDate) newErrors.endDate = 'End date is required'
     
     if (eventData.endDate && eventData.startDate && new Date(eventData.endDate) < new Date(eventData.startDate)) {
       newErrors.endDate = 'End date must be after start date'
     }
 
-    if (showSubEvents && eventData.subEvents.length === 0) {
-      newErrors.subEvents = 'At least one sub-event is required'
-    }
-
-    // Validate sub-events if they exist
+    // Validate sub-events - only title is required, other fields are nullable
     if (showSubEvents && eventData.subEvents.length > 0) {
       eventData.subEvents.forEach((subEvent, index) => {
         if (!subEvent.title.trim()) {
           newErrors[`subEvent_${index}_title`] = 'Sub-event title is required'
         }
-        if (!subEvent.date) {
-          newErrors[`subEvent_${index}_date`] = 'Sub-event date is required'
-        }
+        // Remove date requirement - it's now nullable
+        // Remove other field requirements - they're all nullable
       })
     }
 
@@ -152,7 +153,7 @@ const EventDetailsForm = ({
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Date *</label>
+                  <label className={styles.formLabel}>Date</label>
                   <input
                     type="date"
                     className={`${styles.formInput} ${errors[`subEvent_${index}_date`] ? styles.error : ''}`}
@@ -184,6 +185,28 @@ const EventDetailsForm = ({
                     value={subEvent.endTime}
                     onChange={(e) => handleSubEventChange(index, 'endTime', e.target.value)}
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Timezone</label>
+                  <select
+                    className={styles.formInput}
+                    value={subEvent.timezone}
+                    onChange={(e) => handleSubEventChange(index, 'timezone', e.target.value)}
+                  >
+                    <option value="America/New_York">Eastern Time (ET)</option>
+                    <option value="America/Chicago">Central Time (CT)</option>
+                    <option value="America/Denver">Mountain Time (MT)</option>
+                    <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                    <option value="America/Anchorage">Alaska Time (AKT)</option>
+                    <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                    <option value="Europe/London">GMT (London)</option>
+                    <option value="Europe/Paris">CET (Paris)</option>
+                    <option value="Asia/Tokyo">JST (Tokyo)</option>
+                    <option value="Asia/Shanghai">CST (Shanghai)</option>
+                    <option value="Asia/Kolkata">IST (India)</option>
+                    <option value="Australia/Sydney">AEST (Sydney)</option>
+                  </select>
                 </div>
 
                 <div className={styles.formGroupFull}>
@@ -295,7 +318,7 @@ const EventDetailsForm = ({
         </div>
 
         <div className={styles.formGroupFull}>
-          <label className={styles.formLabel}>Description *</label>
+          <label className={styles.formLabel}>Description</label>
           <textarea
             className={`${styles.formTextarea} ${errors.description ? styles.error : ''}`}
             value={eventData.description}
@@ -335,20 +358,8 @@ const EventDetailsForm = ({
           <div className={styles.formHelp}>Leave blank for unlimited</div>
         </div>
 
-        <div className={styles.formGroupFull}>
-          <label className={styles.formLabel}>Location *</label>
-          <input
-            type="text"
-            className={`${styles.formInput} ${errors.location ? styles.error : ''}`}
-            value={eventData.location}
-            onChange={(e) => handleInputChange('location', e.target.value)}
-            placeholder="Full address or venue name"
-          />
-          {errors.location && <div className={styles.errorText}>{errors.location}</div>}
-        </div>
-
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Start Date *</label>
+          <label className={styles.formLabel}>Start Date</label>
           <input
             type="date"
             className={`${styles.formInput} ${errors.startDate ? styles.error : ''}`}
@@ -360,7 +371,7 @@ const EventDetailsForm = ({
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>End Date *</label>
+          <label className={styles.formLabel}>End Date</label>
           <input
             type="date"
             className={`${styles.formInput} ${errors.endDate ? styles.error : ''}`}
@@ -369,21 +380,6 @@ const EventDetailsForm = ({
             min={eventData.startDate || new Date().toISOString().split('T')[0]}
           />
           {errors.endDate && <div className={styles.errorText}>{errors.endDate}</div>}
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Timezone</label>
-          <select
-            className={styles.formSelect}
-            value={eventData.timezone}
-            onChange={(e) => handleInputChange('timezone', e.target.value)}
-          >
-            <option value="America/New_York">Eastern Time</option>
-            <option value="America/Chicago">Central Time</option>
-            <option value="America/Denver">Mountain Time</option>
-            <option value="America/Los_Angeles">Pacific Time</option>
-            <option value="UTC">UTC</option>
-          </select>
         </div>
 
         <div className={styles.formGroup}>

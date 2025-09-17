@@ -16,9 +16,11 @@ const GuestListSection = ({
     email: "",
     phone: "",
     gender: "",
+    ageGroup: "",
     tag: "",
+    selectedGroup: "", // New field for group selection
     subEventRSVPs: {},
-    isPointOfContact: false,
+    isPointOfContact: true, // Default to true for individual guests
   });
   const [newGroup, setNewGroup] = useState({
     name: "",
@@ -29,6 +31,8 @@ const GuestListSection = ({
   const [importMethod, setImportMethod] = useState("manual"); // 'manual' or 'upload'
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [editingGuest, setEditingGuest] = useState(null);
+  const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
+  const [pocTransferData, setPocTransferData] = useState(null);
 
   // Color palette for groups
   const groupColors = [
@@ -42,23 +46,113 @@ const GuestListSection = ({
     "#ea580c",
   ];
 
+  // Age group options
+  const ageGroups = [
+    { value: "infant", label: "Infant (0-2 years)", order: 1 },
+    { value: "child", label: "Child (3-12 years)", order: 2 },
+    { value: "teen", label: "Teenager (13-17 years)", order: 3 },
+    { value: "adult", label: "Adult (18-64 years)", order: 4 },
+    { value: "senior", label: "Senior (65+ years)", order: 5 },
+    { value: "unknown", label: "Age not specified", order: 6 },
+  ];
+
   // Statistics calculations
   const totalGuests = eventData.guests?.length || 0;
   const totalGroups = eventData.guestGroups?.length || 0;
 
-  // Get default sub-events if not defined
+  // Get sub-events from event data with proper title mapping
   const getSubEvents = () => {
-    return (
-      eventData.subEvents || [
-        { id: "welcome-dinner", name: "Welcome Dinner" },
-        { id: "main-ceremony", name: "Main Ceremony" },
-        { id: "reception", name: "Reception" },
-        { id: "farewell-brunch", name: "Farewell Brunch" },
-      ]
-    );
+    if (eventData.subEvents && eventData.subEvents.length > 0) {
+      return eventData.subEvents.map(subEvent => ({
+        id: subEvent.id,
+        name: subEvent.title || `Sub-Event ${subEvent.id}` // Use title field
+      }));
+    }
+    // Fallback if no sub-events defined
+    return [
+      { id: 1, name: "Main Event" }
+    ];
   };
 
   const subEvents = getSubEvents();
+
+  // Get existing groups for dropdown
+  const getExistingGroups = () => {
+    return eventData.guestGroups?.filter(group => group.size > 0) || [];
+  };
+
+  // Check if a group already has a point of contact
+  const groupHasPOC = (groupTitle) => {
+    const group = eventData.guestGroups?.find(g => g.title === groupTitle);
+    if (!group) return false;
+    
+    const groupGuests = eventData.guests?.filter(guest => guest.group === groupTitle) || [];
+    return groupGuests.some(guest => group.point_of_contact === guest.id);
+  };
+
+  // Get the current POC name for a group
+  const getCurrentPOCName = (groupTitle) => {
+    const group = eventData.guestGroups?.find(g => g.title === groupTitle);
+    if (!group || !group.point_of_contact) return null;
+    
+    const pocGuest = eventData.guests?.find(guest => guest.id === group.point_of_contact);
+    return pocGuest?.name || null;
+  };
+
+  // Handle group selection change
+  const handleGroupSelectionChange = (selectedGroup) => {
+    setNewGuest(prev => ({
+      ...prev,
+      selectedGroup,
+      // Auto-uncheck POC when selecting a group, unless it's the same group they're already in
+      isPointOfContact: selectedGroup ? 
+        (editingGuest && selectedGroup === editingGuest.group ? prev.isPointOfContact : false) : 
+        true
+    }));
+  };
+
+  // Handle POC checkbox change with confirmation
+  const handlePOCChange = (checked) => {
+    if (checked && newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup)) {
+      // Check if we're editing and it's their current group - no transfer needed
+      if (editingGuest && newGuest.selectedGroup === editingGuest.group) {
+        setNewGuest(prev => ({
+          ...prev,
+          isPointOfContact: checked
+        }));
+        return;
+      }
+      
+      const currentPOCName = getCurrentPOCName(newGuest.selectedGroup);
+      setPocTransferData({
+        fromName: currentPOCName,
+        toName: newGuest.name,
+        groupName: newGuest.selectedGroup
+      });
+      setShowPOCConfirmation(true);
+    } else {
+      setNewGuest(prev => ({
+        ...prev,
+        isPointOfContact: checked
+      }));
+    }
+  };
+
+  // Handle POC transfer confirmation
+  const handlePOCTransferConfirm = () => {
+    setNewGuest(prev => ({
+      ...prev,
+      isPointOfContact: true
+    }));
+    setShowPOCConfirmation(false);
+    setPocTransferData(null);
+  };
+
+  // Handle POC transfer cancellation
+  const handlePOCTransferCancel = () => {
+    setShowPOCConfirmation(false);
+    setPocTransferData(null);
+  };
 
   // Calculate guests per sub-event
   const getSubEventGuestCount = (subEventId) => {
@@ -76,9 +170,23 @@ const GuestListSection = ({
       return;
     }
 
-    if (!newGuest.email.trim()) {
-      toast.error("Member email is required", { position: "top-center" });
-      return;
+    // Check POC validation for group members
+    if (newGuest.isPointOfContact) {
+      const hasPOC = tempGroupMembers.some(member => member.isPointOfContact);
+      if (hasPOC && editingMemberIndex === -1) {
+        toast.error("This group already has a point of contact. Please uncheck 'Point of Contact' for this member.", {
+          position: "top-center",
+          autoClose: 4000,
+        });
+        return;
+      }
+      if (hasPOC && editingMemberIndex >= 0 && !tempGroupMembers[editingMemberIndex].isPointOfContact) {
+        toast.error("This group already has a point of contact. Please uncheck 'Point of Contact' for this member.", {
+          position: "top-center",
+          autoClose: 4000,
+        });
+        return;
+      }
     }
 
     const memberData = {
@@ -86,9 +194,10 @@ const GuestListSection = ({
       email: newGuest.email,
       phone: newGuest.phone || "",
       gender: newGuest.gender || "",
+      ageGroup: newGuest.ageGroup || "",
       tag: newGuest.tag || "",
       subEventRSVPs: { ...newGuest.subEventRSVPs },
-      isPointOfContact: newGuest.isPointOfContact || false,
+      isPointOfContact: newGuest.isPointOfContact,
     };
 
     if (editingMemberIndex >= 0) {
@@ -114,9 +223,11 @@ const GuestListSection = ({
       email: "",
       phone: "",
       gender: "",
+      ageGroup: "",
       tag: "",
+      selectedGroup: "",
       subEventRSVPs: {},
-      isPointOfContact: false,
+      isPointOfContact: false, // Keep false for group members
     });
   };
 
@@ -128,6 +239,7 @@ const GuestListSection = ({
       email: member.email,
       phone: member.phone,
       gender: member.gender,
+      ageGroup: member.ageGroup,
       tag: member.tag,
       subEventRSVPs: { ...member.subEventRSVPs },
       isPointOfContact: member.isPointOfContact,
@@ -145,9 +257,11 @@ const GuestListSection = ({
         email: "",
         phone: "",
         gender: "",
+        ageGroup: "",
         tag: "",
+        selectedGroup: "",
         subEventRSVPs: {},
-        isPointOfContact: false,
+        isPointOfContact: false, // Keep false for group members
       });
     }
     toast.success("Member removed from group", {
@@ -212,6 +326,7 @@ const GuestListSection = ({
         email: member.email,
         phone: member.phone,
         gender: member.gender,
+        ageGroup: member.ageGroup,
         tag: member.tag,
         group: newGroup.name,
         rsvpStatus: "pending",
@@ -235,9 +350,11 @@ const GuestListSection = ({
       email: "",
       phone: "",
       gender: "",
+      ageGroup: "",
       tag: "",
+      selectedGroup: "",
       subEventRSVPs: {},
-      isPointOfContact: false,
+      isPointOfContact: true, // Default to true after creating group
     });
     setEditingMemberIndex(-1);
     setShowGuestForm(false);
@@ -258,30 +375,39 @@ const GuestListSection = ({
       return;
     }
 
-    if (!newGuest.email.trim()) {
-      toast.error("Guest email is required", { position: "top-center" });
-      return;
+    // No need for POC validation here as it's handled by confirmation dialog
+
+    let groupTitle, groupId, updatedGroups = [...(eventData.guestGroups || [])];
+    
+    if (newGuest.selectedGroup) {
+      // Adding to existing group
+      groupTitle = newGuest.selectedGroup;
+      const existingGroup = updatedGroups.find(g => g.title === groupTitle);
+      if (existingGroup) {
+        existingGroup.size += 1;
+        groupId = existingGroup.id;
+      }
+    } else {
+      // Creating new individual group
+      groupTitle = `${newGuest.name} (Individual)`;
+      groupId = Date.now();
+      
+      const individualGroup = {
+        id: groupId,
+        event_id: eventData.id || null,
+        title: groupTitle,
+        size: 1,
+        invite_sent_at: null,
+        invite_sent_by: null,
+        status: "draft",
+        details: {
+          color: groupColors[updatedGroups.length % groupColors.length],
+          description: "Individual guest",
+        },
+        point_of_contact: null,
+      };
+      updatedGroups.push(individualGroup);
     }
-
-    const groupTitle = `${newGuest.name} (Individual)`;
-    const groupId = Date.now();
-    const updatedGroups = [...(eventData.guestGroups || [])];
-
-    const individualGroup = {
-      id: groupId,
-      event_id: eventData.id || null,
-      title: groupTitle,
-      size: 1,
-      invite_sent_at: null,
-      invite_sent_by: null,
-      status: "draft",
-      details: {
-        color: groupColors[updatedGroups.length % groupColors.length],
-        description: "Individual guest",
-      },
-      point_of_contact: null,
-    };
-    updatedGroups.push(individualGroup);
 
     const guestId = Date.now() + Math.random();
     const guest = {
@@ -293,6 +419,7 @@ const GuestListSection = ({
       email: newGuest.email,
       phone: newGuest.phone || "",
       gender: newGuest.gender || "",
+      ageGroup: newGuest.ageGroup || "",
       tag: newGuest.tag || "",
       group: groupTitle,
       rsvpStatus: "pending",
@@ -302,9 +429,13 @@ const GuestListSection = ({
       respondedAt: null,
     };
 
-    const groupToUpdate = updatedGroups.find((g) => g.id === groupId);
-    if (groupToUpdate) {
-      groupToUpdate.point_of_contact = guestId;
+    // Set as point of contact if selected
+    if (newGuest.isPointOfContact) {
+      const groupToUpdate = updatedGroups.find((g) => g.id === groupId);
+      if (groupToUpdate) {
+        // If there was already a POC, this transfer was confirmed by user
+        groupToUpdate.point_of_contact = guestId;
+      }
     }
 
     updateEventData({
@@ -317,12 +448,19 @@ const GuestListSection = ({
       email: "",
       phone: "",
       gender: "",
+      ageGroup: "",
       tag: "",
+      selectedGroup: "",
       subEventRSVPs: {},
-      isPointOfContact: false,
+      isPointOfContact: true, // Default to true for individual guests
     });
     setShowGuestForm(false);
-    toast.success("Individual guest added successfully!", {
+    
+    const successMessage = newGuest.selectedGroup 
+      ? `Guest added to "${newGuest.selectedGroup}" successfully!`
+      : "Individual guest added successfully!";
+    
+    toast.success(successMessage, {
       position: "top-center",
       autoClose: 2000,
     });
@@ -368,14 +506,20 @@ const GuestListSection = ({
     setEditingGuest(guest);
     setAddMode("individual"); // Always edit as individual for simplicity
 
+    // Check if this guest is the point of contact for their group
+    const group = eventData.guestGroups?.find(g => g.title === guest.group);
+    const isCurrentPOC = group?.point_of_contact === guest.id;
+
     setNewGuest({
       name: guest.name,
       email: guest.email,
       phone: guest.phone || "",
       gender: guest.gender || "",
+      ageGroup: guest.ageGroup || "",
       tag: guest.tag || "",
+      selectedGroup: guest.group || "",
       subEventRSVPs: guest.subEventRSVPs || {},
-      isPointOfContact: false,
+      isPointOfContact: isCurrentPOC, // Set based on actual POC status
     });
     setShowGuestForm(true);
   };
@@ -383,9 +527,119 @@ const GuestListSection = ({
   // Handle saving edited guest
   const handleSaveEdit = () => {
     if (!editingGuest) return;
-    handleRemoveGuest(editingGuest.id);
-    handleAddIndividualGuest();
+    
+    if (!newGuest.name.trim()) {
+      toast.error("Guest name is required", { position: "top-center" });
+      return;
+    }
+
+    // No need for POC validation here as it's handled by confirmation dialog
+
+    const oldGroup = editingGuest.group;
+    const newGroupTitle = newGuest.selectedGroup || `${newGuest.name} (Individual)`;
+    let updatedGroups = [...(eventData.guestGroups || [])];
+    
+    // Handle group changes
+    if (oldGroup !== newGroupTitle) {
+      // Remove from old group
+      const oldGroupObj = updatedGroups.find(g => g.title === oldGroup);
+      if (oldGroupObj) {
+        oldGroupObj.size -= 1;
+        // If this was the POC and group still has members, assign POC to someone else
+        if (oldGroupObj.point_of_contact === editingGuest.id) {
+          const remainingMembers = eventData.guests?.filter(
+            g => g.group === oldGroup && g.id !== editingGuest.id
+          ) || [];
+          oldGroupObj.point_of_contact = remainingMembers.length > 0 ? remainingMembers[0].id : null;
+        }
+        // Remove group if no members left
+        if (oldGroupObj.size <= 0) {
+          updatedGroups = updatedGroups.filter(g => g.id !== oldGroupObj.id);
+        }
+      }
+
+      // Add to new group or create new group
+      if (newGuest.selectedGroup) {
+        // Adding to existing group
+        const existingGroup = updatedGroups.find(g => g.title === newGroupTitle);
+        if (existingGroup) {
+          existingGroup.size += 1;
+        }
+      } else {
+        // Create new individual group
+        const newGroup = {
+          id: Date.now(),
+          event_id: eventData.id || null,
+          title: newGroupTitle,
+          size: 1,
+          invite_sent_at: null,
+          invite_sent_by: null,
+          status: "draft",
+          details: {
+            color: groupColors[updatedGroups.length % groupColors.length],
+            description: "Individual guest",
+          },
+          point_of_contact: null,
+        };
+        updatedGroups.push(newGroup);
+      }
+    }
+
+    // Update the guest
+    const updatedGuests = eventData.guests?.map(guest => {
+      if (guest.id === editingGuest.id) {
+        return {
+          ...guest,
+          name: newGuest.name,
+          email: newGuest.email,
+          phone: newGuest.phone || "",
+          gender: newGuest.gender || "",
+          ageGroup: newGuest.ageGroup || "",
+          tag: newGuest.tag || "",
+          group: newGroupTitle,
+          subEventRSVPs: newGuest.subEventRSVPs,
+        };
+      }
+      return guest;
+    }) || [];
+
+    // Set as point of contact if selected
+    if (newGuest.isPointOfContact) {
+      const groupToUpdate = updatedGroups.find(g => g.title === newGroupTitle);
+      if (groupToUpdate) {
+        groupToUpdate.point_of_contact = editingGuest.id;
+      }
+    } else {
+      // Remove POC status if unchecked
+      const groupToUpdate = updatedGroups.find(g => g.title === newGroupTitle);
+      if (groupToUpdate && groupToUpdate.point_of_contact === editingGuest.id) {
+        groupToUpdate.point_of_contact = null;
+      }
+    }
+
+    updateEventData({
+      guests: updatedGuests,
+      guestGroups: updatedGroups,
+    });
+
+    setNewGuest({
+      name: "",
+      email: "",
+      phone: "",
+      gender: "",
+      ageGroup: "",
+      tag: "",
+      selectedGroup: "",
+      subEventRSVPs: {},
+      isPointOfContact: true, // Default to true for individual guests
+    });
     setEditingGuest(null);
+    setShowGuestForm(false);
+    
+    toast.success("Guest updated successfully!", {
+      position: "top-center",
+      autoClose: 2000,
+    });
   };
 
   // Handle updating sub-event RSVP
@@ -515,8 +769,10 @@ const GuestListSection = ({
                 onChange={handleFileUpload}
               />
               <div className={styles.fieldHelp}>
-                Expected format: Name, Email, Phone, Gender, Tag, Group,
+                Expected format: Name, Email, Phone, Gender, Age Group, Tag, Group,
                 [Sub-Event Names]
+                <br />
+                Age Group values: infant, child, teen, adult, senior, unknown
                 <br />
                 Leave Group empty for individual guests, or use same Group name
                 for families
@@ -577,9 +833,11 @@ const GuestListSection = ({
                     email: "",
                     phone: "",
                     gender: "",
+                    ageGroup: "",
                     tag: "",
+                    selectedGroup: "",
                     subEventRSVPs: {},
-                    isPointOfContact: false,
+                    isPointOfContact: true, // Default to true when closing modal
                   });
                   setNewGroup({ name: "", members: [] });
                   setTempGroupMembers([]);
@@ -650,6 +908,41 @@ const GuestListSection = ({
                         </select>
                       </div>
                       <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Age Group</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.ageGroup}
+                          onChange={(e) =>
+                            setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                          }
+                        >
+                          <option value="">Select age group</option>
+                          {ageGroups.map((group) => (
+                            <option key={group.value} value={group.value}>
+                              {group.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Group</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.selectedGroup}
+                          onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                        >
+                          <option value="">Create new individual group</option>
+                          {getExistingGroups().map((group) => (
+                            <option key={group.id} value={group.title}>
+                              {group.title} ({group.size} members)
+                            </option>
+                          ))}
+                        </select>
+                        <div className={styles.fieldHelp}>
+                          Select an existing group to add this guest to, or leave blank to create a new individual group
+                        </div>
+                      </div>
+                      <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Tag/Side</label>
                         <input
                           type="text"
@@ -696,6 +989,30 @@ const GuestListSection = ({
                           <span>{subEvent.name}</span>
                         </label>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Point of Contact Section */}
+                  <div className={styles.pointOfContactSection}>
+                    <label className={styles.pointOfContactLabel}>
+                      <input
+                        type="checkbox"
+                        checked={newGuest.isPointOfContact}
+                        onChange={(e) => handlePOCChange(e.target.checked)}
+                      />
+                      Mark as Point of Contact
+                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
+                        <span className={styles.pocWarning}> (Group already has a POC)</span>
+                      )}
+                    </label>
+                    <div className={styles.pointOfContactHelp}>
+                      Point of contact will receive important updates and can help coordinate with their group
+                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
+                        <div className={styles.pocWarningText}>
+                          This group already has a POC ({getCurrentPOCName(newGuest.selectedGroup)}). 
+                          Checking this box will transfer POC status to this guest.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -783,6 +1100,26 @@ const GuestListSection = ({
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                             <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Age Group</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.ageGroup}
+                            onChange={(e) =>
+                              setNewGuest({
+                                ...newGuest,
+                                ageGroup: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select age group</option>
+                            {ageGroups.map((group) => (
+                              <option key={group.value} value={group.value}>
+                                {group.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className={styles.formGroup}>
@@ -881,7 +1218,11 @@ const GuestListSection = ({
                               </div>
                               <div className={styles.memberDetails}>
                                 {member.email} • {member.phone || "No phone"} •{" "}
-                                {member.gender || "No gender"}
+                                {member.gender || "No gender"} •{" "}
+                                {member.ageGroup ? 
+                                  ageGroups.find(group => group.value === member.ageGroup)?.label || member.ageGroup 
+                                  : "No age group"
+                                }
                               </div>
                               {member.tag && (
                                 <div className={styles.memberTag}>
@@ -926,9 +1267,11 @@ const GuestListSection = ({
                     email: "",
                     phone: "",
                     gender: "",
+                    ageGroup: "",
                     tag: "",
+                    selectedGroup: "",
                     subEventRSVPs: {},
-                    isPointOfContact: false,
+                    isPointOfContact: true, // Default to true when canceling
                   });
                   setNewGroup({ name: "", members: [] });
                   setTempGroupMembers([]);
@@ -979,6 +1322,7 @@ const GuestListSection = ({
                   <th>Contact</th>
                   <th>Group</th>
                   <th>Gender</th>
+                  <th>Age Group</th>
                   <th>Tag</th>
                   {subEvents.map((subEvent) => (
                     <th key={subEvent.id} className={styles.subEventColumn}>
@@ -1033,6 +1377,12 @@ const GuestListSection = ({
                         </div>
                       </td>
                       <td>{guest.gender || "-"}</td>
+                      <td>
+                        {guest.ageGroup ? 
+                          ageGroups.find(group => group.value === guest.ageGroup)?.label || guest.ageGroup 
+                          : "-"
+                        }
+                      </td>
                       <td>{guest.tag || "-"}</td>
                       {subEvents.map((subEvent) => (
                         <td key={subEvent.id} className={styles.eventCheckbox}>
@@ -1095,6 +1445,53 @@ const GuestListSection = ({
           {isLoading ? "Saving..." : "Continue to Launch →"}
         </button>
       </div>
+
+      {/* POC Transfer Confirmation Modal */}
+      {showPOCConfirmation && pocTransferData && (
+        <div className={styles.guestFormOverlay}>
+          <div className={styles.confirmationModal}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                Transfer Point of Contact
+              </h3>
+            </div>
+            
+            <div className={styles.confirmationContent}>
+              <div className={styles.confirmationIcon}>
+                👥
+              </div>
+              <div className={styles.confirmationMessage}>
+                <p>
+                  This will transfer the point of contact role from{" "}
+                  <strong>{pocTransferData.fromName}</strong> to{" "}
+                  <strong>{pocTransferData.toName}</strong> for the group{" "}
+                  <strong>{pocTransferData.groupName}</strong>.
+                </p>
+                <p className={styles.confirmationSubtext}>
+                  The previous point of contact will no longer receive important updates for this group.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.confirmationActions}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={handlePOCTransferCancel}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handlePOCTransferConfirm}
+              >
+                Transfer POC Role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

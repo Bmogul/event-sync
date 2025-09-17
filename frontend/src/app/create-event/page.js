@@ -46,13 +46,25 @@ const CreateEvent = () => {
     location: "",
     startDate: "",
     endDate: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     maxGuests: "",
     eventType: "wedding",
     isPrivate: false,
 
-    // Sub-events
-    subEvents: [],
+    // Sub-events - always start with one default sub-event
+    subEvents: [
+      {
+        id: 1,
+        title: '',
+        description: '',
+        date: '',
+        startTime: '',
+        endTime: '',
+        location: '',
+        maxGuests: '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        isRequired: true,
+      }
+    ],
 
     // Guest list
     guests: [],

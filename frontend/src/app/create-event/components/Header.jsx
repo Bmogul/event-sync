@@ -11,7 +11,7 @@ const Header = ({ onSaveDraft, isLoading }) => {
             Event-Sync
           </Link>
           <div className={styles.navActions}>
-            <Link href="/" className={`${styles.btn} ${styles.btnGhost}`}>
+            <Link href="/dashboard" className={`${styles.btn} ${styles.btnGhost}`}>
               ← Back to Home
             </Link>
             <button 

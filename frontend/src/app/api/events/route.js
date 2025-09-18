@@ -201,6 +201,7 @@ export async function GET(request) {
           phone: guest.phone || "",
           tag: guest.tag || "",
           group: guest.guest_groups?.title || "",
+          group_id: guest.group_id,
           gender: guest.guest_gender?.state || "",
           ageGroup: guest.guest_age_group?.state || "",
           isPointOfContact: guest.point_of_contact || false, // Include POC boolean status

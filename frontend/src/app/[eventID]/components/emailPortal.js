@@ -94,8 +94,8 @@ const EmailPortal = ({
       inviteStatus: guest.total_rsvps > 0 ? "Invited" : "Not Invited",
       responseStatus: Object.keys(guest.rsvp_status || {}).length > 0 ? "Responded" : "Pending",
       
-      // Legacy fields for email functionality
-      GUID: guest.public_id,
+      // Legacy fields for email functionality  
+      GUID: guest.group_id,
       UID: guest.id,
       Name: guest.name || "",
       Email: guest.email || "",
@@ -525,7 +525,7 @@ const EmailPortal = ({
     const file = event.target.files[0];
     if (!file) return;
 
-    toast.info(`Processing file: ${file.name}...`);
+    toast(`Processing file: ${file.name}...`);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -990,6 +990,7 @@ const EmailPortal = ({
                             setNewGuest({ ...newGuest, name: e.target.value })
                           }
                           placeholder="Enter full name"
+                          required
                         />
                       </div>
                       <div className={styles.formGroup}>

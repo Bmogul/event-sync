@@ -1,141 +1,269 @@
-@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap");
 
 .page {
-  --gray-rgb: 0, 0, 0;
-  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
+  /* Modern CSS Variables */
+  --color-primary: #7c3aed;
+  --color-primary-dark: #581c87;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-900: #111827;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
 
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-
-  --primary-btn: #bbaa6a;
-  --btn-text-color: #000;
-
-  --font-krub-sans: "Krub", sans-serif;
-  --font-header: "Great Vibes", cursive;
-  --primary-text-color: #bbaa6a;
-
-  /*--bg-color: #ffefd2;*/
-  --bg-color: #0e122f;
-
-  display: grid;
-  grid-template-rows: 20px 1fr 20px;
-  align-items: center;
-  justify-items: center;
-  min-height: 100svh;
-  padding: 80px;
-  padding-top: 10px;
-  gap: 64px;
-  font-family: var(--font-krub-sans);
-  background-color: var(--bg-color);
-  color: var(--primary-text-color);
-}
-
-@media (prefers-color-scheme: dark) {
-  .page {
-    --gray-rgb: 255, 255, 255;
-    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
-    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-  }
-}
-
-.inviteContainer {
-  display: grid;
-  grid-template-rows: 0.3fr 0.5fr 0.2fr;
-  width: 25%;
-  height: 60vh;
-  gap: 20px;
-  text-align: center;
-}
-
-.inviteList {
+  /* Page Layout - Fullscreen */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 20px;
-}
-
-.btnRSVP button {
-  border: none;
-  background-color: var(--primary-btn);
-  color: var(--btn-text-color);
-  border-radius: 10%;
-  height: 65px;
-  width: 150px;
-
-  font-size: 25px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: 53px;
-  grid-row-start: 2;
-  width: 100%;
   align-items: center;
-  justify-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  gap: 40px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Background color and text color will be set inline via themeStyles */
+  background-color: #faf5ff;
+  color: #581c87;
+  position: relative;
+  overflow-x: hidden;
 }
 
-.main .header {
-  width: 100%;
-  align-items: center;
-  justify-items: center;
+/* Header Styling - Matching Preview */
+.header {
   text-align: center;
+  margin-bottom: 20px;
 }
 
 .header h1 {
-  font-family: var(--font-header);
+  font-family: 'Great Vibes', cursive;
   font-size: 50px;
+  margin: 0 0 var(--spacing-md) 0;
+  color: inherit;
 }
 
+.header label {
+  font-size: var(--text-lg);
+  color: inherit;
+  opacity: 0.8;
+  margin: 0;
+}
+
+/* Main Content Layout - Matching Preview */
+.main {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+/* Logo Container - Landing Page */
 .logoContainer {
-  position: relative;
-  width: 75%;
-  max-width: 500px;
-  min-width: 400px;
-  aspect-ratio: 2/1.5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  width: 100%;
 }
 
-.logoP {
-  object-fit: contain;
-  transition: transform 0.3s ease;
-  cursor: pointer;
-
-  animation: pulse 2s infinite;
-}
-
+.logoP,
 .logo {
+  max-width: 500px;
+  max-height: 400px;
+  width: auto;
+  height: auto;
   object-fit: contain;
-  transition: transform 0.3s ease;
   cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  animation: pulseGlow 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
+.logoP:hover,
+.logo:hover {
+  transform: scale(1.05);
+  animation-play-state: paused;
+}
 
-  0%,
-  100% {
+@keyframes pulseGlow {
+  0%, 100% {
     transform: scale(1);
+    box-shadow: 0 8px 25px rgba(124, 58, 237, 0.2);
   }
-
   50% {
-    transform: scale(1.1);
+    transform: scale(1.02);
+    box-shadow: 0 12px 35px rgba(124, 58, 237, 0.3);
   }
 }
 
+/* Event Container - Main Layout */
 .eventContainer {
   display: flex;
   flex-direction: row;
-  gap: 10%;
+  gap: 60px;
   width: 100%;
+  max-width: 1200px;
   align-items: center;
   justify-content: center;
 }
 
+/* Event Info Section */
+.eventInfo {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.eventDescription {
+  font-size: var(--text-base);
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.subEvents {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.subEvent {
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+}
+
+.subEvent h4 {
+  margin-bottom: 8px;
+  color: inherit;
+  font-weight: 600;
+}
+
+.subEvent p {
+  margin: 4px 0;
+  font-size: var(--text-sm);
+  opacity: 0.8;
+}
+
+.rsvpButton {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+}
+
+.rsvpButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4);
+}
+
+/* Greeting Message */
+.greetingMessage {
+  text-align: center;
+  font-size: var(--text-lg);
+  margin: 20px 0;
+  padding: var(--spacing-lg);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  line-height: 1.6;
+}
+
+/* Form Container - Modal Overlay */
+.formContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 1000px) {
+  .eventContainer {
+    flex-direction: column;
+    gap: 50px;
+  }
+  
+  .page {
+    padding: 40px 20px;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 10px;
+    gap: 30px;
+  }
+  
+  .header h1 {
+    font-size: 32px;
+  }
+  
+  .logoP,
+  .logo {
+    max-width: 350px;
+    max-height: 300px;
+  }
+  
+  .eventInfo {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 28px;
+  }
+  
+  .logoP,
+  .logo {
+    max-width: 280px;
+    max-height: 240px;
+  }
+}
+
+/* Card Container - Invitation Display */
 .cardContainer {
   position: relative;
   width: 75%;
@@ -147,83 +275,16 @@
 .card {
   object-fit: contain;
   transition: all 0.3s ease;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .logoP:hover {
-    animation-play-state: paused;
-  }
-
-  .logo:hover {
-    transform: scale(1.05);
-  }
-
-  .card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .btnRSVP button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4);
 }
 
-@media (hover: none) {
-  .logo:active {
-    transform: scale(0.98);
-  }
-
-  .card:active {
-    transform: scale(0.98);
-  }
-
-  .btnRSVP button:hover {
-    transform: scale(0.98);
-  }
-}
-
-@media (max-width: 1000px) {
-  .eventContainer {
-    flex-direction: column;
-    gap: 50px;
-  }
-
-  .page {
-    padding: 0;
-    padding-bottom: 100px;
-  }
-
-  .inviteContainer {
-    width: 100%;
-    height: 200px;
-  }
-
-  .cardD:nth-child(1):hover {
-    transform: scale(1.05);
-    transform: translateY(-10px);
-  }
-
-  .cardD:nth-child(2):hover,
-  .cardD:nth-child(3):hover {
-    transform: translateY(-10px);
-  }
-
-  .cardD:nth-child(2) {
-    z-index: 2;
-    top: 0px;
-    right: 0px;
-    /* Adjust the top offset for the second card */
-  }
-
-  .cardD:nth-child(3) {
-    z-index: 1;
-    top: 40px;
-    right: 0px;
-    /* Adjust the top offset for the third card */
-  }
-}
-
+/* Card Stack for Multiple Invites */
 .cardsDiv {
   position: relative;
   width: 75%;
@@ -242,12 +303,14 @@
   width: 100%;
   height: 100%;
   transition: transform 0.2s ease;
+  border-radius: var(--radius-lg);
 }
 
 .cardView {
   max-width: 100%;
   height: auto;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.75);
+  border-radius: var(--radius-lg);
 }
 
 .cardD:hover {

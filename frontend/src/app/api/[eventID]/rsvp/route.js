@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 
 
-// Get Guest Data for RSVP
+// Get Guest Data for RSVP (Group-based)
 export async function GET(request, { params }) {
   const { eventID } = params;
   const { searchParams } = new URL(request.url);
-  const guestId = searchParams.get("guestId") || searchParams.get("guid");
+  const groupId = searchParams.get("guestId") || searchParams.get("guid");
 
-  if (!guestId || guestId === "null") {
-    return NextResponse.json({ message: "Missing guest ID" }, { status: 400 });
+  if (!groupId || groupId === "null") {
+    return NextResponse.json({ message: "Missing group ID" }, { status: 400 });
   }
 
   try {
@@ -47,7 +47,23 @@ export async function GET(request, { params }) {
       return NextResponse.json({ message: "Event not found" }, { status: 404 });
     }
 
-    // Get guest data by public_id
+    // Get guest group by ID
+    const { data: group, error: groupError } = await supabase
+      .from("guest_groups")
+      .select(`
+        id,
+        title,
+        event_id
+      `)
+      .eq("id", parseInt(groupId))
+      .eq("event_id", event.id)
+      .single();
+
+    if (groupError || !group) {
+      return NextResponse.json({ message: "Group not found for this event" }, { status: 404 });
+    }
+
+    // Get all guests in this group
     const { data: guests, error: guestError } = await supabase
       .from("guests")
       .select(`
@@ -59,11 +75,6 @@ export async function GET(request, { params }) {
         tag,
         point_of_contact,
         group_id,
-        guest_groups!inner (
-          id,
-          title,
-          event_id
-        ),
         guest_gender (
           id,
           state
@@ -73,11 +84,10 @@ export async function GET(request, { params }) {
           state
         )
       `)
-      .eq("public_id", guestId)
-      .eq("guest_groups.event_id", event.id);
+      .eq("group_id", group.id);
 
     if (guestError || !guests || guests.length === 0) {
-      return NextResponse.json({ message: "Guest not found for this event" }, { status: 404 });
+      return NextResponse.json({ message: "No guests found in this group" }, { status: 404 });
     }
 
     // Get sub-events
@@ -104,7 +114,7 @@ export async function GET(request, { params }) {
       `)
       .in("guest_id", guestIds);
 
-    // Transform
+    // Transform guests data
     const party = guests.map(guest => {
       const guestRsvps = existingRsvps?.filter(r => r.guest_id === guest.id) || [];
       const invites = {};
@@ -120,8 +130,9 @@ export async function GET(request, { params }) {
         email: guest.email,
         phone: guest.phone,
         tag: guest.tag,
-        point_of_contact: guest.point_of_contact, // boolean now
-        group: guest.guest_groups?.title,
+        point_of_contact: guest.point_of_contact,
+        group: group.title,
+        group_id: group.id,
         gender: guest.guest_gender?.state,
         ageGroup: guest.guest_age_group?.state,
         invites,
@@ -132,7 +143,11 @@ export async function GET(request, { params }) {
     return NextResponse.json({
       party,
       event,
-      subEvents: subEvents || []
+      subEvents: subEvents || [],
+      group: {
+        id: group.id,
+        title: group.title
+      }
     });
 
   } catch (error) {
@@ -148,7 +163,7 @@ export async function POST(request, { params }) {
   const { eventID } = params;
 
   try {
-    const { party, responses, guestDetails } = await request.json();
+    const { party, responses, guestDetails, customQuestionResponses } = await request.json();
 
     if (!party || party.length === 0) {
       return NextResponse.json({ error: "Invalid data format - no party data" }, { status: 400 });
@@ -224,6 +239,7 @@ export async function POST(request, { params }) {
               details: {
                 submitted_at: new Date().toISOString(),
                 response_value: response,
+                custom_questions: customQuestionResponses || {},
               },
             });
           }

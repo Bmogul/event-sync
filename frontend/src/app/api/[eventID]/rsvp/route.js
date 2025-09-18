@@ -1,162 +1,259 @@
 import { NextResponse } from "next/server";
-import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
-import { getCentralTimeDate } from "../../../lib/helpers";
+import { createClient } from "../../../utils/supabase/server";
 
-// Get Party
-const GET = async (req) => {
-  const { searchParams } = new URL(req.url);
-  const guid = searchParams.get("guid");
-  const sheetID = searchParams.get("sheetID");
-  let party = {};
-  console.log("HELLO THERE", guid, sheetID);
 
-  if (!guid || guid === "null")
-    return NextResponse.json({ message: "Missing guid" }, { status: 400 });
+// Get Guest Data for RSVP
+export async function GET(request, { params }) {
+  const { eventID } = params;
+  const { searchParams } = new URL(request.url);
+  const guestId = searchParams.get("guestId") || searchParams.get("guid");
 
-  // query DB for party
-  console.log(guid);
-  const sheets = await getGoogleSheets();
+  if (!guestId || guestId === "null") {
+    return NextResponse.json({ message: "Missing guest ID" }, { status: 400 });
+  }
+
   try {
-    const mainSheet = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetID,
-      range: "Main",
-    });
-    const rows = mainSheet.data.values;
-    if (rows.length) {
-      const headers = rows[0];
-      const matchingRows = rows
-        .slice(1)
-        .filter((row) => row[0] === guid)
-        .map((row) => {
-          return headers.reduce((obj, header, index) => {
-            obj[header] = row[index];
-            return obj;
-          }, {});
-        });
-      if (matchingRows.length > 0) {
-        party = matchingRows;
-        for (let i = 0; i < party.length; i++) {
-          let member = party[i];
-          console.log();
-          let invites = [];
-          for (let key in member) {
-            if (key.includes("Invite")) {
-              if (member[key]) invites.push(member[key]);
-            }
-          }
-          console.log(member.Name, invites);
-          if (
-            !(
-              invites.includes(1) ||
-              invites.includes("1") ||
-              invites.includes("x")
-            )
-          ) {
-            party.splice(i, 1);
-            i--;
-          }
-        }
-      } else throw new Error("Could not find party");
-    } else {
-      party = {};
+    const supabase = createClient();
+
+    // Get event
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select(`
+        id,
+        public_id,
+        title,
+        description,
+        start_date,
+        end_date,
+        capacity,
+        status_id,
+        details,
+        logo_url,
+        hero_url,
+        background_image_url,
+        landing_page_configs (
+          id,
+          title,
+          logo,
+          greeting_config,
+          rsvp_config,
+          status
+        )
+      `)
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !event) {
+      return NextResponse.json({ message: "Event not found" }, { status: 404 });
     }
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error }, { status: 500 });
-  }
-  return NextResponse.json(party, { status: 200 });
-};
 
-const POST = async (req) => {
-  const { party, event } = await req.json();
+    // Get guest data by public_id
+    const { data: guests, error: guestError } = await supabase
+      .from("guests")
+      .select(`
+        id,
+        public_id,
+        name,
+        email,
+        phone,
+        tag,
+        point_of_contact,
+        group_id,
+        guest_groups!inner (
+          id,
+          title,
+          event_id
+        ),
+        guest_gender (
+          id,
+          state
+        ),
+        guest_age_group (
+          id,
+          state
+        )
+      `)
+      .eq("public_id", guestId)
+      .eq("guest_groups.event_id", event.id);
 
-  if (!party || !event || party.length === 0 || !event.sheetID) {
-    console.log("INVALID DATA FORMAT");
-    return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
-  }
+    if (guestError || !guests || guests.length === 0) {
+      return NextResponse.json({ message: "Guest not found for this event" }, { status: 404 });
+    }
 
-  const sheetID = event.sheetID;
-  const sheets = await getGoogleSheets();
+    // Get sub-events
+    const { data: subEvents } = await supabase
+      .from("subevents")
+      .select("id, title, event_date, start_time, venue_address, capacity, details")
+      .eq("event_id", event.id)
+      .order("created_at");
 
-  try {
-    // Fetch existing sheet data
-    const mainSheet = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetID,
-      range: "Main",
+    // Get RSVPs
+    const guestIds = guests.map(g => g.id);
+    const { data: existingRsvps } = await supabase
+      .from("rsvps")
+      .select(`
+        guest_id,
+        subevent_id,
+        status_id,
+        response,
+        details,
+        subevents (
+          id,
+          title
+        )
+      `)
+      .in("guest_id", guestIds);
+
+    // Transform
+    const party = guests.map(guest => {
+      const guestRsvps = existingRsvps?.filter(r => r.guest_id === guest.id) || [];
+      const invites = {};
+      subEvents?.forEach(subEvent => {
+        const rsvp = guestRsvps.find(r => r.subevent_id === subEvent.id);
+        invites[subEvent.title] = rsvp ? rsvp.status_id : 1;
+      });
+
+      return {
+        id: guest.id,
+        public_id: guest.public_id,
+        name: guest.name,
+        email: guest.email,
+        phone: guest.phone,
+        tag: guest.tag,
+        point_of_contact: guest.point_of_contact, // boolean now
+        group: guest.guest_groups?.title,
+        gender: guest.guest_gender?.state,
+        ageGroup: guest.guest_age_group?.state,
+        invites,
+        rsvps: guestRsvps
+      };
     });
 
-    const allValues = mainSheet.data.values || [];
-    const headers = allValues[0]; // First row contains headers
-    const valuesToUpdate = {};
+    return NextResponse.json({
+      party,
+      event,
+      subEvents: subEvents || []
+    });
 
-    // Helper: find column index
-    const colIndex = (colName) => headers.indexOf(colName);
+  } catch (error) {
+    console.error("RSVP GET error:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
+
+
+
+// Submit RSVP Responses
+export async function POST(request, { params }) {
+  const { eventID } = params;
+
+  try {
+    const { party, responses, guestDetails } = await request.json();
+
+    if (!party || party.length === 0) {
+      return NextResponse.json({ error: "Invalid data format - no party data" }, { status: 400 });
+    }
+
+    const supabase = createClient();
+
+    // Fetch event
+    const { data: event } = await supabase
+      .from("events")
+      .select("id, public_id")
+      .eq("public_id", eventID)
+      .single();
+
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Sub-events
+    const { data: subEvents } = await supabase
+      .from("subevents")
+      .select("id, title")
+      .eq("event_id", event.id);
+
+    const rsvpUpdates = [];
+    const guestUpdates = [];
 
     for (const member of party) {
-      const { GUID, UID } = member;
-      console.log(GUID, UID);
+      const { id: guestId, public_id, responses: memberResponses } = member;
 
-      if (!GUID || !UID) continue;
+      if (!guestId && !public_id) continue;
 
-      const rowIndex = allValues.findIndex(
-        (row) => row[0]?.toString() === GUID && row[1]?.toString() === UID,
-      );
-
-      if (rowIndex === -1) continue;
-
-      const rowNumber = rowIndex + 1; // Sheet rows are 1-indexed
-      const updateRow = new Array(headers.length).fill(null);
-
-      // Handle dynamic response columns like "MainResponse", "ShitabiResponse"
-      for (const key of Object.keys(member)) {
-        if (key.endsWith("Response")) {
-          const idx = colIndex(key);
-          if (idx !== -1) updateRow[idx] = member[key];
-        }
-      }
-      console.log("updateRow", updateRow);
-
-      // DateResponded
-      const dateIdx = colIndex("DateResponded");
-      if (dateIdx !== -1) updateRow[dateIdx] = getCentralTimeDate();
-
-      const filteredValues = updateRow.filter((val) => val !== null);
-
-      // Construct A1-style range for the specific row
-      const range = `Main!A${rowNumber}:${String.fromCharCode(65 + headers.length - 1)}${rowNumber}`;
-      console.log("range", range);
-
-      valuesToUpdate[range] = {
-        values: [updateRow],
-      };
-      console.log("helo", valuesToUpdate);
-    }
-
-    // Batch update request
-    if (Object.keys(valuesToUpdate).length > 0) {
-      const batchUpdateRequest = {
-        data: [],
-        valueInputOption: "RAW",
-      };
-
-      for (const [range, valueData] of Object.entries(valuesToUpdate)) {
-        batchUpdateRequest.data.push({
-          range,
-          ...valueData,
+      // guest detail updates
+      if (guestDetails && guestDetails[public_id || guestId]) {
+        const details = guestDetails[public_id || guestId];
+        guestUpdates.push({
+          id: guestId,
+          email: details.email,
+          phone: details.phone,
         });
       }
 
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: sheetID,
-        resource: batchUpdateRequest,
-      });
+      // RSVP responses
+      if (memberResponses && subEvents) {
+        for (const subEvent of subEvents) {
+          const response = memberResponses[subEvent.title] || memberResponses[subEvent.id];
+          if (response !== undefined) {
+            let statusId;
+            switch (String(response).toLowerCase()) {
+              case "attending":
+              case "yes":
+              case "2":
+                statusId = 3;
+                break;
+              case "not_attending":
+              case "no":
+              case "3":
+                statusId = 4;
+                break;
+              case "maybe":
+              case "4":
+                statusId = 5;
+                break;
+              default:
+                statusId = 1;
+            }
+
+            rsvpUpdates.push({
+              guest_id: guestId,
+              subevent_id: subEvent.id,
+              status_id: statusId,
+              response: parseInt(response) || 0,
+              details: {
+                submitted_at: new Date().toISOString(),
+                response_value: response,
+              },
+            });
+          }
+        }
+      }
     }
 
-    return NextResponse.json({ message: "Success" }, { status: 200 });
-  } catch (e) {
-    console.error("Error posting:", e);
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
-  }
-};
+    // update guest contacts
+    for (const update of guestUpdates) {
+      await supabase.from("guests").update({
+        email: update.email,
+        phone: update.phone,
+      }).eq("id", update.id);
+    }
 
-export { GET, POST };
+    // upsert RSVPs
+    if (rsvpUpdates.length > 0) {
+      await supabase
+        .from("rsvps")
+        .upsert(rsvpUpdates, { onConflict: "guest_id,subevent_id" });
+    }
+
+    return NextResponse.json({
+      success: true,
+      updated: { guests: guestUpdates.length, rsvps: rsvpUpdates.length }
+    });
+
+  } catch (error) {
+    console.error("RSVP POST error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+

@@ -1,66 +1,155 @@
-import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
-
-// Here, you would typically fetch the event data from your database
-// This is just a mock implementation
-/*
- * const eventlist = {
- *  eventID : {
- *    sheetID: sheetID
- *    eventTitle: "Title"
- *    NumberOfFunctions: x
- *  }
- * }*/
-
-// Fetch data from DB once that is setup, for now static
-/* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
-const eventlist = {
-  B37DA2389S: {
-    /*sheetID: process.env.NODE_ENV === 'development' 
-      ? "1I7tuk4X8590LmagGhLnOm7yfLYTjWE1EB7qmmlhlQCE"
-      : "1nN5uQ6-NUT6fS4n8Bz7v4f4X3Be1QtVnTRVOsC_5z4",*/
-    sheetID: "1VWd-vWBJoiE5JNu6tOMId79LQkN5W_S8iYBJVGg-Nrs",
-    eventID: "B37DA2389S",
-    eventTitle: "Sakina Weds Mohammad",
-    numberOfFunctions: 2,
-    email_message: "",
-    logo: "https://i.imgur.com/PVHMOzK.png",
-    func0: {
-      funcNum: 0,
-      funcTitle: "Khushi Jaman and Majlis",
-      funcCol: "MainInvite",
-      cardLink: "https://i.imgur.com/Vq7vqkn.jpeg",
-      date: "5:45 PM, 2nd August 2025, Saturday",
-      location: "341 Dunhams Corner Rd, East Brunswick, NJ 08816"
-    },
-    func1:{
-      funcNum: 1,
-      funcTitle: "Sakina's Shitabi",
-      funcCol:"ShitabiInvite",
-      cardLink: "https://i.imgur.com/0OIvxSe.jpeg",
-      date: "6:00 PM, 1st August 2025, Friday",
-      location: "10 Wood Lake Court, North Brunswick NJ 08902 ",
-    }
-  },
-  // Add more events as needed
-};
-/* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
+import { createClient } from "../../../utils/supabase/server";
+import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
   const { eventID } = params;
-  const sheetID = eventlist[eventID].sheetID;
+  console.log(eventID);
 
-  if (eventlist[eventID]) {
+  try {
+    const supabase = createClient();
 
-    const event = eventlist[eventID]
-    return new Response(JSON.stringify(event), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } else {
-    return new Response(JSON.stringify({ error: "Event not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Get event data with all related information
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select(
+        `
+    id,
+    public_id,
+    title,
+    description,
+    start_date,
+    end_date,
+    capacity,
+    total_yes,
+    status_id,
+    details,
+    logo_url,
+    hero_url,
+    created_at,
+    updated_at,
+    deleted_at,
+    background_image_url,
+    landing_page_configs (
+      id,
+      title,
+      landing_page_url,
+      logo,
+      cards,
+      greeting_config,
+      rsvp_config,
+      status,
+      custom_css,
+      created_at,
+      updated_at,
+      published_at,
+      deleted_at
+    )
+  `,
+      )
+      .eq("public_id", eventID)
+      .single();
+
+    console.log(event);
+
+    if (eventError || !event) {
+      console.error("Event fetch error:", eventError);
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Get sub-events
+    const { data: subEvents, error: subEventsError } = await supabase
+      .from("subevents")
+      .select(
+        `
+        id,
+        title,
+        event_date,
+        start_time,
+        end_time,
+        venue_address,
+        capacity,
+        status_id,
+        details,
+        created_at
+      `,
+      )
+      .eq("event_id", event.id)
+      .order("created_at");
+
+    if (subEventsError) {
+      console.error("Sub-events fetch error:", subEventsError);
+    }
+    console.log(subEvents);
+
+    // Transform the data to match the expected format
+    const landingConfig = event.landing_page_configs?.[0];
+
+    const transformedEvent = {
+      eventID: event.public_id,
+      eventTitle: event.title,
+      description: event.description,
+      startDate: event.start_date,
+      endDate: event.end_date,
+      capacity: event.capacity,
+      totalYes: event.total_yes,
+      status: event.status_id,
+      details: event.details || {}, // catch any extra JSON attributes
+      logo: event.logo_url,
+      hero: event.hero_url,
+      background: event.background_image_url,
+      numberOfFunctions: subEvents?.length || 0,
+
+      // Landing page config
+      landingConfig: landingConfig,
+      email_message: landingConfig?.greeting_config?.message || "",
+
+      // Transform sub-events to legacy format
+      ...subEvents?.reduce((acc, subEvent, index) => {
+        acc[`func${index}`] = {
+          funcNum: index,
+          funcTitle: subEvent.title,
+          cardLink: subEvent.details?.image || null,
+          date: formatDateTime(subEvent.event_date, subEvent.start_time),
+          location: subEvent.venue_address,
+          capacity: subEvent.capacity,
+          details: subEvent.details,
+        };
+        return acc;
+      }, {}),
+    };
+
+    console.log("Transformed Event", transformedEvent);
+
+    return NextResponse.json(transformedEvent);
+  } catch (error) {
+    console.error("Event fetch error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
+// Helper function to format date and time
+function formatDateTime(date, time) {
+  if (!date) return "Date TBD";
+
+  try {
+    const eventDate = new Date(date);
+    const dateStr = eventDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    if (time) {
+      return `${time}, ${dateStr}`;
+    }
+
+    return dateStr;
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return "Date TBD";
+  }
+}

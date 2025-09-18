@@ -83,7 +83,9 @@ export async function GET(request) {
         .select(`
           *,
           guest_groups(id, title),
-          rsvps(subevent_id, status_id)
+          guest_gender(id, state),
+          guest_age_group(id, state),
+          rsvps(subevent_id, status_id, response)
         `)
         .in("group_id", guestGroupIds)
         .order("created_at");
@@ -199,6 +201,8 @@ export async function GET(request) {
           phone: guest.phone || "",
           tag: guest.tag || "",
           group: guest.guest_groups?.title || "",
+          gender: guest.guest_gender?.state || "",
+          ageGroup: guest.guest_age_group?.state || "",
           isPointOfContact: guest.point_of_contact || false, // Include POC boolean status
           subEventRSVPs: subEventRSVPs // Include transformed RSVPs
         };
@@ -707,6 +711,62 @@ export async function POST(request) {
       });
 
       if (validGuests.length > 0) {
+        // Fetch lookup tables for gender and age group
+        const { data: genderLookup, error: genderError } = await supabase
+          .from("guest_gender")
+          .select("id, state");
+        
+        const { data: ageGroupLookup, error: ageGroupError } = await supabase
+          .from("guest_age_group")
+          .select("id, state");
+
+        if (genderError) {
+          console.error("Error fetching gender lookup:", genderError);
+          throw genderError;
+        }
+        
+        if (ageGroupError) {
+          console.error("Error fetching age group lookup:", ageGroupError);
+          throw ageGroupError;
+        }
+
+        // Create lookup mappings
+        const genderMap = genderLookup.reduce((acc, item) => {
+          acc[item.state.toLowerCase()] = item.id;
+          return acc;
+        }, {});
+
+        const ageGroupMap = ageGroupLookup.reduce((acc, item) => {
+          acc[item.state.toLowerCase()] = item.id;
+          return acc;
+        }, {});
+
+        console.log("Gender mapping:", genderMap);
+        console.log("Age group mapping:", ageGroupMap);
+
+        // Helper function to get gender ID from string
+        const getGenderIdFromString = (genderString) => {
+          if (!genderString || !genderString.trim()) return null;
+          
+          const normalizedGender = genderString.toLowerCase().trim();
+          
+          // Map common frontend values to database states
+          if (normalizedGender === 'male' || normalizedGender === 'm') return genderMap['male'];
+          if (normalizedGender === 'female' || normalizedGender === 'f') return genderMap['female'];
+          if (normalizedGender === 'other') return genderMap['other'];
+          
+          // Direct lookup
+          return genderMap[normalizedGender] || null;
+        };
+
+        // Helper function to get age group ID from string
+        const getAgeGroupIdFromString = (ageGroupString) => {
+          if (!ageGroupString || !ageGroupString.trim()) return null;
+          
+          const normalizedAgeGroup = ageGroupString.toLowerCase().trim();
+          return ageGroupMap[normalizedAgeGroup] || null;
+        };
+
         // Create group mapping
         const groupMap = createdGroups.reduce((acc, group) => {
           // Map by the group title (which was created from the name)
@@ -733,7 +793,11 @@ export async function POST(request) {
             groupId = groupMap[guest.group.trim()] || defaultGroupId;
           }
           
-          console.log(`Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false}`);
+          // Map gender and age group to their IDs
+          const genderId = getGenderIdFromString(guest.gender);
+          const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+          
+          console.log(`Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId}`);
           return {
             group_id: groupId,
             public_id: guest.public_id || crypto.randomUUID(), // Use frontend public_id or generate new one
@@ -741,6 +805,8 @@ export async function POST(request) {
             email: guest.email && guest.email.trim() ? guest.email.trim() : null,
             phone: guest.phone && guest.phone.trim() ? guest.phone.trim() : null,
             tag: guest.tag || null,
+            gender_id: genderId,
+            age_group_id: ageGroupId,
             point_of_contact: guest.isPointOfContact || false // Store POC as boolean on guest record
           };
         }).filter(guest => {
@@ -769,7 +835,9 @@ export async function POST(request) {
               .from("guests")
               .select(`
                 id, name, group_id, point_of_contact,
-                guest_groups!inner(title)
+                guest_groups!inner(title),
+                guest_gender(state),
+                guest_age_group(state)
               `)
               .eq("guest_groups.event_id", createdEvent.id);
               

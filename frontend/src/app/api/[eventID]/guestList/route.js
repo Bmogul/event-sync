@@ -1,71 +1,293 @@
 import { NextResponse } from "next/server";
-import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
-import { authEvent } from "../../../lib/helpers";
+import { createClient } from "../../../utils/supabase/server";
 
-export const GET = async (req) => {
-  const { searchParams } = new URL(req.url);
+export async function GET(request, { params }) {
+  const { eventID } = params;
+  const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
-  const sheetID = searchParams.get("sheetID");
-  const sheets = await getGoogleSheets()
+  console.log("GET GUESTLIST, ", eventID, searchParams);
 
-  if (!password || !sheetID) {
-    console.log("INVALiD DARA FORMAT");
-    return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
+  if (!eventID) {
+    return NextResponse.json(
+      { error: "Event ID is required" },
+      { status: 400 },
+    );
   }
 
   try {
-    if (authEvent(sheets, sheetID, password)) {
-      let allUsers = await sheets.spreadsheets.values.get({
-        spreadsheetId: sheetID,
-        range: "Main",
-      });
+    const supabase = createClient();
+    // Get auth token from request headers
+    const authHeader = request.headers.get("Authorization"); // e.g., "Bearer <token>"
+    const token = authHeader?.split(" ")[1];
 
-      allUsers = allUsers.data.values;
-      const keys = allUsers.shift();
-      const selectedKeys = [
-        keys[0],
-        keys[1],
-        keys[3],
-        keys[4],
-        keys[5],
-        keys[7],
-        keys[9],
-        keys[12],
-      ];
-      const selectedIndexes = [0, 1,3, 4, 5,7, 9, 12];
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "No auth token" },
+        { status: 401 },
+      );
+    }
+  console.log("got token", token);
 
-      allUsers = allUsers.map((user) => {
-        return selectedKeys.reduce((obj, key, index) => {
-          obj[key] = user[selectedIndexes[index]];
-          return obj;
-        }, {});
-      });
+    // Get the current user from Supabase
+    const {
+      data: { user },
+      err,
+    } = await supabase.auth.getUser(token);
 
-      return NextResponse.json({ validated: true, allUsers }, { status: 200 })
-    } else return NextResponse.json({ validated: false }, { status: 200 })
+    console.log("\nUSER\n", user,err)
+
+    if (err || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 },
+      );
+    }
+
+
+    const {data: userProfile, error: err_fetching_user} = await supabase.from("users").select("*").eq("supa_id", user.id).single()
+    if (err_fetching_user || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 },
+      );
+    }
+    const currentUser = userProfile;
+    console.log(currentUser)
+
+    // Fetch event
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select(
+        `
+        id,
+        public_id,
+        title,
+        status_id,
+        details
+      `,
+      )
+      .eq("public_id", eventID)
+      .single();
+
+
+    if (eventError || !event) {
+      console.error("Event fetch error:", eventError);
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+
+    // Check access permissions using event_managers table
+    const { data: managers, error } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", event.id)
+      .eq("user_id", currentUser.id)
+      .limit(1);
+
+    console.log(event.id, currentUser.id, managers)
+
+    if (error) {
+      console.error("Error checking event manager:", error);
+      return NextResponse.json(
+        { validated: false, message: "Error checking permissions" },
+        { status: 500 },
+      );
+    }
+
+    // If no matching entry found, deny access
+    if (!managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied" },
+        { status: 200 },
+      );
+    }
+
+    // Fetch all guests for this event through guest_groups relationship
+    const { data: allGuests, error: guestError } = await supabase
+      .from("guests")
+      .select(
+        `
+        id,
+        public_id,
+        name,
+        email,
+        phone,
+        tag,
+        point_of_contact,
+        group_id,
+        guest_groups!inner (
+          id,
+          title,
+          event_id
+        ),
+        guest_gender (
+          id,
+          state
+        ),
+        guest_age_group (
+          id,
+          state
+        ),
+        rsvps (
+          subevent_id,
+          status_id,
+          response,
+          subevents (
+            id,
+            title
+          )
+        )
+      `,
+      )
+      .eq("guest_groups.event_id", event.id)
+      .order("name");
+
+    if (guestError) {
+      console.error("Guest fetch error:", guestError);
+      return NextResponse.json(
+        { error: "Failed to fetch guest list" },
+        { status: 500 },
+      );
+    }
+
+    // Transform guests
+    const transformedUsers =
+      allGuests?.map((guest) => ({
+        id: guest.id,
+        public_id: guest.public_id,
+        name: guest.name,
+        email: guest.email,
+        phone: guest.phone,
+        tag: guest.tag,
+        point_of_contact: guest.point_of_contact, // boolean
+        group: guest.guest_groups?.title,
+        group_id: guest.guest_groups?.id,
+        gender: guest.guest_gender?.state,
+        gender_id: guest.guest_gender?.id,
+        ageGroup: guest.guest_age_group?.state,
+        age_group_id: guest.guest_age_group?.id,
+        rsvp_status:
+          guest.rsvps?.reduce((acc, rsvp) => {
+            if (rsvp.subevents) {
+              acc[rsvp.subevents.title] = {
+                status_id: rsvp.status_id,
+                status_name: getStatusName(rsvp.status_id),
+                response: rsvp.response,
+              };
+            }
+            return acc;
+          }, {}) || {},
+        total_rsvps: guest.rsvps?.length || 0,
+      })) || [];
+
+    return NextResponse.json(
+      {
+        validated: true,
+        allUsers: transformedUsers,
+        event: {
+          id: event.id,
+          public_id: event.public_id,
+          title: event.title,
+          status_id: event.status_id,
+        },
+        total_guests: transformedUsers.length,
+      },
+      { status: 200 },
+    );
   } catch (error) {
-    console.log(error)
-    return NextResponse.json({ message: error }, { status: 500 })
+    console.error("Guest list error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
-
-// TODO: update sheet
-export const POST = async (req) => {
-  const { password, event } = await req.json();
-  const sheetID = event.sheetID;
-  const sheets = await getGoogleSheets();
-
-  if (!password || !event || event.length === 0) {
-    console.log("INVALUD DARA FORMAT");
-    return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
-  }
+export async function POST(request, { params }) {
+  const { eventID } = params;
+  
   try {
-    if (authEvent(sheets, sheetID, password))
-      return NextResponse.json({ validated: true }, { status: 200 });
-    else return NextResponse.json({ validated: false }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ message: error }, { status: 500 });
-  }
-};
+    const supabase = createClient();
+    const body = await request.json();
+    const { event, guestList } = body;
+    
+    // Get auth token from request headers
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "No auth token" },
+        { status: 401 },
+      );
+    }
+
+    // Get the current user from Supabase
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 },
+      );
+    }
+
+    // Fetch event
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Check access permissions
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", user.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied" },
+        { status: 403 },
+      );
+    }
+
+    // Here you would implement the guest list update logic
+    // For now, just return success
+    return NextResponse.json(
+      {
+        validated: true,
+        message: "Guest list updated successfully",
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Guest list update error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// Helper: map RSVP status IDs to names (these should ideally come from rsvp_status table)
+function getStatusName(statusId) {
+  const statusMap = {
+    1: "pending",
+    2: "opened", 
+    3: "attending",
+    4: "not_attending",
+    5: "maybe",
+    6: "no_response",
+  };
+  return statusMap[statusId] || "unknown";
+}

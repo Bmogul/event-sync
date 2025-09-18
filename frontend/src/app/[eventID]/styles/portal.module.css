@@ -511,3 +511,355 @@
     transform: translateY(0);
   }
 }
+
+/* Filter Controls */
+.filterControls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.searchContainer {
+  position: relative;
+  flex: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.clearSearchBtn:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.advancedFilters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+/* Table Container with Scrolling */
+.tableContainer {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.tableScrollWrapper {
+  overflow: auto;
+  max-height: 600px; /* Vertical scrolling limit */
+  max-width: 100%; /* Horizontal scrolling */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox */
+}
+
+/* Custom scrollbar for WebKit browsers */
+.tableScrollWrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableScrollWrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.tableScrollWrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.tableScrollWrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.tableScrollWrapper::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
+/* Guest Table */
+.guestTable {
+  width: 100%;
+  min-width: 800px; /* Ensure horizontal scrolling when needed */
+  border-collapse: collapse;
+  background: white;
+}
+
+.guestTable th,
+.guestTable td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap; /* Prevent text wrapping */
+  vertical-align: top;
+}
+
+.guestTable th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Column widths for better layout */
+.guestTable th:nth-child(1),
+.guestTable td:nth-child(1) {
+  width: 50px; /* Checkbox column */
+  text-align: center;
+}
+
+.guestTable th:nth-child(2),
+.guestTable td:nth-child(2) {
+  min-width: 150px; /* Name column */
+}
+
+.guestTable th:nth-child(3),
+.guestTable td:nth-child(3) {
+  min-width: 200px; /* Email column */
+}
+
+.guestTable th:nth-child(4),
+.guestTable td:nth-child(4) {
+  min-width: 120px; /* Phone column */
+}
+
+.guestTable th:nth-child(5),
+.guestTable td:nth-child(5) {
+  min-width: 120px; /* Group column */
+}
+
+.guestTable th:nth-child(6),
+.guestTable td:nth-child(6),
+.guestTable th:nth-child(7),
+.guestTable td:nth-child(7),
+.guestTable th:nth-child(8),
+.guestTable td:nth-child(8) {
+  min-width: 100px; /* Gender, Age Group, Tag columns */
+}
+
+/* Dynamic subevent columns and final status column */
+.guestTable th:nth-child(n+9),
+.guestTable td:nth-child(n+9) {
+  min-width: 120px; /* Subevent RSVP columns and final status */
+  text-align: center;
+}
+
+.guestTable tbody tr {
+  transition: background-color 0.15s;
+}
+
+.guestTable tbody tr:hover {
+  background: #f9fafb;
+}
+
+.selectedRow {
+  background: #ede9fe !important;
+}
+
+.selectedRow:hover {
+  background: #ddd6fe !important;
+}
+
+.pointOfContactRow {
+  background: #f0f9ff;
+}
+
+.pointOfContactRow:hover {
+  background: #e0f2fe;
+}
+
+.guestName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.guestEmail {
+  color: #374151;
+  font-size: 14px;
+  word-break: break-word;
+  max-width: 200px;
+}
+
+.guestPhone {
+  color: #6b7280;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.groupInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupColorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pocBadge {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusBadge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Invite Status Colors */
+.statusInvited {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusNotInvited {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* RSVP Status Colors */
+.statusPending {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.statusOpened {
+  background: #e0f2fe;
+  color: #0e7490;
+}
+
+.statusAttending {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusNotAttending {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.statusMaybe {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.statusNoResponse {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* RSVP Cell Layout */
+.rsvpCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.responseCount {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* No Results */
+.noResultsContainer {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.noResultsIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.noResultsTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.noResultsText {
+  color: #6b7280;
+  font-size: 16px;
+  margin-bottom: 24px;
+}

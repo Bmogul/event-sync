@@ -1,10 +1,5 @@
-import Image from "next/image";
-import { AgGridReact } from "ag-grid-react";
+import React, { useEffect, useState, useCallback } from "react";
 import styles from "../styles/portal.module.css";
-import "ag-grid-community/styles/ag-grid.css"; // Mandatory CSS required by the Data Grid
-import "ag-grid-community/styles/ag-theme-quartz.css"; // Optional Theme applied to the Data Grid
-
-import React, { useEffect, useState, useMemo, useCallback } from "react";
 
 const EmailPortal = ({
   event,
@@ -18,75 +13,164 @@ const EmailPortal = ({
 }) => {
   const [reminderDate, setReminderDate] = useState();
   const [selectedRows, setSelectedRows] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterBy, setFilterBy] = useState("all");
+  const [filterValue, setFilterValue] = useState("");
 
-  const [cols, setCols] = useState([
-    { field: "GUID", width: 80 },
-    { field: "UID", width: 80 },
-    { field: "FamilyOrder", filter: true, width: 80},
-    { field: "Name", filter: true },
-    { field: "Email", filter: true },
-    { field: "MainInvite", filter: true },
-    { field: "MainResponse", filter: true, width: 100 },
-    { field: "Sent", maxWidth: 90, minWidth: 50, filter: true },
-  ]);
-  const [rowData, setRowData] = useState(guestList);
-
-  const selection = useMemo(() => {
+  // Transform guest list to match API response structure
+  const transformedGuestList = guestList?.map(guest => {
     return {
-      mode: "multiRow",
-      selectAllFiltered: true,
-      suppressRowDeselection: true,
-      checkboxSelection: true,
+      // Core guest information
+      id: guest.id,
+      public_id: guest.public_id,
+      name: guest.name || "",
+      email: guest.email || "",
+      phone: guest.phone || "",
+      tag: guest.tag || "",
+      
+      // Group information
+      group: guest.group || "",
+      group_id: guest.group_id,
+      
+      // Lookup table data
+      gender: guest.gender || "",
+      ageGroup: guest.ageGroup || "",
+      
+      // Contact designation
+      isPointOfContact: guest.point_of_contact === true,
+      
+      // RSVP data organized by subevent
+      rsvpStatus: guest.rsvp_status || {},
+      total_rsvps: guest.total_rsvps || 0,
+      
+      // Email status (derived)
+      inviteStatus: guest.total_rsvps > 0 ? "Invited" : "Not Invited",
+      responseStatus: Object.keys(guest.rsvp_status || {}).length > 0 ? "Responded" : "Pending",
+      
+      // Legacy fields for email functionality
+      GUID: guest.public_id,
+      UID: guest.id,
+      Name: guest.name || "",
+      Email: guest.email || "",
+      MainResponse: guest.total_rsvps > 0 ? "1" : "",
+      Sent: guest.total_rsvps > 0 ? "Yes" : "No",
+      FamilyOrder: 1
     };
-  }, []);
+  }) || [];
 
-  useEffect(() => {
-    setRowData(guestList);
-    console.log(guestList);
-  }, [guestList]);
+  // Get all unique subevents from the guest data
+  const getAllSubevents = () => {
+    const subevents = new Set();
+    transformedGuestList.forEach(guest => {
+      Object.keys(guest.rsvpStatus || {}).forEach(subeventTitle => {
+        subevents.add(subeventTitle);
+      });
+    });
+    return Array.from(subevents).sort();
+  };
 
-  const onGridSizeChanged = useCallback(
-    (params) => {
-      // get the current grids width
-      var gridWidth = document.querySelector(".ag-body-viewport").clientWidth;
-      // keep track of which columns to hide/show
-      var columnsToShow = [];
-      var columnsToHide = [];
-      // iterate over all columns (visible or not) and work out
-      // now many columns can fit (based on their minWidth)
-      var totalColsWidth = 0;
-      var allColumns = params.api.getColumns();
-      if (allColumns && allColumns.length > 0) {
-        for (var i = 0; i < allColumns.length; i++) {
-          var column = allColumns[i];
-          totalColsWidth += column.getMinWidth();
-          if (totalColsWidth > gridWidth) {
-            columnsToHide.push(column.getColId());
-          } else {
-            columnsToShow.push(column.getColId());
+  const subevents = getAllSubevents();
+
+  // Filter guests based on search term and filters
+  const getFilteredGuests = () => {
+    let filtered = transformedGuestList;
+    
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(guest => 
+        guest.name.toLowerCase().includes(search) ||
+        guest.email.toLowerCase().includes(search) ||
+        (guest.phone && guest.phone.toLowerCase().includes(search)) ||
+        (guest.group && guest.group.toLowerCase().includes(search)) ||
+        (guest.tag && guest.tag.toLowerCase().includes(search))
+      );
+    }
+    
+    // Apply additional filters
+    if (filterBy !== "all" && filterValue) {
+      switch (filterBy) {
+        case "gender":
+          filtered = filtered.filter(guest => guest.gender === filterValue);
+          break;
+        case "ageGroup":
+          filtered = filtered.filter(guest => guest.ageGroup === filterValue);
+          break;
+        case "group":
+          filtered = filtered.filter(guest => guest.group === filterValue);
+          break;
+        case "status":
+          if (filterValue === "invited") {
+            filtered = filtered.filter(guest => guest.Sent === "Yes");
+          } else if (filterValue === "responded") {
+            filtered = filtered.filter(guest => guest.MainResponse === "1");
+          } else if (filterValue === "pending") {
+            filtered = filtered.filter(guest => guest.Sent === "Yes" && guest.MainResponse === "");
           }
-        }
+          break;
+        default:
+          break;
       }
-      // show/hide columns based on current grid width
-      params.api.setColumnsVisible(columnsToShow, true);
-      params.api.setColumnsVisible(columnsToHide, false);
-      // wait until columns stopped moving and fill out
-      // any available space to ensure there are no gaps
-      window.setTimeout(() => {
-        params.api.sizeColumnsToFit();
-      }, 10);
-    },
-    [window],
-  );
+    }
+    
+    return filtered;
+  };
 
-  const onRowSelection = useCallback((event) => {
-    const filteredRows = event.api
-      .getModel()
-      .rowsToDisplay.filter((node) => node.selected);
-    const selectedRowsData = filteredRows.map((node) => node.data);
-    setSelectedRows(selectedRowsData);
-    console.log(selectedRowsData); // For debugging
-  }, []);
+  const filteredGuests = getFilteredGuests();
+
+  // Get unique filter options
+  const getFilterOptions = () => {
+    return {
+      genders: [...new Set(transformedGuestList.map(g => g.gender).filter(Boolean))],
+      ageGroups: [...new Set(transformedGuestList.map(g => g.ageGroup).filter(Boolean))],
+      groups: [...new Set(transformedGuestList.map(g => g.group).filter(Boolean))],
+    };
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterBy("all");
+    setFilterValue("");
+  };
+
+  // Handle row selection
+  const handleRowSelection = (guest, isSelected) => {
+    setSelectedRows(prev => {
+      if (isSelected) {
+        return [...prev, guest];
+      } else {
+        return prev.filter(g => g.id !== guest.id);
+      }
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = (isSelected) => {
+    if (isSelected) {
+      setSelectedRows(filteredGuests);
+    } else {
+      setSelectedRows([]);
+    }
+  };
+
+  // Check if guest is selected
+  const isGuestSelected = (guest) => {
+    return selectedRows.some(g => g.id === guest.id);
+  };
+
+  // Get CSS class for RSVP status
+  const getStatusClass = (statusName) => {
+    const statusMap = {
+      'pending': styles.statusPending,
+      'opened': styles.statusOpened,
+      'attending': styles.statusAttending,
+      'not_attending': styles.statusNotAttending,
+      'maybe': styles.statusMaybe,
+      'no_response': styles.statusNoResponse,
+    };
+    return statusMap[statusName] || styles.statusPending;
+  };
 
   // Send Mail
   const SendMail = async () => {
@@ -276,42 +360,217 @@ const EmailPortal = ({
           </div>
         )}
 
-        {/* Table Controls */}
-        <div className={styles.tableControls}>
-          <input
-            type="search"
-            className={styles.searchInput}
-            placeholder="Search guests by name or email..."
-          />
-          <select className={styles.filterSelect}>
-            <option value="">All Guests</option>
-            <option value="sent">Invited</option>
-            <option value="responded">Responded</option>
-            <option value="pending">Pending</option>
-          </select>
-          <select className={styles.filterSelect}>
-            <option value="">All Families</option>
-            <option value="1">Family 1</option>
-            <option value="2">Family 2</option>
-            <option value="3">Family 3</option>
-          </select>
+        {/* Filter Controls */}
+        <div className={styles.filterControls}>
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search guests by name, email, phone, group, or tag..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className={styles.clearSearchBtn}
+                onClick={() => setSearchTerm("")}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className={styles.advancedFilters}>
+            <select
+              className={styles.filterSelect}
+              value={filterBy}
+              onChange={(e) => {
+                setFilterBy(e.target.value);
+                setFilterValue("");
+              }}
+            >
+              <option value="all">All Guests</option>
+              <option value="status">Filter by Status</option>
+              <option value="gender">Filter by Gender</option>
+              <option value="ageGroup">Filter by Age Group</option>
+              <option value="group">Filter by Group</option>
+            </select>
+
+            {filterBy !== "all" && (
+              <select
+                className={styles.filterSelect}
+                value={filterValue}
+                onChange={(e) => setFilterValue(e.target.value)}
+              >
+                <option value="">Select {filterBy === "status" ? "status" : filterBy}...</option>
+                {filterBy === "status" && (
+                  <>
+                    <option value="invited">Invited</option>
+                    <option value="responded">Responded</option>
+                    <option value="pending">Pending</option>
+                  </>
+                )}
+                {filterBy === "gender" && 
+                  getFilterOptions().genders.map(gender => (
+                    <option key={gender} value={gender}>{gender}</option>
+                  ))
+                }
+                {filterBy === "ageGroup" && 
+                  getFilterOptions().ageGroups.map(ageGroup => (
+                    <option key={ageGroup} value={ageGroup}>{ageGroup}</option>
+                  ))
+                }
+                {filterBy === "group" && 
+                  getFilterOptions().groups.map(group => (
+                    <option key={group} value={group}>{group}</option>
+                  ))
+                }
+              </select>
+            )}
+
+            {(searchTerm || filterBy !== "all") && (
+              <button
+                className={`${styles.btnSecondarySmall}`}
+                onClick={clearFilters}
+                title="Clear all filters"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Guest Table */}
-        <div className={styles.tableContainer}>
-          <div
-            className="ag-theme-quartz"
-            style={{ height: "500px", width: "100%" }}
-          >
-            <AgGridReact
-              rowData={rowData}
-              columnDefs={cols}
-              selection={selection}
-              onGridSizeChanged={onGridSizeChanged}
-              onSelectionChanged={onRowSelection}
-            />
+        {filteredGuests.length === 0 ? (
+          <div className={styles.noResultsContainer}>
+            <div className={styles.noResultsIcon}>🔍</div>
+            <h4 className={styles.noResultsTitle}>No guests found</h4>
+            <p className={styles.noResultsText}>
+              {searchTerm || filterBy !== "all" 
+                ? "Try adjusting your search or filter criteria"
+                : "No guests have been added yet"}
+            </p>
+            {(searchTerm || filterBy !== "all") && (
+              <button
+                className={`${styles.btnPrimarySmall}`}
+                onClick={clearFilters}
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className={styles.tableContainer}>
+            <div className={styles.tableScrollWrapper}>
+              <table className={styles.guestTable}>
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.length === filteredGuests.length && filteredGuests.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Group</th>
+                  <th>Gender</th>
+                  <th>Age Group</th>
+                  <th>Tag</th>
+                  {subevents.map(subevent => (
+                    <th key={subevent}>{subevent}</th>
+                  ))}
+                  <th>Invite Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredGuests.map((guest) => {
+                  const isPointOfContact = guest.isPointOfContact === true;
+                  const isSelected = isGuestSelected(guest);
+
+                  return (
+                    <tr
+                      key={guest.id}
+                      className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${isSelected ? styles.selectedRow : ""}`}
+                    >
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleRowSelection(guest, e.target.checked)}
+                        />
+                      </td>
+                      <td>
+                        <div className={styles.guestName}>
+                          {guest.name || "-"}
+                          {isPointOfContact && (
+                            <span className={styles.pocBadge}>POC</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.guestEmail}>{guest.email || "-"}</div>
+                      </td>
+                      <td>
+                        <div className={styles.guestPhone}>{guest.phone || "-"}</div>
+                      </td>
+                      <td>
+                        <div className={styles.groupInfo}>
+                          {guest.group ? (
+                            <>
+                              <div
+                                className={styles.groupColorDot}
+                                style={{
+                                  backgroundColor: "#7c3aed",
+                                }}
+                              />
+                              <span>{guest.group}</span>
+                            </>
+                          ) : "-"}
+                        </div>
+                      </td>
+                      <td>{guest.gender || "-"}</td>
+                      <td>{guest.ageGroup || "-"}</td>
+                      <td>{guest.tag || "-"}</td>
+                      {subevents.map(subevent => {
+                        const rsvp = guest.rsvpStatus[subevent];
+                        return (
+                          <td key={subevent}>
+                            {rsvp ? (
+                              <div className={styles.rsvpCell}>
+                                <span className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}>
+                                  {rsvp.status_name}
+                                </span>
+                                {rsvp.response && (
+                                  <div className={styles.responseCount}>+{rsvp.response}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className={`${styles.statusBadge} ${styles.statusNotInvited}`}>
+                                Not Invited
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td>
+                        <span className={`${styles.statusBadge} ${
+                          guest.inviteStatus === "Invited" ? styles.statusInvited : styles.statusNotInvited
+                        }`}>
+                          {guest.inviteStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

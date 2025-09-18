@@ -382,17 +382,42 @@ const RSVPCustomization = ({
     const greetingFields = ['welcomeMessage', 'subtitle', 'theme', 'fontFamily', 'backgroundColor', 'textColor', 'primaryColor', 'backgroundImage', 'backgroundOverlay'];
     const landingFields = ['pageTitle', 'logo', 'logoFile'];
     const rsvpFields = ['customQuestions'];
+    const styleFields = ['fontFamily', 'backgroundColor', 'textColor', 'primaryColor'];
 
     const currentLandingConfig = eventData.landingPageConfig || {};
     const currentGreetingConfig = currentLandingConfig.greeting_config || {};
     const currentRsvpConfig = currentLandingConfig.rsvp_config || {};
 
     let updatedConfig = { ...currentLandingConfig };
+    let updatedRsvpSettings = { ...eventData.rsvpSettings, [field]: value };
+
+    // If this is a style field being manually changed, we need to check if it breaks the theme preset
+    if (styleFields.includes(field)) {
+      const currentTheme = rsvpSettings.theme;
+      if (currentTheme && currentTheme !== 'custom') {
+        const themes = getThemePresets();
+        const themePreset = themes[currentTheme];
+        
+        // Check if the new value differs from the theme preset
+        if (themePreset && themePreset[field] !== value) {
+          // User is customizing beyond the preset, but keep the base theme reference
+          updatedRsvpSettings.theme = currentTheme; // Keep the original theme name even if customized
+        }
+      }
+    }
 
     if (greetingFields.includes(field)) {
+      const configField = field === 'welcomeMessage' ? 'message' : 
+                          field === 'fontFamily' ? 'font_family' :
+                          field === 'backgroundColor' ? 'background_color' :
+                          field === 'textColor' ? 'text_color' :
+                          field === 'primaryColor' ? 'primary_color' :
+                          field === 'backgroundImage' ? 'background_image' :
+                          field === 'backgroundOverlay' ? 'background_overlay' : field;
+      
       updatedConfig.greeting_config = {
         ...currentGreetingConfig,
-        [field === 'welcomeMessage' ? 'message' : field]: value,
+        [configField]: value,
       };
     } else if (landingFields.includes(field)) {
       if (field === 'pageTitle') {
@@ -409,11 +434,7 @@ const RSVPCustomization = ({
 
     updateEventData({
       landingPageConfig: updatedConfig,
-      // Keep rsvpSettings for backward compatibility during transition
-      rsvpSettings: {
-        ...eventData.rsvpSettings,
-        [field]: value,
-      },
+      rsvpSettings: updatedRsvpSettings,
     });
     
     // Clear error when user starts typing
@@ -695,41 +716,68 @@ const RSVPCustomization = ({
     });
   };
 
-  const applyTheme = (themeName) => {
-    const themes = {
-      elegant: {
-        fontFamily: "Playfair Display",
-        backgroundColor: "#faf5ff",
-        textColor: "#581c87",
-        primaryColor: "#7c3aed",
-      },
-      modern: {
-        fontFamily: "Inter",
-        backgroundColor: "#f8fafc",
-        textColor: "#1e293b",
-        primaryColor: "#7c3aed",
-      },
-      rustic: {
-        fontFamily: "Cormorant Garamond",
-        backgroundColor: "#f0fdf4",
-        textColor: "#065f46",
-        primaryColor: "#7c3aed",
-      },
-      glamorous: {
-        fontFamily: "Great Vibes",
-        backgroundColor: "#111827",
-        textColor: "#fbbf24",
-        primaryColor: "#7c3aed",
-      },
-      beach: {
-        fontFamily: "Dancing Script",
-        backgroundColor: "#eff6ff",
-        textColor: "#1e40af",
-        primaryColor: "#7c3aed",
-      },
+  // Define theme presets
+  const getThemePresets = () => ({
+    elegant: {
+      fontFamily: "Playfair Display",
+      backgroundColor: "#faf5ff",
+      textColor: "#581c87",
+      primaryColor: "#7c3aed",
+    },
+    modern: {
+      fontFamily: "Inter",
+      backgroundColor: "#f8fafc",
+      textColor: "#1e293b",
+      primaryColor: "#7c3aed",
+    },
+    rustic: {
+      fontFamily: "Cormorant Garamond",
+      backgroundColor: "#f0fdf4",
+      textColor: "#065f46",
+      primaryColor: "#7c3aed",
+    },
+    glamorous: {
+      fontFamily: "Great Vibes",
+      backgroundColor: "#111827",
+      textColor: "#fbbf24",
+      primaryColor: "#7c3aed",
+    },
+    beach: {
+      fontFamily: "Dancing Script",
+      backgroundColor: "#eff6ff",
+      textColor: "#1e40af",
+      primaryColor: "#7c3aed",
+    },
+  });
+
+  // Check if current settings match a theme preset exactly
+  const getCurrentTheme = () => {
+    const themes = getThemePresets();
+    const currentSettings = {
+      fontFamily: rsvpSettings.fontFamily,
+      backgroundColor: rsvpSettings.backgroundColor,
+      textColor: rsvpSettings.textColor,
+      primaryColor: rsvpSettings.primaryColor,
     };
 
+    // Check if current settings match any theme exactly
+    for (const [themeName, themeSettings] of Object.entries(themes)) {
+      const matches = Object.keys(themeSettings).every(
+        key => currentSettings[key] === themeSettings[key]
+      );
+      if (matches) {
+        return themeName;
+      }
+    }
+
+    // If settings don't match any preset exactly, check if we have a stored theme
+    return rsvpSettings.theme || 'custom';
+  };
+
+  const applyTheme = (themeName) => {
+    const themes = getThemePresets();
     const selectedTheme = themes[themeName];
+    
     if (selectedTheme) {
       // Update both new schema and legacy format
       const currentLandingConfig = eventData.landingPageConfig || {};
@@ -740,7 +788,10 @@ const RSVPCustomization = ({
         greeting_config: {
           ...currentGreetingConfig,
           theme: themeName,
-          ...selectedTheme,
+          font_family: selectedTheme.fontFamily,
+          background_color: selectedTheme.backgroundColor,
+          text_color: selectedTheme.textColor,
+          primary_color: selectedTheme.primaryColor,
         },
       };
 
@@ -749,9 +800,13 @@ const RSVPCustomization = ({
         rsvpSettings: {
           ...eventData.rsvpSettings,
           theme: themeName,
-          ...selectedTheme,
+          fontFamily: selectedTheme.fontFamily,
+          backgroundColor: selectedTheme.backgroundColor,
+          textColor: selectedTheme.textColor,
+          primaryColor: selectedTheme.primaryColor,
         },
       });
+      
       toast.success(
         `${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`,
         {
@@ -934,7 +989,7 @@ const RSVPCustomization = ({
         },
       });
     }
-  }, []);
+  }, [eventData.landingPageConfig, eventData.rsvpSettings, updateEventData]);
 
   const rsvpSettings = eventData.rsvpSettings || {};
 
@@ -1062,20 +1117,28 @@ const RSVPCustomization = ({
 
             <div className={styles.themeGrid}>
               {["elegant", "modern", "rustic", "glamorous", "beach"].map(
-                (theme) => (
-                  <button
-                    key={theme}
-                    type="button"
-                    className={`${styles.themeButton} ${rsvpSettings.theme === theme ? styles.active : ""}`}
-                    onClick={() => applyTheme(theme)}
-                  >
-                    {theme === "elegant" && "✨ Elegant"}
-                    {theme === "modern" && "🎯 Modern"}
-                    {theme === "rustic" && "🌿 Rustic"}
-                    {theme === "glamorous" && "💎 Glamorous"}
-                    {theme === "beach" && "🏖️ Beach"}
-                  </button>
-                ),
+                (theme) => {
+                  const currentTheme = getCurrentTheme();
+                  const isActive = currentTheme === theme;
+                  const isCustomized = rsvpSettings.theme === theme && currentTheme === 'custom';
+                  
+                  return (
+                    <button
+                      key={theme}
+                      type="button"
+                      className={`${styles.themeButton} ${isActive ? styles.active : ""} ${isCustomized ? styles.customized : ""}`}
+                      onClick={() => applyTheme(theme)}
+                      title={isCustomized ? `${theme} (customized)` : theme}
+                    >
+                      {theme === "elegant" && "✨ Elegant"}
+                      {theme === "modern" && "🎯 Modern"}
+                      {theme === "rustic" && "🌿 Rustic"}
+                      {theme === "glamorous" && "💎 Glamorous"}
+                      {theme === "beach" && "🏖️ Beach"}
+                      {isCustomized && <span className={styles.customizedIndicator}>*</span>}
+                    </button>
+                  );
+                }
               )}
             </div>
 

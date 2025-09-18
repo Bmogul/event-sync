@@ -863,3 +863,457 @@
   font-size: 16px;
   margin-bottom: 24px;
 }
+
+/* Guest Management Controls */
+.addGuestActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.addGuestActions button,
+.addGuestActions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.addGuestActions .btnOutlineSmall {
+  background: white;
+  color: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.addGuestActions .btnOutlineSmall:hover {
+  background: #7c3aed;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.addGuestActions .btnSecondarySmall {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.addGuestActions .btnSecondarySmall:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #111827;
+  transform: translateY(-1px);
+}
+
+.addGuestActions .btnPrimarySmall {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+}
+
+.addGuestActions .btnPrimarySmall:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+}
+
+/* Action Buttons in Table */
+.actionButtons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnIcon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.btnGhost {
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.btnGhost:hover {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+  transform: scale(1.05);
+}
+
+.btnDanger {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.btnDanger:hover {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+  transform: scale(1.05);
+}
+
+/* Action column specific styling */
+.guestTable th:nth-child(2),
+.guestTable td:nth-child(2) {
+  width: 80px;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Adjust other column indices after adding action column */
+.guestTable th:nth-child(3),
+.guestTable td:nth-child(3) {
+  min-width: 150px; /* Name column */
+}
+
+.guestTable th:nth-child(4),
+.guestTable td:nth-child(4) {
+  min-width: 200px; /* Email column */
+}
+
+.guestTable th:nth-child(5),
+.guestTable td:nth-child(5) {
+  min-width: 120px; /* Phone column */
+}
+
+.guestTable th:nth-child(6),
+.guestTable td:nth-child(6) {
+  min-width: 120px; /* Group column */
+}
+
+.guestTable th:nth-child(7),
+.guestTable td:nth-child(7),
+.guestTable th:nth-child(8),
+.guestTable td:nth-child(8),
+.guestTable th:nth-child(9),
+.guestTable td:nth-child(9) {
+  min-width: 100px; /* Gender, Age Group, Tag columns */
+}
+
+/* Guest Form Modal */
+.guestFormOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.guestFormModal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideInModal 0.3s ease-out;
+}
+
+@keyframes slideInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.closeModal {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeModal:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.modalContent {
+  padding: 32px;
+  max-height: calc(90vh - 160px);
+  overflow-y: auto;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px 32px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* Form Styles */
+.formSectionGroup {
+  margin-bottom: 32px;
+}
+
+.formSectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.formInput,
+.formSelect {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.formInput::placeholder {
+  color: #9ca3af;
+}
+
+/* Point of Contact Section */
+.pointOfContactSection {
+  margin-top: 32px;
+  padding: 20px;
+  background: #faf5ff;
+  border-radius: 12px;
+  border: 1px solid #e879f9;
+}
+
+.pointOfContactLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: #581c87;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.pointOfContactLabel input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+}
+
+.pocWarning {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pointOfContactHelp {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.pocWarningText {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* Confirmation Modal */
+.confirmationModal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: slideInModal 0.3s ease-out;
+}
+
+.confirmationContent {
+  padding: 32px;
+  text-align: center;
+}
+
+.confirmationIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.confirmationMessage {
+  font-size: 16px;
+  color: #374151;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.confirmationSubtext {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 0;
+}
+
+.confirmationActions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 32px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* Group Form Placeholder */
+.groupFormPlaceholder {
+  text-align: center;
+  padding: 48px 24px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px dashed #d1d5db;
+}
+
+.groupFormPlaceholder h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.groupFormPlaceholder p {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .addGuestActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .addGuestActions button,
+  .addGuestActions label {
+    justify-content: center;
+  }
+  
+  .guestFormModal {
+    max-width: 95vw;
+    margin: 10px;
+  }
+  
+  .modalContent {
+    padding: 20px;
+  }
+  
+  .modalHeader,
+  .modalFooter {
+    padding: 20px;
+  }
+  
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .actionButtons {
+    gap: 4px;
+  }
+  
+  .btnIcon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}

@@ -147,19 +147,14 @@ const GuestListSection = ({
 
   // Check if a group already has a point of contact
   const groupHasPOC = (groupTitle) => {
-    const group = eventData.guestGroups?.find(g => g.title === groupTitle);
-    if (!group) return false;
-    
     const groupGuests = eventData.guests?.filter(guest => guest.group === groupTitle) || [];
-    return groupGuests.some(guest => group.point_of_contact === guest.id);
+    return groupGuests.some(guest => guest.isPointOfContact === true);
   };
 
   // Get the current POC name for a group
   const getCurrentPOCName = (groupTitle) => {
-    const group = eventData.guestGroups?.find(g => g.title === groupTitle);
-    if (!group || !group.point_of_contact) return null;
-    
-    const pocGuest = eventData.guests?.find(guest => guest.id === group.point_of_contact);
+    const groupGuests = eventData.guests?.filter(guest => guest.group === groupTitle) || [];
+    const pocGuest = groupGuests.find(guest => guest.isPointOfContact === true);
     return pocGuest?.name || null;
   };
 
@@ -374,17 +369,15 @@ const GuestListSection = ({
         color: groupColor,
         description: "Family/Group",
       },
-      point_of_contact: null,
     };
 
     const newGuests = tempGroupMembers.map((member, index) => {
       const guestId = Date.now() + index;
-      if (member.isPointOfContact && !newGroupData.point_of_contact) {
-        newGroupData.point_of_contact = guestId;
-      }
+      const guestPublicId = crypto.randomUUID();
 
       return {
         id: guestId,
+        public_id: guestPublicId,
         order: index + 1,
         name: member.name,
         email: member.email,
@@ -398,6 +391,7 @@ const GuestListSection = ({
         subEventRSVPs: member.subEventRSVPs,
         invitedAt: null,
         respondedAt: null,
+        isPointOfContact: member.isPointOfContact || false, // Store POC as boolean on guest
       };
     });
 
@@ -468,14 +462,15 @@ const GuestListSection = ({
           color: groupColors[updatedGroups.length % groupColors.length],
           description: "Individual guest",
         },
-        point_of_contact: null,
       };
       updatedGroups.push(individualGroup);
     }
 
     const guestId = Date.now() + Math.random();
+    const guestPublicId = crypto.randomUUID();
     const guest = {
       id: guestId,
+      public_id: guestPublicId,
       order:
         (eventData.guests?.filter((g) => g.group === groupTitle).length || 0) +
         1,
@@ -491,15 +486,20 @@ const GuestListSection = ({
       subEventRSVPs: newGuest.subEventRSVPs,
       invitedAt: null,
       respondedAt: null,
+      isPointOfContact: newGuest.isPointOfContact || false, // Store POC as boolean on guest
     };
 
-    // Set as point of contact if selected
+    // If this guest is being set as POC, remove POC status from other guests in the group
     if (newGuest.isPointOfContact) {
-      const groupToUpdate = updatedGroups.find((g) => g.id === groupId);
-      if (groupToUpdate) {
-        // If there was already a POC, this transfer was confirmed by user
-        groupToUpdate.point_of_contact = guestId;
-      }
+      const updatedGuestsWithPOCTransfer = (eventData.guests || []).map(existingGuest => {
+        if (existingGuest.group === groupTitle && existingGuest.isPointOfContact) {
+          return { ...existingGuest, isPointOfContact: false };
+        }
+        return existingGuest;
+      });
+      
+      // Update the event data with the POC transfer
+      updateEventData({ guests: updatedGuestsWithPOCTransfer });
     }
 
     updateEventData({
@@ -535,7 +535,7 @@ const GuestListSection = ({
     const guest = eventData.guests?.find((g) => g.id === guestId);
     if (!guest) return;
 
-    const updatedGuests = eventData.guests.filter((g) => g.id !== guestId);
+    let updatedGuests = eventData.guests.filter((g) => g.id !== guestId);
     let updatedGroups = [...(eventData.guestGroups || [])];
 
     const group = updatedGroups.find((g) => g.title === guest.group);
@@ -544,12 +544,18 @@ const GuestListSection = ({
 
       if (group.size <= 0) {
         updatedGroups = updatedGroups.filter((g) => g.id !== group.id);
-      } else if (group.point_of_contact === guestId) {
+      } else if (guest.isPointOfContact) {
+        // If the removed guest was the POC, assign POC to the first remaining member
         const remainingGroupMembers = updatedGuests.filter(
           (g) => g.group === group.title,
         );
         if (remainingGroupMembers.length > 0) {
-          group.point_of_contact = remainingGroupMembers[0].id;
+          updatedGuests = updatedGuests.map(g => {
+            if (g.id === remainingGroupMembers[0].id) {
+              return { ...g, isPointOfContact: true };
+            }
+            return g;
+          });
         }
       }
     }
@@ -567,12 +573,12 @@ const GuestListSection = ({
 
   // Handle editing a guest
   const handleEditGuest = (guest) => {
+    console.log(guest)
     setEditingGuest(guest);
     setAddMode("individual"); // Always edit as individual for simplicity
 
     // Check if this guest is the point of contact for their group
-    const group = eventData.guestGroups?.find(g => g.title === guest.group);
-    const isCurrentPOC = group?.point_of_contact === guest.id;
+    const isCurrentPOC = guest.isPointOfContact === true;
 
     setNewGuest({
       name: guest.name,
@@ -590,12 +596,16 @@ const GuestListSection = ({
 
   // Handle saving edited guest
   const handleSaveEdit = () => {
-    if (!editingGuest) return;
+    console.log("GUEST: ", newGuest);
+    if (!editingGuest){ 
+      console.log('not editing')
+      return;}
     
     if (!newGuest.name.trim()) {
       toast.error("Guest name is required", { position: "top-center" });
       return;
     }
+    console.log('guest name validated')
 
     // No need for POC validation here as it's handled by confirmation dialog
 
@@ -610,11 +620,20 @@ const GuestListSection = ({
       if (oldGroupObj) {
         oldGroupObj.size -= 1;
         // If this was the POC and group still has members, assign POC to someone else
-        if (oldGroupObj.point_of_contact === editingGuest.id) {
+        if (editingGuest.isPointOfContact) {
           const remainingMembers = eventData.guests?.filter(
             g => g.group === oldGroup && g.id !== editingGuest.id
           ) || [];
-          oldGroupObj.point_of_contact = remainingMembers.length > 0 ? remainingMembers[0].id : null;
+          if (remainingMembers.length > 0) {
+            // Update the first remaining member to be the new POC
+            const updatedGuestsForPOCTransfer = eventData.guests.map(guest => {
+              if (guest.id === remainingMembers[0].id) {
+                return { ...guest, isPointOfContact: true };
+              }
+              return guest;
+            });
+            updateEventData({ guests: updatedGuestsForPOCTransfer });
+          }
         }
         // Remove group if no members left
         if (oldGroupObj.size <= 0) {
@@ -643,14 +662,15 @@ const GuestListSection = ({
             color: groupColors[updatedGroups.length % groupColors.length],
             description: "Individual guest",
           },
-          point_of_contact: null,
         };
         updatedGroups.push(newGroup);
       }
     }
 
+    console.log('group changes handled')
+
     // Update the guest
-    const updatedGuests = eventData.guests?.map(guest => {
+    let updatedGuests = eventData.guests?.map(guest => {
       if (guest.id === editingGuest.id) {
         return {
           ...guest,
@@ -662,24 +682,25 @@ const GuestListSection = ({
           tag: newGuest.tag || "",
           group: newGroupTitle,
           subEventRSVPs: newGuest.subEventRSVPs,
+          isPointOfContact: newGuest.isPointOfContact || false, // Include POC status in update
         };
       }
       return guest;
     }) || [];
+    console.log("PART 1", updatedGuests,newGuest)
 
-    // Set as point of contact if selected
+    // Handle POC status change
     if (newGuest.isPointOfContact) {
-      const groupToUpdate = updatedGroups.find(g => g.title === newGroupTitle);
-      if (groupToUpdate) {
-        groupToUpdate.point_of_contact = editingGuest.id;
-      }
-    } else {
-      // Remove POC status if unchecked
-      const groupToUpdate = updatedGroups.find(g => g.title === newGroupTitle);
-      if (groupToUpdate && groupToUpdate.point_of_contact === editingGuest.id) {
-        groupToUpdate.point_of_contact = null;
-      }
+      // If this guest is being set as POC, remove POC status from other guests in the group
+      updatedGuests = updatedGuests.map(guest => {
+        if (guest.group === newGroupTitle && guest.id !== editingGuest.id && guest.isPointOfContact) {
+          return { ...guest, isPointOfContact: false };
+        }
+        return guest;
+      });
     }
+
+    console.log("PART 2", updatedGuests,newGuest)
 
     updateEventData({
       guests: updatedGuests,
@@ -840,6 +861,7 @@ const GuestListSection = ({
 
           const guest = {
             id: Date.now() + index + Math.random(),
+            public_id: crypto.randomUUID(),
             order: (orderIndex !== -1 && values[orderIndex]) ? values[orderIndex] : (index + 1),
             name: values[nameIndex],
             email: (emailIndex !== -1) ? values[emailIndex] || '' : '',
@@ -853,6 +875,7 @@ const GuestListSection = ({
             subEventRSVPs: {},
             invitedAt: null,
             respondedAt: null,
+            isPointOfContact: false, // Default to false, will be set to true for first member of each group
           };
 
           // Process sub-event RSVPs
@@ -909,9 +932,10 @@ const GuestListSection = ({
             
             groupData.title = groupTitle;
             
-            // Assign group to all members
-            groupData.members.forEach(member => {
+            // Assign group to all members and set first member as POC
+            groupData.members.forEach((member, memberIndex) => {
               member.group = groupTitle;
+              member.isPointOfContact = memberIndex === 0; // First member is POC
             });
 
             processedGuests.push(...groupData.members);
@@ -929,7 +953,7 @@ const GuestListSection = ({
                 color: groupData.color,
                 description: groupData.members.length > 1 ? "Family/Group" : "Individual guest",
               },
-              point_of_contact: groupData.members[0].id, // First member as POC
+              // POC will be handled by setting isPointOfContact on the first member
             };
 
             allNewGroups.push(newGroup);
@@ -939,6 +963,12 @@ const GuestListSection = ({
         // Handle individual guests without groups
         if (processedGuests.some(guest => !guest.group || guest.group.includes('(Individual)'))) {
           const individualGuests = processedGuests.filter(guest => guest.group.includes('(Individual)'));
+          
+          // Set individual guests as POC of their own group
+          individualGuests.forEach(guest => {
+            guest.isPointOfContact = true;
+          });
+          
           const individualGroups = individualGuests.map((guest, index) => ({
             id: Date.now() + 10000 + index,
             event_id: eventData.id || null,
@@ -951,7 +981,6 @@ const GuestListSection = ({
               color: groupColors[(allNewGroups.length + index) % groupColors.length],
               description: "Individual guest",
             },
-            point_of_contact: guest.id,
           }));
           allNewGroups.push(...individualGroups);
         }
@@ -1131,6 +1160,7 @@ const GuestListSection = ({
                 onClick={() => {
                   setAddMode("group");
                   setShowGuestForm(true);
+                  console.log(eventData.guests)
                 }}
               >
                 Create Group & Add Members
@@ -1772,10 +1802,7 @@ const GuestListSection = ({
                 </thead>
                 <tbody>
                   {filteredGuests.map((guest) => {
-                  const group = eventData.guestGroups?.find(
-                    (g) => g.title === guest.group,
-                  );
-                  const isPointOfContact = group?.point_of_contact === guest.id;
+                  const isPointOfContact = guest.isPointOfContact === true;
 
                   return (
                     <tr
@@ -1818,13 +1845,12 @@ const GuestListSection = ({
                       </td>
                       <td>
                         <div className={styles.groupInfo}>
-                          {group && (
+                          {guest.group && (
                             <>
                               <div
                                 className={styles.groupColorDot}
                                 style={{
-                                  backgroundColor:
-                                    group.details?.color || "#7c3aed",
+                                  backgroundColor: "#7c3aed",
                                 }}
                               />
                               <span>{guest.group}</span>

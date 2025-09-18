@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./page.module.css";
@@ -13,17 +13,24 @@ import LaunchSection from "./components/sections/LaunchSection";
 
 const CreateEvent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [hasUnsavedImages, setHasUnsavedImages] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateGuests, setDuplicateGuests] = useState([]);
+  const [duplicateCallback, setDuplicateCallback] = useState(null);
   const heroContent = [
     {
-      tile: "Create Your Event",
-      subtitle:
+      title: isEditMode ? "Edit Your Event" : "Create Your Event",
+      subtitle: isEditMode ? 
+        "Update your event details and settings. All changes will be saved automatically." :
         "Set up your multi-day event with individual sub-events. Perfect for weddings, conferences, and celebrations.",
     },
     {
-      title: "Add Sub-Events",
+      title: isEditMode ? "Update Sub-Events" : "Add Sub-Events",
       subtitle: "These are the blocks that make up your event.",
     },
     {
@@ -33,15 +40,17 @@ const CreateEvent = () => {
     },
     { title: "Customize RSVP Page", subtitle: "Design your RSVP page to match your event's style and gather the information you need." },
     {
-      title: "Ready to Launch",
-      subtitle:
+      title: isEditMode ? "Update & Launch" : "Ready to Launch",
+      subtitle: isEditMode ?
+        "Review your updated event details and save your changes." :
         "Review your event details and choose how you'd like to launch your Event.",
     },
   ];
 
-  // Event form data
-  const [eventData, setEventData] = useState({
+  // Default event data
+  const getDefaultEventData = () => ({
     // Main event details
+    public_id: crypto.randomUUID(),
     title: "",
     description: "",
     location: "",
@@ -92,6 +101,9 @@ const CreateEvent = () => {
     },
   });
 
+  // Event form data
+  const [eventData, setEventData] = useState(getDefaultEventData());
+
   const updateEventData = (updates) => {
     setEventData((prev) => ({
       ...prev,
@@ -107,6 +119,65 @@ const CreateEvent = () => {
     
     setHasUnsavedImages(hasTemporaryImages);
   };
+
+  // Load event data if in edit mode
+  useEffect(() => {
+    const loadEventData = async () => {
+      const publicId = searchParams.get('edit');
+      
+      if (publicId) {
+        setIsEditMode(true);
+        setIsLoadingEvent(true);
+        
+        try {
+          console.log("Loading event data for editing:", publicId);
+          
+          const response = await fetch(`/api/events?public_id=${encodeURIComponent(publicId)}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to load event details');
+          }
+          
+          const result = await response.json();
+          
+          if (result.success && result.event) {
+            console.log("Event data loaded successfully:", result.event);
+            console.log("Frontend Debug - Loaded data structure:");
+            console.log("  - Guest groups count:", result.event.guestGroups?.length || 0);
+            console.log("  - Guests count:", result.event.guests?.length || 0);
+            console.log("  - Guest groups:", result.event.guestGroups);
+            console.log("  - Guests:", result.event.guests);
+            
+            setEventData(result.event);
+            
+            toast.success("Event loaded for editing!", {
+              position: "top-center",
+              autoClose: 2000,
+            });
+          } else {
+            throw new Error(result.error || 'Failed to load event');
+          }
+          
+        } catch (error) {
+          console.error("Error loading event:", error);
+          toast.error("Failed to load event for editing. Starting with blank form.", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+          
+          // Fall back to default data but keep the public_id from URL
+          setEventData(prev => ({
+            ...getDefaultEventData(),
+            public_id: publicId
+          }));
+        } finally {
+          setIsLoadingEvent(false);
+        }
+      }
+    };
+
+    loadEventData();
+  }, [searchParams]);
 
   // Cleanup temporary images when leaving page without saving
   useEffect(() => {
@@ -174,10 +245,17 @@ const CreateEvent = () => {
     setCurrentStep(step);
   };
 
-  const saveDraft = async () => {
+  // Handle duplicate guest detection
+  const handleDuplicateDetection = (duplicates, callback) => {
+    setDuplicateGuests(duplicates);
+    setDuplicateCallback(() => callback);
+    setShowDuplicateModal(true);
+  };
+
+  // Save draft with duplicates allowed
+  const saveDraftWithDuplicates = async () => {
     setIsLoading(true);
     try {
-      // First create/update the event
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
@@ -185,7 +263,8 @@ const CreateEvent = () => {
         },
         body: JSON.stringify({
           ...eventData,
-          status: 'draft'
+          status: 'draft',
+          allowDuplicates: true
         }),
       });
 
@@ -233,12 +312,160 @@ const CreateEvent = () => {
       });
     } finally {
       setIsLoading(false);
+      setShowDuplicateModal(false);
+    }
+  };
+
+  // Publish event with duplicates allowed
+  const publishEventWithDuplicates = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...eventData,
+          status: 'published',
+          allowDuplicates: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish event');
+      }
+
+      const savedEvent = await response.json();
+      const eventId = savedEvent.id || savedEvent.eventId;
+
+      // Finalize any temporary images
+      try {
+        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const imageData = extractImageDataForFinalization(eventData);
+        
+        if (imageData.length > 0) {
+          console.log("Finalizing images for published event...", imageData);
+          await finalizeImages(eventId, imageData);
+        }
+      } catch (imageError) {
+        console.warn("Image finalization failed:", imageError);
+        // Don't fail the publish if images fail
+      }
+
+      toast.success("Event published successfully!", {
+        position: "top-center",
+        autoClose: 3000,
+      });
+      
+      // Redirect to event page or dashboard
+      router.push(`/${eventId}`);
+    } catch (error) {
+      console.error("Error publishing event:", error);
+      toast.error("Failed to publish event. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+      setShowDuplicateModal(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    console.log(eventData);
+    setIsLoading(true);
+    try {
+      // Debug: Log the event data being sent
+      console.log("=== SAVE DRAFT: Event data being sent ===");
+      console.log("Guest count:", eventData.guests?.length || 0);
+      if (eventData.guests && eventData.guests.length > 0) {
+        eventData.guests.forEach((guest, index) => {
+          console.log(`Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`);
+        });
+      }
+      console.log("=== END DEBUG ===");
+
+      // First create/update the event
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...eventData,
+          status: 'draft'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save event');
+      }
+
+      const savedEvent = await response.json();
+      
+      // Handle duplicate detection
+      if (!savedEvent.success && savedEvent.duplicatesFound) {
+        setIsLoading(false);
+        handleDuplicateDetection(savedEvent.duplicates, () => saveDraftWithDuplicates());
+        return;
+      }
+      
+      const eventId = savedEvent.id || savedEvent.eventId;
+
+      // Update local event data with the saved ID
+      setEventData(prev => ({ ...prev, id: eventId }));
+
+      // Finalize any temporary images
+      try {
+        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const imageData = extractImageDataForFinalization(eventData);
+        
+        if (imageData.length > 0) {
+          console.log("Finalizing images for draft...", imageData);
+          await finalizeImages(eventId, imageData);
+          toast.success("Draft saved with images!", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+        } else {
+          toast.success("Draft saved successfully!", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+        }
+      } catch (imageError) {
+        console.warn("Image finalization failed:", imageError);
+        toast.success("Draft saved (images may need re-upload)", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      }
+
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast.error("Failed to save draft. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const publishEvent = async () => {
     setIsLoading(true);
     try {
+      // Debug: Log the event data being sent
+      console.log("=== PUBLISH EVENT: Event data being sent ===");
+      console.log("Guest count:", eventData.guests?.length || 0);
+      if (eventData.guests && eventData.guests.length > 0) {
+        eventData.guests.forEach((guest, index) => {
+          console.log(`Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`);
+        });
+      }
+      console.log("=== END DEBUG ===");
+
       // First create/update the event
       const response = await fetch('/api/events', {
         method: 'POST',
@@ -256,6 +483,14 @@ const CreateEvent = () => {
       }
 
       const savedEvent = await response.json();
+      
+      // Handle duplicate detection
+      if (!savedEvent.success && savedEvent.duplicatesFound) {
+        setIsLoading(false);
+        handleDuplicateDetection(savedEvent.duplicates, () => publishEventWithDuplicates());
+        return;
+      }
+      
       const eventId = savedEvent.id || savedEvent.eventId;
 
       // Finalize any temporary images
@@ -311,58 +546,132 @@ const CreateEvent = () => {
 
             {/* Form Content */}
             <div className={styles.formContainer}>
-              {currentStep === 1 && (
-                <EventDetailsForm
-                  eventData={eventData}
-                  updateEventData={updateEventData}
-                  onNext={nextStep}
-                  isLoading={isLoading}
-                />
-              )}
+              {isLoadingEvent ? (
+                <div className={styles.loadingContainer}>
+                  <div className={styles.spinner}></div>
+                  <p>Loading event details...</p>
+                </div>
+              ) : (
+                <>
+                  {currentStep === 1 && (
+                    <EventDetailsForm
+                      eventData={eventData}
+                      updateEventData={updateEventData}
+                      onNext={nextStep}
+                      isLoading={isLoading}
+                    />
+                  )}
 
-              {currentStep === 2 && (
-                <EventDetailsForm
-                  eventData={eventData}
-                  updateEventData={updateEventData}
-                  onNext={nextStep}
-                  onPrevious={previousStep}
-                  isLoading={isLoading}
-                  showSubEvents={true}
-                />
-              )}
+                  {currentStep === 2 && (
+                    <EventDetailsForm
+                      eventData={eventData}
+                      updateEventData={updateEventData}
+                      onNext={nextStep}
+                      onPrevious={previousStep}
+                      isLoading={isLoading}
+                      showSubEvents={true}
+                    />
+                  )}
 
-              {currentStep === 3 && (
-                <GuestListSection
-                  eventData={eventData}
-                  updateEventData={updateEventData}
-                  onNext={nextStep}
-                  onPrevious={previousStep}
-                  isLoading={isLoading}
-                />
-              )}
+                  {currentStep === 3 && (
+                    <GuestListSection
+                      eventData={eventData}
+                      updateEventData={updateEventData}
+                      onNext={nextStep}
+                      onPrevious={previousStep}
+                      isLoading={isLoading}
+                    />
+                  )}
 
-              {currentStep === 4 && (
-                <RSVPCustomization
-                  eventData={eventData}
-                  updateEventData={updateEventData}
-                  onNext={nextStep}
-                  onPrevious={previousStep}
-                  isLoading={isLoading}
-                />
-              )}
+                  {currentStep === 4 && (
+                    <RSVPCustomization
+                      eventData={eventData}
+                      updateEventData={updateEventData}
+                      onNext={nextStep}
+                      onPrevious={previousStep}
+                      isLoading={isLoading}
+                    />
+                  )}
 
-              {currentStep === 5 && (
-                <LaunchSection
-                  eventData={eventData}
-                  onPublish={publishEvent}
-                  onPrevious={previousStep}
-                  isLoading={isLoading}
-                />
+                  {currentStep === 5 && (
+                    <LaunchSection
+                      eventData={eventData}
+                      onPublish={publishEvent}
+                      onPrevious={previousStep}
+                      isLoading={isLoading}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
         </main>
       </div>
+
+      {/* Duplicate Confirmation Modal */}
+      {showDuplicateModal && (
+        <div className={styles.guestFormOverlay}>
+          <div className={styles.guestFormModal}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Duplicate Guests Detected</h3>
+              <button
+                className={styles.closeButton}
+                onClick={() => setShowDuplicateModal(false)}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.modalContent}>
+              <p className={styles.duplicateMessage}>
+                We found {duplicateGuests.length} potential duplicate guest{duplicateGuests.length > 1 ? 's' : ''}:
+              </p>
+              
+              <div className={styles.duplicateList}>
+                {duplicateGuests.map((duplicate, index) => (
+                  <div key={index} className={styles.duplicateItem}>
+                    <div className={styles.duplicateInfo}>
+                      <strong>{duplicate.guestName}</strong> in group <em>{duplicate.groupTitle}</em>
+                      {duplicate.type === 'existing_guest' && (
+                        <span className={styles.duplicateType}>
+                          (Already exists in database)
+                        </span>
+                      )}
+                      {duplicate.type === 'within_new_list' && (
+                        <span className={styles.duplicateType}>
+                          (Appears multiple times in your guest list)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <p className={styles.confirmationText}>
+                Would you like to proceed anyway? This will create separate entries for guests with the same name.
+              </p>
+              
+              <div className={styles.modalActions}>
+                <button
+                  className={styles.cancelButton}
+                  onClick={() => setShowDuplicateModal(false)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmButton}
+                  onClick={duplicateCallback}
+                  type="button"
+                >
+                  Proceed with Duplicates
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer
         position="top-center"

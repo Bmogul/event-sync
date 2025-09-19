@@ -18,6 +18,9 @@ const DashboardContent = () => {
   const [collaborations, setCollaborations] = useState([]);
   const [collaborationsLoading, setCollaborationsLoading] = useState(true);
   const [collaborationsError, setCollaborationsError] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'single', eventId } or { type: 'mass', eventIds }
@@ -167,6 +170,142 @@ const DashboardContent = () => {
       fetchCollaborations();
     }
   }, [user, userProfile?.id, fetchEvents, fetchCollaborations]); // Re-fetch when profile ID becomes available
+
+  // Fetch notifications (collaboration invites, etc.)
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !userProfile?.id) {
+      setNotifications([]);
+      setNotificationsLoading(false);
+      return;
+    }
+
+    try {
+      setNotificationsLoading(true);
+      
+      // Get pending collaboration invitations
+      const { data, error } = await supabase
+        .from('event_managers')
+        .select(`
+          *,
+          event:events(title, public_id),
+          role:event_manage_roles(role_name),
+          status:event_manage_state_lookup(state),
+          inviter:events!event_managers_event_id_fkey(users!events_created_by_fkey(first_name, last_name))
+        `)
+        .eq('user_id', userProfile.id)
+        .eq('status_id', 1) // Pending status
+        .order('invited_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      // Transform data to notification format
+      const transformedNotifications = data?.map(invitation => ({
+        id: `invite_${invitation.event_id}_${invitation.user_id}`,
+        type: 'collaboration_invite',
+        title: `Collaboration Invitation: ${invitation.event?.title}`,
+        message: `You've been invited to collaborate on "${invitation.event?.title}" as a ${invitation.role?.role_name}`,
+        status: 'pending',
+        read: false,
+        created_at: invitation.invited_at,
+        event_id: invitation.event_id,
+        event_public_id: invitation.event?.public_id,
+        role: invitation.role?.role_name,
+        inviter_name: `${invitation.inviter?.users?.first_name || ''} ${invitation.inviter?.users?.last_name || ''}`.trim() || 'Someone'
+      })) || [];
+
+      setNotifications(transformedNotifications);
+      setUnreadCount(transformedNotifications.filter(n => !n.read).length);
+
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      toast.error('Failed to load notifications');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [user, userProfile?.id, supabase]);
+
+  // Add fetchNotifications to the useEffect
+  useEffect(() => {
+    if (user) {
+      fetchEvents();
+      fetchCollaborations();
+      fetchNotifications();
+    }
+  }, [user, userProfile?.id, fetchEvents, fetchCollaborations, fetchNotifications]);
+
+  // Set up real-time subscriptions for collaboration updates
+  useEffect(() => {
+    if (!user || !userProfile?.id) return;
+
+    console.log('Setting up real-time subscription for user:', userProfile.id);
+
+    // Subscribe to event_managers table changes for this user
+    const collaborationSubscription = supabase
+      .channel('collaboration_updates')
+      .on('postgres_changes', {
+        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: 'event_managers',
+        filter: `user_id=eq.${userProfile.id}`
+      }, (payload) => {
+        console.log('Real-time collaboration update:', payload);
+        handleCollaborationChange(payload);
+      })
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('Cleaning up collaboration subscription');
+      collaborationSubscription.unsubscribe();
+    };
+  }, [userProfile?.id, supabase]);
+
+  // Handle real-time collaboration changes
+  const handleCollaborationChange = (payload) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    console.log('Handling collaboration change:', { eventType, newRecord, oldRecord });
+    
+    switch (eventType) {
+      case 'INSERT':
+        // New collaboration invitation received
+        if (newRecord.status_id === 1) { // Pending status
+          toast.info('New collaboration invitation received!');
+          fetchNotifications(); // Refresh notifications to show new invite
+        }
+        break;
+        
+      case 'UPDATE':
+        // Collaboration status changed (accepted/declined)
+        const oldStatus = oldRecord?.status_id;
+        const newStatus = newRecord?.status_id;
+        
+        if (oldStatus !== newStatus) {
+          // Refresh both notifications and collaborations
+          fetchNotifications();
+          fetchCollaborations();
+          
+          if (newStatus === 2) { // Accepted
+            toast.success('Collaboration invitation accepted!');
+          } else if (newStatus === 3) { // Declined
+            toast.info('Collaboration invitation declined');
+          }
+        }
+        break;
+        
+      case 'DELETE':
+        // Collaboration removed
+        toast.info('Collaboration access removed');
+        fetchNotifications();
+        fetchCollaborations();
+        break;
+        
+      default:
+        console.log('Unknown event type:', eventType);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -337,6 +476,49 @@ const DashboardContent = () => {
     setDeleteTarget(null);
   };
 
+  // Handle collaboration invitation response
+  const handleInvitationResponse = async (notification, action) => {
+    try {
+      const statusId = action === 'accept' ? 2 : 3; // 2 = accepted, 3 = declined
+      
+      const { error } = await supabase
+        .from('event_managers')
+        .update({ 
+          status_id: statusId,
+          accepted_at: action === 'accept' ? new Date().toISOString() : null
+        })
+        .eq('user_id', userProfile.id)
+        .eq('event_id', notification.event_id);
+
+      if (error) throw error;
+
+      toast.success(`Invitation ${action}ed successfully`);
+      
+      // Refresh notifications and collaborations
+      fetchNotifications();
+      fetchCollaborations();
+      
+    } catch (error) {
+      console.error(`Error ${action}ing invitation:`, error);
+      toast.error(`Failed to ${action} invitation`);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notification) => {
+    // For now, just update local state since we don't have a separate notifications table
+    setNotifications(prev => 
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
+
   // Show loading state while authenticating
   if (loading) {
     return (
@@ -443,6 +625,12 @@ const DashboardContent = () => {
               onClick={() => setActiveSection("collaborations")}
             >
               🤝 Collaborations ({collaborations.length})
+            </button>
+            <button 
+              className={`${styles.tabButton} ${activeSection === "inbox" ? styles.active : ""}`}
+              onClick={() => setActiveSection("inbox")}
+            >
+              🔔 Inbox {unreadCount > 0 && <span className={styles.notificationBadge}>({unreadCount})</span>}
             </button>
             <button 
               className={`${styles.tabButton} ${activeSection === "settings" ? styles.active : ""}`}
@@ -767,6 +955,94 @@ const DashboardContent = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeSection === "inbox" && (
+            <div className={styles.inboxSection}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Inbox</h2>
+                <p className={styles.sectionDescription}>
+                  Manage your collaboration invitations and notifications
+                </p>
+                <div className={styles.inboxActions}>
+                  {unreadCount > 0 && (
+                    <button 
+                      className={styles.btnSecondary}
+                      onClick={markAllAsRead}
+                    >
+                      Mark All Read
+                    </button>
+                  )}
+                  <select 
+                    className={styles.filterSelect}
+                    onChange={(e) => {/* TODO: Filter notifications */}}
+                  >
+                    <option value="all">All Notifications</option>
+                    <option value="invitations">Collaboration Invitations</option>
+                    <option value="updates">Updates</option>
+                    <option value="system">System Messages</option>
+                  </select>
+                </div>
+              </div>
+
+              {notificationsLoading ? (
+                <div className={styles.loadingContainer}>
+                  <div className={styles.spinner}></div>
+                  <p>Loading notifications...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>🔔</div>
+                  <h3>No notifications</h3>
+                  <p>You're all caught up! New collaboration invitations and updates will appear here.</p>
+                </div>
+              ) : (
+                <div className={styles.notificationsList}>
+                  {notifications.map(notification => (
+                    <div key={notification.id} className={`${styles.notificationCard} ${!notification.read ? styles.unread : ''}`}>
+                      <div className={styles.notificationIcon}>
+                        {notification.type === 'collaboration_invite' && '🤝'}
+                        {notification.type === 'system' && 'ℹ️'}
+                        {notification.type === 'update' && '📢'}
+                      </div>
+                      <div className={styles.notificationContent}>
+                        <h4 className={styles.notificationTitle}>{notification.title}</h4>
+                        <p className={styles.notificationMessage}>{notification.message}</p>
+                        <span className={styles.notificationTimestamp}>
+                          {new Date(notification.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className={styles.notificationActions}>
+                        {notification.type === 'collaboration_invite' && notification.status === 'pending' && (
+                          <>
+                            <button 
+                              className={styles.btnPrimarySmall}
+                              onClick={() => handleInvitationResponse(notification, 'accept')}
+                            >
+                              Accept
+                            </button>
+                            <button 
+                              className={styles.btnSecondarySmall}
+                              onClick={() => handleInvitationResponse(notification, 'decline')}
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                        {!notification.read && (
+                          <button 
+                            className={styles.btnGhost}
+                            onClick={() => markAsRead(notification)}
+                          >
+                            Mark Read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

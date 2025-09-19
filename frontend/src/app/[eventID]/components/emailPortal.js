@@ -69,22 +69,21 @@ const EmailPortal = ({
 
   // Fetch available email templates for this event
   useEffect(() => {
-    console.log("FETCHING TEMPLATES")
+    console.log("FETCHING TEMPLATES");
     const fetchEmailTemplates = async () => {
-
-    console.log("valid event", event)
+      console.log("valid event", event);
       if (!event?.eventID || !session?.access_token) return;
 
       try {
         const response = await fetch(`/api/events?public_id=${event.eventID}`, {
           headers: {
-            "Authorization": `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log("EVENT TAMPLATES", data.event.emailTemplates)
+          console.log("EVENT TAMPLATES", data.event.emailTemplates);
           if (data.success && data.event?.emailTemplates) {
             setAvailableTemplates(data.event.emailTemplates);
             // Auto-select first template if available
@@ -286,7 +285,7 @@ const EmailPortal = ({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         guestList: selectedRows,
@@ -296,13 +295,17 @@ const EmailPortal = ({
     const result = await res.json();
 
     if (res.status === 200 && result.success) {
-      toast(`Mail sent! ${result.results.successful} successful, ${result.results.failed} failed`);
+      toast(
+        `Mail sent! ${result.results.successful} successful, ${result.results.failed} failed`,
+      );
       if (result.guestList) {
         updateGuestList(result.guestList);
       }
     } else {
       console.log(res.status, result);
-      toast(`Failed to send mail: ${result.message || result.error || 'Unknown error'}`);
+      toast(
+        `Failed to send mail: ${result.message || result.error || "Unknown error"}`,
+      );
     }
   };
   // Send Reminder
@@ -638,6 +641,28 @@ const EmailPortal = ({
     }
   };
 
+  const handleShareWhatsApp = (guest) => {
+    try {
+      // Build the RSVP link — adjust to match your routing / query param names
+      const base = process.env.NEXT_PUBLIC_APP_URL || ""; // optional: set NEXT_PUBLIC_APP_URL
+      const eventId = params?.eventID || ""; // uses the same params from your component
+      const guestId = guest?.public_id || guest?.id || "";
+      const rsvpLink = `${base}/event/${eventId}/rsvp?guestId=${encodeURIComponent(guestId)}`;
+
+      // Message that will be prefilled in WhatsApp
+      const message = `Hi ${guest?.name || ""}! Please RSVP: ${rsvpLink}`;
+
+      // Use wa.me which works on both mobile and desktop (redirects to WhatsApp Web on desktop)
+      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+      // Open in new tab/window
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error("Error opening WhatsApp share:", err);
+      toast.error("Unable to open WhatsApp share.");
+    }
+  };
+
   // Handle file upload
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -744,35 +769,31 @@ const EmailPortal = ({
           className={`${styles.actionBtn} ${styles.disabledBtn}`}
           disabled
           title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+          style={{ opacity: 0.5, cursor: "not-allowed" }}
         >
           <div className={styles.actionBtnIcon}>⏰</div>
           <div>
             <div>Send Reminders</div>
-            <div className={styles.actionBtnSubtitle}>
-              Coming soon
-            </div>
+            <div className={styles.actionBtnSubtitle}>Coming soon</div>
           </div>
         </button>
         <button
           className={`${styles.actionBtn} ${styles.disabledBtn}`}
           disabled
           title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+          style={{ opacity: 0.5, cursor: "not-allowed" }}
         >
           <div className={styles.actionBtnIcon}>📢</div>
           <div>
             <div>Send Reminder All</div>
-            <div className={styles.actionBtnSubtitle}>
-              Coming soon
-            </div>
+            <div className={styles.actionBtnSubtitle}>Coming soon</div>
           </div>
         </button>
         <button
           className={`${styles.actionBtn} ${styles.disabledBtn}`}
           disabled
           title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+          style={{ opacity: 0.5, cursor: "not-allowed" }}
         >
           <div className={styles.actionBtnIcon}>🔄</div>
           <div>
@@ -831,7 +852,7 @@ const EmailPortal = ({
             <span className={styles.bulkCount}>
               {selectedRows.length} guests selected
             </span>
-            
+
             {/* Email Template Selection */}
             <div className={styles.templateSelection}>
               <label htmlFor="template-select" className={styles.templateLabel}>
@@ -851,18 +872,18 @@ const EmailPortal = ({
                 ))}
               </select>
             </div>
-            
-            <button 
-              className={styles.btnPrimarySmall} 
+
+            <button
+              className={styles.btnPrimarySmall}
               onClick={SendMail}
               disabled={!selectedTemplateId}
             >
               Send Invites
             </button>
-            <button 
-              className={styles.btnOutlineSmall} 
+            <button
+              className={styles.btnOutlineSmall}
               disabled
-              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+              style={{ opacity: 0.5, cursor: "not-allowed" }}
               title="Feature temporarily disabled"
             >
               Send Reminders
@@ -1053,6 +1074,34 @@ const EmailPortal = ({
                               title="Remove guest"
                             >
                               🗑️
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`${styles.btnGhost} ${styles.btnIcon}`}
+                              onClick={() => handleShareWhatsApp(guest)}
+                              title="Share RSVP via WhatsApp"
+                              aria-label="Share RSVP via WhatsApp"
+                            >
+                              {/* WhatsApp SVG icon */}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                role="img"
+                                aria-hidden="false"
+                              >
+                                <path
+                                  d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z"
+                                  fill="#25D366"
+                                />
+                                <path
+                                  d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z"
+                                  fill="#fff"
+                                />
+                              </svg>
                             </button>
                           </div>
                         </td>

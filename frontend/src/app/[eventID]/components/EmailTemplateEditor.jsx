@@ -2,11 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import styles from "../../create-event/components/sections/EmailTemplateCreator.module.css";
 
-const EmailTemplateEditor = ({
-  event,
-  session,
-  setCurrentView
-}) => {
+const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0);
   const [previewDevice, setPreviewDevice] = useState("desktop");
   const [errors, setErrors] = useState({});
@@ -23,7 +19,7 @@ const EmailTemplateEditor = ({
       try {
         const response = await fetch(`/api/events?public_id=${event.eventID}`, {
           headers: {
-            "Authorization": `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
         });
 
@@ -184,19 +180,20 @@ const EmailTemplateEditor = ({
         templatesToSave[0].status = "active";
       }
 
+
       // Save templates by updating the event
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           public_id: event.eventID,
-          title: event.title,
+          title: event.eventTitle,
           emailTemplates: templatesToSave,
           // Include other required fields to avoid validation errors
-          status: 'draft'
+          status: "draft",
         }),
       });
 
@@ -310,7 +307,8 @@ const EmailTemplateEditor = ({
                   style={{
                     textAlign: "center",
                     padding: "40px 40px 20px 40px",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   }}
                 >
                   <img
@@ -498,7 +496,8 @@ const EmailTemplateEditor = ({
                     href={templateData.rsvpLink}
                     style={{
                       display: "inline-block",
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      background:
+                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       color: "#ffffff",
                       textDecoration: "none",
                       padding: "18px 40px",
@@ -630,7 +629,14 @@ const EmailTemplateEditor = ({
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "400px",
+        }}
+      >
         <div>Loading email templates...</div>
       </div>
     );
@@ -648,6 +654,14 @@ const EmailTemplateEditor = ({
           </p>
         </div>
       </div>
+      <button
+        type="button"
+        className={`${styles.btn} ${styles.btnPrimary}`}
+        onClick={saveTemplates}
+        disabled={isSaving}
+      >
+        {isSaving ? "Saving..." : "Save Templates"}
+      </button>
 
       <div className={styles.editorLayout}>
         {/* Left Panel - Controls */}
@@ -836,16 +850,16 @@ const EmailTemplateEditor = ({
                 <input
                   type="email"
                   className={styles.formInput}
-                  value={
-                    currentTemplate.reply_to || "reply@event-sync.com"
-                  }
+                  value={currentTemplate.reply_to || "reply@event-sync.com"}
                   onChange={(e) =>
                     handleTemplateChange("reply_to", e.target.value)
                   }
                   placeholder="reply@event-sync.com"
                 />
                 <div className={styles.formHelp}>
-                  For security reasons, all emails are sent from our platform, but you can add your own email for email responses (not required)
+                  For security reasons, all emails are sent from our platform,
+                  but you can add your own email for email responses (not
+                  required)
                 </div>
               </div>
             </div>
@@ -853,7 +867,7 @@ const EmailTemplateEditor = ({
             {/* Logo Section */}
             <div className={styles.controlSection}>
               <h3 className={styles.controlTitle}>🖼️ Event Logo</h3>
-              
+
               {event?.logo ? (
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Current Event Logo</label>
@@ -868,23 +882,36 @@ const EmailTemplateEditor = ({
                         borderRadius: "8px",
                         border: "2px solid #e5e7eb",
                         padding: "8px",
-                        background: "#f9fafb"
+                        background: "#f9fafb",
                       }}
                     />
                   </div>
                   <div className={styles.formHelp}>
-                    This logo will appear at the top of your email invitations. To change the logo, update it in your event settings.
+                    This logo will appear at the top of your email invitations.
+                    To change the logo, update it in your event settings.
                   </div>
                 </div>
               ) : (
                 <div className={styles.formGroup}>
                   <div className={styles.noLogo}>
-                    <div style={{ fontSize: "48px", opacity: 0.3, marginBottom: "8px" }}>🖼️</div>
-                    <p style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}>
-                      No event logo uploaded. Emails will be sent without a logo.
+                    <div
+                      style={{
+                        fontSize: "48px",
+                        opacity: 0.3,
+                        marginBottom: "8px",
+                      }}
+                    >
+                      🖼️
+                    </div>
+                    <p
+                      style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}
+                    >
+                      No event logo uploaded. Emails will be sent without a
+                      logo.
                     </p>
                     <div className={styles.formHelp}>
-                      To add a logo, update your event settings or upload one during event creation.
+                      To add a logo, update your event settings or upload one
+                      during event creation.
                     </div>
                   </div>
                 </div>
@@ -1023,14 +1050,6 @@ const EmailTemplateEditor = ({
           onClick={() => setCurrentView("email")}
         >
           ← Back to Email Portal
-        </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={saveTemplates}
-          disabled={isSaving}
-        >
-          {isSaving ? "Saving..." : "Save Templates"}
         </button>
       </div>
     </div>

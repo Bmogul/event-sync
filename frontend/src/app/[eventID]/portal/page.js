@@ -13,6 +13,7 @@ import useEventPermissions from "../../hooks/useEventPermissions";
 import Loading from "../components/loading";
 import Email from "../components/emailPortal";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
+import ManageTeam from "../components/ManageTeam";
 
 import styles from "../styles/portal.module.css";
 
@@ -24,7 +25,7 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState("email"); // "email" or "template-editor"
+  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
 
   const { session, supabase, user, userProfile, loading: authLoading } = useAuth(); // get supabase client and session from context
 
@@ -238,7 +239,12 @@ const Page = () => {
                 )}
                 
                 {(isOwner || isAdmin) && (
-                  <button className={styles.btnOutline}>👥 Manage Team</button>
+                  <button 
+                    className={currentView === "manage-team" ? styles.btnPrimary : styles.btnOutline}
+                    onClick={() => setCurrentView("manage-team")}
+                  >
+                    👥 Manage Team
+                  </button>
                 )}
               </div>
             </div>
@@ -308,6 +314,10 @@ const Page = () => {
                 hasPermission,
                 userRole
               }}
+            />
+          ) : currentView === "manage-team" ? (
+            <ManageTeam
+              eventPublicId={event?.eventID}
             />
           ) : null}
         </div>

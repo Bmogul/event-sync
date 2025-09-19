@@ -35,7 +35,7 @@ INSERT INTO email_template_status (name, description) VALUES
 
 CREATE TABLE email_templates (
   id               SERIAL      PRIMARY KEY,
-  event_id         TEXT        NOT NULL REFERENCES events(public_id),
+  event_id         INTEGER NOT NULL REFERENCES events(id),
   category_id      INTEGER     NOT NULL REFERENCES email_template_categories(id) DEFAULT 1,
   template_status_id  INTEGER     NOT NULL REFERENCES email_template_status(id) DEFAULT 1,
   name             VARCHAR(100) NOT NULL,

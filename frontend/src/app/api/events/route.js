@@ -126,6 +126,17 @@ export async function GET(request) {
       .eq("event_id", event.id)
       .single();
 
+    // Fetch email templates
+    const { data: emailTemplates, error: emailTemplatesError } = await supabase
+      .from("email_templates")
+      .select(`
+        *,
+        email_template_categories(name),
+        email_template_status(name)
+      `)
+      .eq("event_id", event.id)
+      .order("created_at");
+
     // Transform data to match frontend format
     const eventData = {
       public_id: event.public_id,
@@ -134,6 +145,7 @@ export async function GET(request) {
       location: event.details?.location || "",
       startDate: event.start_date || "",
       endDate: event.end_date || "",
+      logo_url: event.logo_url || "",
       maxGuests: event.capacity || "",
       eventType: event.details?.event_type || "wedding",
       isPrivate: event.details?.is_private || false,
@@ -285,6 +297,28 @@ export async function GET(request) {
             backgroundImage: null,
             backgroundOverlay: 20,
           },
+
+      // Transform email templates
+      emailTemplates: emailTemplates?.map((template) => ({
+        id: template.id,
+        title: template.name,
+        subtitle: template.subtitle || "",
+        body: template.body || "",
+        greeting: template.greeting || "",
+        signoff: template.signoff || "",
+        sender_name: template.sender_name || "",
+        sender_email: template.sender_email || "",
+        reply_to: template.reply_to || "",
+        subject_line: template.subject_line || "",
+        template_key: template.template_key || "",
+        category: template.email_template_categories?.name || "invitation",
+        status: template.email_template_status?.name || "draft",
+        description: template.description || "",
+        is_default: template.is_default || false,
+        primary_color: template.primary_color || "#ffffff",
+        secondary_color: template.secondary_color || "#e1c0b7",
+        text_color: template.font_color || "#333333",
+      })) || [],
     };
 
     console.log("✓ Event data loaded successfully");
@@ -293,6 +327,7 @@ export async function GET(request) {
     console.log("  - Sub-events count:", subEvents?.length || 0);
     console.log("  - Guest groups count:", guestGroups?.length || 0);
     console.log("  - Guests count:", guests?.length || 0);
+    console.log("  - Email templates count:", emailTemplates?.length || 0);
     console.log("  - Landing config:", !!landingConfig);
 
     if (guestGroups?.length > 0) {
@@ -420,6 +455,7 @@ export async function POST(request) {
       start_date: eventData.startDate || null,
       end_date: eventData.endDate || null,
       capacity: eventData.maxGuests ? parseInt(eventData.maxGuests) : null,
+      logo_url: eventData.logo_url || null,
       status_id: action === "published" ? 2 : 1,
       details: {
         location: eventData.location || null,
@@ -1281,8 +1317,227 @@ export async function POST(request) {
       }
     }
 
-    // Step 9: Handle landing page config (always create with defaults if not provided)
-    console.log("Step 9: Handling landing page config...");
+    // Step 9: Handle email templates
+    console.log("Step 9: Handling email templates...");
+
+    // Helper function to get category ID
+    const getCategoryId = async (categoryName) => {
+      const { data: category, error } = await supabase
+        .from("email_template_categories")
+        .select("id")
+        .eq("name", categoryName || "invitation")
+        .single();
+      
+      if (error) {
+        console.warn(`Category lookup error for "${categoryName}":`, error);
+        return 1; // Default to invitation category
+      }
+      return category.id;
+    };
+
+    // Helper function to get status ID
+    const getStatusId = async (statusName) => {
+      const { data: status, error } = await supabase
+        .from("email_template_status")
+        .select("id")
+        .eq("name", statusName || "draft")
+        .single();
+      
+      if (error) {
+        console.warn(`Status lookup error for "${statusName}":`, error);
+        return 1; // Default to draft status
+      }
+      return status.id;
+    };
+
+    // Check if we have email templates to process
+    const hasEmailTemplates = eventData.emailTemplates && eventData.emailTemplates.length > 0;
+
+    if (hasEmailTemplates) {
+      const validTemplates = eventData.emailTemplates.filter(
+        (template) => template.title && template.title.trim() && template.subject_line && template.subject_line.trim()
+      );
+
+      if (validTemplates.length > 0) {
+        if (existingEvent && !existingEventError) {
+          // For existing events, update/insert/delete email templates to preserve IDs
+          console.log("Updating existing email templates...", createdEvent);
+
+          // Get existing email templates
+          const { data: existingTemplates, error: fetchError } = await supabase
+            .from("email_templates")
+            .select("*")
+            .eq("event_id", createdEvent.id);
+
+          if (fetchError) {
+            console.error("Error fetching existing email templates:", fetchError);
+            throw fetchError;
+          }
+
+          const existingTemplatesMap = new Map();
+          (existingTemplates || []).forEach((template) => {
+            existingTemplatesMap.set(template.id, template);
+          });
+
+          // Track which templates to update/insert
+          const templatesToUpdate = [];
+          const templatesToInsert = [];
+          const processedIds = new Set();
+
+          for (const template of validTemplates) {
+            // If template has an ID and exists in DB, update it
+            if (template.id && existingTemplatesMap.has(template.id)) {
+              const categoryId = await getCategoryId(template.category);
+              const statusId = await getStatusId(template.status);
+
+              templatesToUpdate.push({
+                id: template.id,
+                event_id: createdEvent.id,
+                category_id: categoryId,
+                template_status_id: statusId,
+                name: template.title,
+                subject_line: template.subject_line,
+                sender_name: template.sender_name || "Event Host",
+                description: template.description || null,
+                title: template.subtitle || null,
+                subtitle: template.subtitle || null,
+                greeting: template.greeting || null,
+                body: template.body || null,
+                signoff: template.signoff || null,
+                reply_to: template.reply_to || null,
+                is_default: template.is_default || false,
+                primary_color: template.primary_color || null,
+                secondary_color: template.secondary_color || null,
+                font_color: template.text_color || null,
+              });
+              processedIds.add(template.id);
+            } else {
+              // New template, insert it
+              const categoryId = await getCategoryId(template.category);
+              const statusId = await getStatusId(template.status);
+
+              templatesToInsert.push({
+                event_id: createdEvent.id,
+                category_id: categoryId,
+                template_status_id: statusId,
+                name: template.title,
+                subject_line: template.subject_line,
+                sender_name: template.sender_name || "Event Host",
+                description: template.description || null,
+                title: template.subtitle || null,
+                subtitle: template.subtitle || null,
+                greeting: template.greeting || null,
+                body: template.body || null,
+                signoff: template.signoff || null,
+                reply_to: template.reply_to || null,
+                is_default: template.is_default || false,
+                primary_color: template.primary_color || null,
+                secondary_color: template.secondary_color || null,
+                font_color: template.text_color || null,
+              });
+            }
+          }
+
+          // Delete templates that are no longer in the frontend data
+          const templateIdsToDelete = [];
+          existingTemplates.forEach((template) => {
+            if (!processedIds.has(template.id)) {
+              templateIdsToDelete.push(template.id);
+            }
+          });
+
+          // Perform updates
+          if (templatesToUpdate.length > 0) {
+            console.log(`Updating ${templatesToUpdate.length} existing email templates...`);
+            for (const template of templatesToUpdate) {
+              const { id, ...updateData } = template;
+              const { error: updateError } = await supabase
+                .from("email_templates")
+                .update(updateData)
+                .eq("id", id);
+
+              if (updateError) {
+                console.error(`Error updating email template ${id}:`, updateError);
+                throw updateError;
+              }
+            }
+          }
+
+          // Perform inserts
+          if (templatesToInsert.length > 0) {
+            console.log(`Inserting ${templatesToInsert.length} new email templates...`);
+            const { error: insertError } = await supabase
+              .from("email_templates")
+              .insert(templatesToInsert);
+
+            if (insertError) {
+              console.error("Error inserting new email templates:", insertError);
+              throw insertError;
+            }
+          }
+
+          // Perform deletes
+          if (templateIdsToDelete.length > 0) {
+            console.log(`Deleting ${templateIdsToDelete.length} removed email templates...`);
+            const { error: deleteError } = await supabase
+              .from("email_templates")
+              .delete()
+              .in("id", templateIdsToDelete);
+
+            if (deleteError) {
+              console.error("Error deleting removed email templates:", deleteError);
+              throw deleteError;
+            }
+          }
+
+          console.log("✓ Email templates updated successfully");
+        } else {
+          // For new events, just insert all email templates
+          console.log("Creating new email templates...");
+          const templatePayloads = [];
+
+          for (const template of validTemplates) {
+            const categoryId = await getCategoryId(template.category);
+            const statusId = await getStatusId(template.status);
+
+            templatePayloads.push({
+              event_id: createdEvent.id,
+              category_id: categoryId,
+              template_status_id: statusId,
+              name: template.title,
+              subject_line: template.subject_line,
+              sender_name: template.sender_name || "Event Host",
+              description: template.description || null,
+              title: template.subtitle || null,
+              subtitle: template.subtitle || null,
+              greeting: template.greeting || null,
+              body: template.body || null,
+              signoff: template.signoff || null,
+              reply_to: template.reply_to || null,
+              is_default: template.is_default || false,
+              primary_color: template.primary_color || null,
+              secondary_color: template.secondary_color || null,
+              font_color: template.text_color || null,
+            });
+          }
+
+          const { data: createdTemplates, error: templateError } = await supabase
+            .from("email_templates")
+            .insert(templatePayloads)
+            .select();
+
+          if (templateError) {
+            console.error("❌ Email template creation error:", templateError);
+            throw templateError;
+          }
+
+          console.log("✓ Email templates created:", createdTemplates.length);
+        }
+      }
+    }
+
+    // Step 10: Handle landing page config (always create with defaults if not provided)
+    console.log("Step 10: Handling landing page config...");
 
     // For existing events, delete old landing page config first
     if (existingEvent && !existingEventError) {

@@ -113,8 +113,51 @@ const RsvpForm = ({
         phone: guest.phone || ''
       };
 
-      // Set existing responses
-      if (guest.invites) {
+      // Set existing responses based on guest type and RSVP data
+      if (guest.rsvps && guest.rsvps.length > 0) {
+        guest.rsvps.forEach(rsvp => {
+          const subEvent = subEvents.find(se => se.id === rsvp.subevent_id);
+          if (subEvent) {
+            const guestType = (guest.guestType || 'single').toLowerCase();
+            
+            // Convert database response back to frontend format based on guest type
+            let frontendResponse;
+            switch (guestType) {
+              case 'single':
+                // For single type: status_id determines the response
+                if (rsvp.status_id === 3) {
+                  frontendResponse = 'attending';
+                } else if (rsvp.status_id === 4) {
+                  frontendResponse = 'not_attending';
+                } else if (rsvp.status_id === 5) {
+                  frontendResponse = 'maybe';
+                } else {
+                  frontendResponse = 'pending';
+                }
+                break;
+                
+              case 'multiple':
+              case 'variable':
+                // For multiple/variable types: use the numeric response value
+                if (rsvp.response !== null && rsvp.response !== undefined) {
+                  frontendResponse = rsvp.response;
+                } else {
+                  // Fallback: if no response value, determine from status
+                  frontendResponse = rsvp.status_id === 3 ? 1 : 0;
+                }
+                break;
+                
+              default:
+                // Default to pending
+                frontendResponse = 'pending';
+            }
+            
+            console.log(`Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`);
+            initialResponses[guest.id][subEvent.id] = frontendResponse;
+          }
+        });
+      } else if (guest.invites) {
+        // Fallback: use old invites structure if rsvps not available
         Object.entries(guest.invites).forEach(([subEventTitle, statusId]) => {
           const subEvent = subEvents.find(se => se.title === subEventTitle);
           if (subEvent) {
@@ -129,6 +172,12 @@ const RsvpForm = ({
           }
         });
       }
+    });
+    
+    console.log('RSVP Form Initialization Summary:', {
+      totalGuests: party.length,
+      guestsWithResponses: Object.keys(initialResponses).filter(guestId => Object.keys(initialResponses[guestId]).length > 0).length,
+      initialResponses
     });
     
     setResponses(initialResponses);

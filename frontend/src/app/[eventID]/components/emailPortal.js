@@ -7,7 +7,7 @@ const EmailPortal = ({
   params,
   setLoading,
   guestList,
-  password,
+  session,
   getGuestList,
   updateGuestList,
 }) => {
@@ -234,27 +234,32 @@ const EmailPortal = ({
 
   // Send Mail
   const SendMail = async () => {
-    console.log(password);
+    if (!session?.access_token) {
+      toast("Authentication required");
+      return;
+    }
+
     toast("Sending Mail");
     const res = await fetch(`/api/${params.eventID}/sendMail`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         guestList: selectedRows,
-        password: password,
-        event: event,
       }),
     });
     const result = await res.json();
 
-    if (res.status === 200 && result.validated) {
-      toast("Mail sent!");
-      updateGuestList(result.guestList);
+    if (res.status === 200 && result.success) {
+      toast(`Mail sent! ${result.results.successful} successful, ${result.results.failed} failed`);
+      if (result.guestList) {
+        updateGuestList(result.guestList);
+      }
     } else {
-      console.log(res.status, result.validated);
-      toast("Failed to send invites, try again");
+      console.log(res.status, result);
+      toast(`Failed to send mail: ${result.message || result.error || 'Unknown error'}`);
     }
   };
   // Send Reminder
@@ -692,40 +697,43 @@ const EmailPortal = ({
           </div>
         </button>
         <button
-          className={styles.actionBtn}
-          onClick={SendReminder}
-          title="Send reminders to selected guests"
+          className={`${styles.actionBtn} ${styles.disabledBtn}`}
+          disabled
+          title="Feature temporarily disabled"
+          style={{ opacity: 0.5, cursor: 'not-allowed' }}
         >
           <div className={styles.actionBtnIcon}>⏰</div>
           <div>
             <div>Send Reminders</div>
             <div className={styles.actionBtnSubtitle}>
-              Remind selected guests
+              Coming soon
             </div>
           </div>
         </button>
         <button
-          className={styles.actionBtn}
-          onClick={SendReminderAll}
-          title="Send reminders to all non-responders"
+          className={`${styles.actionBtn} ${styles.disabledBtn}`}
+          disabled
+          title="Feature temporarily disabled"
+          style={{ opacity: 0.5, cursor: 'not-allowed' }}
         >
           <div className={styles.actionBtnIcon}>📢</div>
           <div>
             <div>Send Reminder All</div>
             <div className={styles.actionBtnSubtitle}>
-              Remind non-responders
+              Coming soon
             </div>
           </div>
         </button>
         <button
-          className={styles.actionBtn}
-          onClick={SendUpdateAll}
-          title="Send updates to all respondents"
+          className={`${styles.actionBtn} ${styles.disabledBtn}`}
+          disabled
+          title="Feature temporarily disabled"
+          style={{ opacity: 0.5, cursor: 'not-allowed' }}
         >
           <div className={styles.actionBtnIcon}>🔄</div>
           <div>
             <div>Send Update All</div>
-            <div className={styles.actionBtnSubtitle}>Event updates</div>
+            <div className={styles.actionBtnSubtitle}>Coming soon</div>
           </div>
         </button>
       </div>
@@ -782,7 +790,12 @@ const EmailPortal = ({
             <button className={styles.btnPrimarySmall} onClick={SendMail}>
               Send Invites
             </button>
-            <button className={styles.btnOutlineSmall} onClick={SendReminder}>
+            <button 
+              className={styles.btnOutlineSmall} 
+              disabled
+              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+              title="Feature temporarily disabled"
+            >
               Send Reminders
             </button>
             <button className={styles.btnSecondarySmall}>

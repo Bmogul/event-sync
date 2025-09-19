@@ -208,7 +208,7 @@ const Page = () => {
             event={event}
             params={params}
             guestList={guestList}
-            password={password}
+            session={session}
             getGuestList={getGuestList}
             updateGuestList={updateGuestList}
           />

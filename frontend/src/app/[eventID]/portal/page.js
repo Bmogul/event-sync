@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
+import Image from "next/image";
 
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -157,13 +158,29 @@ const Page = () => {
         <div className={styles.container}>
           {/* Event Header */}
           <div className={styles.eventHeader}>
-            <h1 className={styles.eventTitle}>
-              {event?.eventTitle || "Event Management"}
-            </h1>
-            <p className={styles.eventSubtitle}>
-              Event Management Portal • Guest Communication & Analytics
-            </p>
-            <div className={styles.eventActions}>
+            {event?.logo && (
+              <div className={styles.eventLogo}>
+                <Image
+                  src={event.logo}
+                  alt={`${event?.eventTitle || "Event"} Logo`}
+                  width={120}
+                  height={120}
+                  style={{
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  }}
+                />
+              </div>
+            )}
+            <div className={styles.eventInfo}>
+              <h1 className={styles.eventTitle}>
+                {event?.eventTitle || "Event Management"}
+              </h1>
+              <p className={styles.eventSubtitle}>
+                Event Management Portal • Guest Communication & Analytics
+              </p>
+              <div className={styles.eventActions}>
               <button 
                 className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
                 onClick={() => setCurrentView("email")}
@@ -178,6 +195,7 @@ const Page = () => {
               >
                 🎨 Edit Templates
               </button>
+              </div>
             </div>
           </div>
 

@@ -247,7 +247,7 @@ const EmailTemplateEditor = ({
       eventName,
       eventDate,
       eventDescription,
-      logoLink: event.logo_url || "",
+      logoLink: event.logo || "",
       greeting: currentTemplate.greeting || "Dear Guest,",
       body: currentTemplate.body || "",
       signoff: currentTemplate.signoff || "Best regards,",
@@ -848,6 +848,47 @@ const EmailTemplateEditor = ({
                   For security reasons, all emails are sent from our platform, but you can add your own email for email responses (not required)
                 </div>
               </div>
+            </div>
+
+            {/* Logo Section */}
+            <div className={styles.controlSection}>
+              <h3 className={styles.controlTitle}>🖼️ Event Logo</h3>
+              
+              {event?.logo ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Current Event Logo</label>
+                  <div className={styles.logoPreview}>
+                    <img
+                      src={event.logo}
+                      alt={`${event?.title || "Event"} Logo`}
+                      style={{
+                        maxWidth: "150px",
+                        maxHeight: "100px",
+                        objectFit: "contain",
+                        borderRadius: "8px",
+                        border: "2px solid #e5e7eb",
+                        padding: "8px",
+                        background: "#f9fafb"
+                      }}
+                    />
+                  </div>
+                  <div className={styles.formHelp}>
+                    This logo will appear at the top of your email invitations. To change the logo, update it in your event settings.
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.formGroup}>
+                  <div className={styles.noLogo}>
+                    <div style={{ fontSize: "48px", opacity: 0.3, marginBottom: "8px" }}>🖼️</div>
+                    <p style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}>
+                      No event logo uploaded. Emails will be sent without a logo.
+                    </p>
+                    <div className={styles.formHelp}>
+                      To add a logo, update your event settings or upload one during event creation.
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Color Customization */}

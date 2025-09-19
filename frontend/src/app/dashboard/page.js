@@ -32,7 +32,7 @@ const DashboardContent = () => {
     }
   }, [user, loading, router]);
 
-  // Fetch user's events from database
+  // Fetch user's events from database (where user has OWNER role)
   const fetchEvents = useCallback(async () => {
     if (!user) return;
     
@@ -46,24 +46,45 @@ const DashboardContent = () => {
         setEvents([]);
         return;
       }
+
+      console.log('Fetching owned events for user ID:', userProfile.id);
       
-      // First get event IDs where user is a manager
+      // First, get the owner role ID
+      const { data: ownerRole, error: ownerRoleError } = await supabase
+        .from('event_manage_roles')
+        .select('id')
+        .eq('role_name', 'owner')
+        .single();
+
+      if (ownerRoleError) {
+        console.error('Error fetching owner role:', ownerRoleError);
+        throw ownerRoleError;
+      }
+
+      console.log('Owner role ID for events:', ownerRole.id);
+
+      // Get event IDs where user has OWNER role
       const { data: managerData, error: managerError } = await supabase
         .from('event_managers')
         .select('event_id')
-        .eq('user_id', userProfile.id);
+        .eq('user_id', userProfile.id)
+        .eq('role_id', ownerRole.id);
       
       if (managerError) {
         throw managerError;
       }
+
+      console.log('Manager data for owned events:', managerData);
       
       if (!managerData || managerData.length === 0) {
+        console.log('No owned events found');
         setEvents([]);
         return;
       }
       
       // Get unique event IDs
       const eventIds = [...new Set(managerData.map(m => m.event_id))];
+      console.log('Event IDs to fetch:', eventIds);
       
       // Then fetch events using the event IDs
       const { data, error } = await supabase
@@ -123,7 +144,24 @@ const DashboardContent = () => {
         setCollaborations([]);
         return;
       }
+
+      console.log('Fetching collaborations for user ID:', userProfile.id);
       
+      // First, get the owner role ID to exclude it
+      const { data: ownerRole, error: ownerRoleError } = await supabase
+        .from('event_manage_roles')
+        .select('id')
+        .eq('role_name', 'owner')
+        .single();
+
+      if (ownerRoleError) {
+        console.error('Error fetching owner role:', ownerRoleError);
+        throw ownerRoleError;
+      }
+
+      console.log('Owner role ID:', ownerRole.id);
+
+      // Fetch all non-owner collaborations (all statuses: pending, accepted, rejected)
       const { data, error } = await supabase
         .from('event_managers')
         .select(`
@@ -133,23 +171,38 @@ const DashboardContent = () => {
           status:event_manage_state_lookup(state)
         `)
         .eq('user_id', userProfile.id)
-        .neq('role_id', 1); // Exclude owner role
+        .neq('role_id', ownerRole.id); // Exclude owner role, show admin/editor/viewer
       
       if (error) {
         throw error;
       }
+
+      console.log('Raw collaboration data from database:', data);
+      console.log('Number of collaborations found:', data?.length || 0);
       
       // Transform data to match component structure
-      const transformedCollaborations = data?.map(collab => ({
-        id: `${collab.user_id}_${collab.event_id}`,
-        eventTitle: collab.event?.title || 'Unknown Event',
-        eventId: collab.event?.public_id,
-        ownerName: `${collab.event?.users?.first_name || ''} ${collab.event?.users?.last_name || ''}`.trim() || 'Unknown',
-        role: collab.role?.role_name || 'collaborator',
-        status: collab.status?.state || 'pending',
-        invitedDate: collab.invited_at,
-        acceptedDate: collab.accepted_at
-      })) || [];
+      const transformedCollaborations = data?.map(collab => {
+        console.log('Processing collaboration:', {
+          user_id: collab.user_id,
+          event_id: collab.event_id,
+          event_title: collab.event?.title,
+          role: collab.role?.role_name,
+          status: collab.status?.state
+        });
+
+        return {
+          id: `${collab.user_id}_${collab.event_id}`,
+          eventTitle: collab.event?.title || 'Unknown Event',
+          eventId: collab.event?.public_id,
+          ownerName: `${collab.event?.users?.first_name || ''} ${collab.event?.users?.last_name || ''}`.trim() || 'Unknown',
+          role: collab.role?.role_name || 'collaborator',
+          status: collab.status?.state || 'pending',
+          invitedDate: collab.invited_at,
+          acceptedDate: collab.accepted_at
+        };
+      }) || [];
+
+      console.log('Transformed collaborations:', transformedCollaborations);
       
       setCollaborations(transformedCollaborations);
     } catch (error) {
@@ -846,22 +899,42 @@ const DashboardContent = () => {
                         <span className={styles.statusText}>{collaboration.status}</span>
                       </div>
 
-                      {collaboration.status === "pending" && (
-                        <div className={styles.collaborationActions}>
-                          <button 
-                            className={styles.btnSecondary}
-                            onClick={() => handleDeclineCollaboration(collaboration.id)}
-                          >
-                            Decline
-                          </button>
+                      <div className={styles.collaborationActions}>
+                        {collaboration.status === "pending" && (
+                          <>
+                            <button 
+                              className={styles.btnSecondary}
+                              onClick={() => handleDeclineCollaboration(collaboration.id)}
+                            >
+                              Decline
+                            </button>
+                            <button 
+                              className={styles.btnPrimary}
+                              onClick={() => handleAcceptCollaboration(collaboration.id)}
+                            >
+                              Accept
+                            </button>
+                          </>
+                        )}
+                        
+                        {collaboration.status === "accepted" && collaboration.eventId && (
                           <button 
                             className={styles.btnPrimary}
-                            onClick={() => handleAcceptCollaboration(collaboration.id)}
+                            onClick={() => router.push(`/${collaboration.eventId}/portal`)}
                           >
-                            Accept
+                            Open Event Portal
                           </button>
-                        </div>
-                      )}
+                        )}
+                        
+                        {collaboration.status === "accepted" && collaboration.eventId && (
+                          <button 
+                            className={styles.btnOutline}
+                            onClick={() => window.open(`/${collaboration.eventId}/rsvp`, '_blank')}
+                          >
+                            View Public Page
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1001,17 +1074,19 @@ const DashboardContent = () => {
                 <div className={styles.notificationsList}>
                   {notifications.map(notification => (
                     <div key={notification.id} className={`${styles.notificationCard} ${!notification.read ? styles.unread : ''}`}>
-                      <div className={styles.notificationIcon}>
-                        {notification.type === 'collaboration_invite' && '🤝'}
-                        {notification.type === 'system' && 'ℹ️'}
-                        {notification.type === 'update' && '📢'}
-                      </div>
-                      <div className={styles.notificationContent}>
-                        <h4 className={styles.notificationTitle}>{notification.title}</h4>
-                        <p className={styles.notificationMessage}>{notification.message}</p>
-                        <span className={styles.notificationTimestamp}>
-                          {new Date(notification.created_at).toLocaleDateString()}
-                        </span>
+                      <div className={styles.notificationHeader}>
+                        <div className={styles.notificationIcon}>
+                          {notification.type === 'collaboration_invite' && '🤝'}
+                          {notification.type === 'system' && 'ℹ️'}
+                          {notification.type === 'update' && '📢'}
+                        </div>
+                        <div className={styles.notificationContent}>
+                          <h4 className={styles.notificationTitle}>{notification.title}</h4>
+                          <p className={styles.notificationMessage}>{notification.message}</p>
+                          <span className={styles.notificationDate}>
+                            {new Date(notification.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                       <div className={styles.notificationActions}>
                         {notification.type === 'collaboration_invite' && notification.status === 'pending' && (

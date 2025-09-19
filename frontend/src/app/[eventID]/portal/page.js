@@ -223,8 +223,6 @@ const Page = () => {
                   <button className={styles.btnOutline}>📊 View Analytics</button>
                 )}
                 
-                <button className={styles.btnOutline}>📱 Share Event</button>
-                
                 {canEditEvent && (
                   <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
                 )}

@@ -878,3 +878,161 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* Inbox Section Styles */
+.inboxSection {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.inboxActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.filterSelect:hover {
+  border-color: #9ca3af;
+}
+
+.notificationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.notificationCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notificationCard:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.notificationCard.unread {
+  border-left: 4px solid #7c3aed;
+  background: linear-gradient(to right, #faf5ff, #ffffff);
+}
+
+.notificationHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.notificationIcon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.notificationContent {
+  flex: 1;
+}
+
+.notificationTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.notificationMessage {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.notificationDate {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.notificationActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btnPrimarySmall,
+.btnSecondarySmall {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btnPrimarySmall {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.btnPrimarySmall:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+}
+
+.btnSecondarySmall {
+  background: white;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.btnSecondarySmall:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Responsive adjustments for inbox */
+@media (max-width: 768px) {
+  .inboxActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .notificationActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .notificationCard {
+    padding: 16px;
+  }
+}

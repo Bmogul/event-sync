@@ -82,7 +82,12 @@ export async function GET(request, { params }) {
         guest_age_group (
           id,
           state
-        )
+        ),
+        guest_type(
+          id,
+          name
+        ),
+        guest_limit
       `)
       .eq("group_id", group.id);
 
@@ -139,6 +144,18 @@ export async function GET(request, { params }) {
           }
         });
 
+        // Calculate guest limit based on guest type for RSVP frontend
+        let frontendGuestLimit = guest.guest_limit;
+        const guestTypeName = guest.guest_type?.name?.toLowerCase() || "single";
+        
+        if (guestTypeName === "single") {
+          frontendGuestLimit = 1;
+        } else if (guestTypeName === "variable") {
+          frontendGuestLimit = null; // Infinite for variable type
+        } else if (guestTypeName === "multiple") {
+          frontendGuestLimit = guest.guest_limit || 1;
+        }
+
         return {
           id: guest.id,
           public_id: guest.public_id,
@@ -151,6 +168,8 @@ export async function GET(request, { params }) {
           group_id: group.id,
           gender: guest.guest_gender?.state,
           ageGroup: guest.guest_age_group?.state,
+          guestType: guest.guest_type?.name || "single",
+          guestLimit: frontendGuestLimit,
           invites,
           rsvps: guestRsvps,
           hasInvitations: guestRsvps.length > 0
@@ -209,11 +228,52 @@ export async function POST(request, { params }) {
       .select("id, title")
       .eq("event_id", event.id);
 
+    // Helper function to process response based on guest type
+    const processResponseByGuestType = (response, guestType, guestLimit) => {
+      const normalizedGuestType = (guestType || "single").toLowerCase();
+      
+      switch (normalizedGuestType) {
+        case "single":
+          // Single type: 'attending'/'not_attending' → 1/0
+          if (String(response).toLowerCase() === "attending" || String(response).toLowerCase() === "yes") {
+            return { statusId: 3, responseValue: 1 }; // attending
+          } else if (String(response).toLowerCase() === "not_attending" || String(response).toLowerCase() === "no") {
+            return { statusId: 4, responseValue: 0 }; // not_attending
+          } else {
+            return { statusId: 1, responseValue: 0 }; // pending/default
+          }
+          
+        case "multiple":
+        case "variable":
+          // Multiple/Variable type: numeric values, >0 = attending, 0 = not_attending
+          const numericResponse = parseInt(response) || 0;
+          
+          // Validation for multiple type
+          if (normalizedGuestType === "multiple" && guestLimit && numericResponse > guestLimit) {
+            console.warn(`Guest response ${numericResponse} exceeds limit ${guestLimit}, capping to limit`);
+            const cappedResponse = guestLimit;
+            return { statusId: cappedResponse > 0 ? 3 : 4, responseValue: cappedResponse };
+          }
+          
+          // Variable type allows any value >= 0, multiple uses the numeric value
+          if (numericResponse > 0) {
+            return { statusId: 3, responseValue: numericResponse }; // attending
+          } else {
+            return { statusId: 4, responseValue: 0 }; // not_attending
+          }
+          
+        default:
+          // Default to single type behavior
+          console.warn(`Unknown guest type: ${guestType}, defaulting to single type behavior`);
+          return { statusId: 1, responseValue: 0 };
+      }
+    };
+
     const rsvpUpdates = [];
     const guestUpdates = [];
 
     for (const member of party) {
-      const { id: guestId, public_id, responses: memberResponses } = member;
+      const { id: guestId, public_id, responses: memberResponses, guestType, guestLimit } = member;
 
       if (!guestId && !public_id) continue;
 
@@ -246,34 +306,21 @@ export async function POST(request, { params }) {
           
           const response = memberResponses[subEvent.title] || memberResponses[subEvent.id];
           if (response !== undefined) {
-            let statusId;
-            switch (String(response).toLowerCase()) {
-              case "attending":
-              case "yes":
-              case "2":
-                statusId = 3;
-                break;
-              case "not_attending":
-              case "no":
-              case "3":
-                statusId = 4;
-                break;
-              case "maybe":
-              case "4":
-                statusId = 5;
-                break;
-              default:
-                statusId = 1;
-            }
+            // Process response based on guest type
+            const processedResponse = processResponseByGuestType(response, guestType, guestLimit);
+            
+            console.log(`Guest ${guestId} (${guestType || 'single'}) response for ${subEvent.title}: "${response}" → Status: ${processedResponse.statusId}, Response: ${processedResponse.responseValue}`);
 
             rsvpUpdates.push({
               guest_id: guestId,
               subevent_id: subEvent.id,
-              status_id: statusId,
-              response: parseInt(response) || 0,
+              status_id: processedResponse.statusId,
+              response: processedResponse.responseValue,
               details: {
                 submitted_at: new Date().toISOString(),
                 response_value: response,
+                guest_type: guestType || "single",
+                guest_limit: guestLimit,
                 custom_questions: customQuestionResponses || {},
               },
             });

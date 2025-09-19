@@ -43,6 +43,8 @@ const EmailPortal = ({
     selectedGroup: "",
     subEventRSVPs: {},
     isPointOfContact: true,
+    guestType: "single",
+    guestLimit: null,
   });
   const [newGroup, setNewGroup] = useState({
     name: "",
@@ -67,6 +69,22 @@ const EmailPortal = ({
     "#16a34a",
     "#ea580c",
   ];
+
+  // Guest type options
+  const guestTypes = [
+    { value: "single", label: "Single (Yes/No RSVP)", description: "Simple yes/no RSVP, response 1 or 0" },
+    { value: "multiple", label: "Multiple (Fixed limit)", description: "Dropdown RSVP with fixed number of guests (0 - limit)" },
+    { value: "variable", label: "Variable (Unlimited)", description: "Free-form number of guests (0 - ∞)" },
+  ];
+
+  // Handle guest type change
+  const handleGuestTypeChange = (guestType) => {
+    setNewGuest(prev => ({
+      ...prev,
+      guestType,
+      guestLimit: guestType === "multiple" ? 1 : null // Set default limit for multiple type
+    }));
+  };
 
   // Age group options
   const ageGroups = [
@@ -1009,6 +1027,8 @@ const EmailPortal = ({
           selectedGroup: "",
           subEventRSVPs: {},
           isPointOfContact: true,
+          guestType: "single",
+          guestLimit: null,
         });
       } else {
         throw new Error(
@@ -1042,6 +1062,8 @@ const EmailPortal = ({
       selectedGroup: guest.group || "",
       subEventRSVPs: guest.rsvpStatus || {},
       isPointOfContact: guest.isPointOfContact || false,
+      guestType: guest.guestType || "single",
+      guestLimit: guest.guestLimit || null,
     });
     setShowGuestForm(true);
   };
@@ -1713,6 +1735,8 @@ const EmailPortal = ({
                     selectedGroup: "",
                     subEventRSVPs: {},
                     isPointOfContact: true,
+                    guestType: "single",
+                    guestLimit: null,
                   });
                   setNewGroup({ name: "", members: [] });
                   setTempGroupMembers([]);
@@ -1832,6 +1856,42 @@ const EmailPortal = ({
                           placeholder="e.g., Bride's Side, College Friend"
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Guest Type</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.guestType}
+                          onChange={(e) => handleGuestTypeChange(e.target.value)}
+                        >
+                          {guestTypes.map((type) => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className={styles.fieldHelp}>
+                          {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                        </div>
+                      </div>
+                      {newGuest.guestType === "multiple" && (
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Guest Limit *</label>
+                          <input
+                            type="number"
+                            className={styles.formInput}
+                            value={newGuest.guestLimit || ""}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                            }
+                            placeholder="Enter maximum number of guests"
+                            min="0"
+                            required
+                          />
+                          <div className={styles.fieldHelp}>
+                            Maximum number of guests this person can bring (including themselves)
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1893,6 +1953,8 @@ const EmailPortal = ({
                     selectedGroup: "",
                     subEventRSVPs: {},
                     isPointOfContact: true,
+                    guestType: "single",
+                    guestLimit: null,
                   });
                 }}
               >

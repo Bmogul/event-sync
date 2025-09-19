@@ -3,13 +3,14 @@ import styles from "../styles/form.module.css";
 import Image from "next/image";
 import Loading from "./loading";
 
+
 const GuestRSVPBlock = ({ guest, subEvent, responses, onResponseChange, themeStyles }) => {
   const guestId = guest.id;
   const subEventId = subEvent.id;
-  const currentResponse = responses[guestId]?.[subEventId] || 'pending';
+  const currentResponse = responses[guestId]?.[subEventId] ?? 'pending';
 
-  const handleResponse = (status) => {
-    onResponseChange(guestId, subEventId, status);
+  const handleResponse = (value) => {
+    onResponseChange(guestId, subEventId, value);
   };
 
   return (
@@ -23,33 +24,64 @@ const GuestRSVPBlock = ({ guest, subEvent, responses, onResponseChange, themeSty
           </div>
         )}
       </div>
+
       <div className={styles.responseButtons}>
-        <button
-          className={`${styles.responseBtn} ${currentResponse === 'attending' ? styles.selectedBtn : ''}`}
-          onClick={() => handleResponse('attending')}
-          style={{
-            backgroundColor: currentResponse === 'attending' ? themeStyles.primaryColor : 'transparent',
-            borderColor: themeStyles.primaryColor,
-            color: currentResponse === 'attending' ? 'white' : themeStyles.primaryColor
-          }}
-        >
-          Yes
-        </button>
-        <button
-          className={`${styles.responseBtn} ${currentResponse === 'not_attending' ? styles.selectedBtn : ''}`}
-          onClick={() => handleResponse('not_attending')}
-          style={{
-            backgroundColor: currentResponse === 'not_attending' ? '#dc2626' : 'transparent',
-            borderColor: '#dc2626',
-            color: currentResponse === 'not_attending' ? 'white' : '#dc2626'
-          }}
-        >
-          No
-        </button>
+        {/* Render RSVP input depending on guest type */}
+        {guest.guestType === "single" && (
+          <>
+            <button
+              className={`${styles.responseBtn} ${currentResponse === 'attending' ? styles.selectedBtn : ''}`}
+              onClick={() => handleResponse('attending')}
+              style={{
+                backgroundColor: currentResponse === 'attending' ? themeStyles.primaryColor : 'transparent',
+                borderColor: themeStyles.primaryColor,
+                color: currentResponse === 'attending' ? 'white' : themeStyles.primaryColor
+              }}
+            >
+              Yes
+            </button>
+            <button
+              className={`${styles.responseBtn} ${currentResponse === 'not_attending' ? styles.selectedBtn : ''}`}
+              onClick={() => handleResponse('not_attending')}
+              style={{
+                backgroundColor: currentResponse === 'not_attending' ? '#dc2626' : 'transparent',
+                borderColor: '#dc2626',
+                color: currentResponse === 'not_attending' ? 'white' : '#dc2626'
+              }}
+            >
+              No
+            </button>
+          </>
+        )}
+
+        {guest.guestType === "multiple" && (
+          <select
+            value={currentResponse === 'pending' ? '' : currentResponse}
+            onChange={(e) => handleResponse(Number(e.target.value))}
+            style={{ borderColor: themeStyles.primaryColor }}
+          >
+            <option value="">Select number attending</option>
+            {Array.from({ length: (guest.guestLimit ?? 1) + 1 }, (_, i) => i).map((num) => (
+              <option key={num} value={num}>{num}</option>
+            ))}
+          </select>
+        )}
+
+        {guest.guestType === "variable" && (
+          <input
+            type="number"
+            min="0"
+            value={currentResponse === 'pending' ? '' : currentResponse}
+            onChange={(e) => handleResponse(Number(e.target.value))}
+            style={{ borderColor: themeStyles.primaryColor }}
+            placeholder="Enter number attending"
+          />
+        )}
       </div>
     </div>
   );
 };
+
 
 const RsvpForm = ({
   formLoading,

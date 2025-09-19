@@ -119,7 +119,7 @@ export async function PUT(request, { params }) {
 
     console.log(`Updating guest ${guestId} in event ${eventID}`);
 
-    // Fetch lookup tables for gender and age group
+    // Fetch lookup tables for gender, age group, and guest type
     const { data: genderLookup, error: genderError } = await supabase
       .from("guest_gender")
       .select("id, state");
@@ -128,8 +128,12 @@ export async function PUT(request, { params }) {
       .from("guest_age_group")
       .select("id, state");
 
-    if (genderError || ageGroupError) {
-      console.error("Error fetching lookup tables:", genderError || ageGroupError);
+    const { data: guestTypeLookup, error: guestTypeError } = await supabase
+      .from("guest_type")
+      .select("id, name, description");
+
+    if (genderError || ageGroupError || guestTypeError) {
+      console.error("Error fetching lookup tables:", genderError || ageGroupError || guestTypeError);
       return NextResponse.json(
         { error: 'Failed to fetch lookup tables' },
         { status: 500 }
@@ -144,6 +148,11 @@ export async function PUT(request, { params }) {
 
     const ageGroupMap = ageGroupLookup.reduce((acc, item) => {
       acc[item.state.toLowerCase()] = item.id;
+      return acc;
+    }, {});
+
+    const guestTypeMap = guestTypeLookup.reduce((acc, item) => {
+      acc[item.name.toLowerCase()] = item.id;
       return acc;
     }, {});
 
@@ -163,8 +172,51 @@ export async function PUT(request, { params }) {
       return ageGroupMap[normalizedAgeGroup] || null;
     };
 
+    // Helper function to get guest type ID from string
+    const getGuestTypeIdFromString = (guestTypeString) => {
+      if (!guestTypeString || !guestTypeString.trim()) {
+        return guestTypeMap['single']; // Default to 'single' type
+      }
+      
+      const normalizedGuestType = guestTypeString.toLowerCase().trim();
+      return guestTypeMap[normalizedGuestType] || guestTypeMap['single'];
+    };
+
+    // Helper function to calculate guest limit based on guest type
+    const calculateGuestLimit = (guestTypeId, providedGuestLimit) => {
+      const guestType = guestTypeLookup.find(type => type.id === guestTypeId);
+      if (!guestType) return 1; // Default to single behavior
+      
+      switch (guestType.name.toLowerCase()) {
+        case 'single':
+          return 1; // Always 1 for single type
+        case 'variable':
+          return null; // NULL for infinite
+        case 'multiple':
+          // Require a positive integer limit for multiple type
+          if (providedGuestLimit === null || providedGuestLimit === undefined || providedGuestLimit < 0) {
+            throw new Error('Guest limit is required for multiple guest type and must be >= 0');
+          }
+          return parseInt(providedGuestLimit);
+        default:
+          return 1; // Default to single behavior
+      }
+    };
+
     const genderId = getGenderIdFromString(guest.gender);
     const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+    const guestTypeId = getGuestTypeIdFromString(guest.guestType);
+    
+    let calculatedGuestLimit;
+    try {
+      calculatedGuestLimit = calculateGuestLimit(guestTypeId, guest.guestLimit);
+    } catch (error) {
+      console.error(`Validation error for guest update:`, error.message);
+      return NextResponse.json(
+        { error: `Validation error: ${error.message}` },
+        { status: 400 }
+      );
+    }
 
     // Update guest
     const { data: updatedGuest, error: updateError } = await supabase
@@ -176,6 +228,8 @@ export async function PUT(request, { params }) {
         tag: guest.tag || null,
         gender_id: genderId,
         age_group_id: ageGroupId,
+        guest_type_id: guestTypeId,
+        guest_limit: calculatedGuestLimit,
         point_of_contact: guest.isPointOfContact || false
       })
       .eq("id", guestId)

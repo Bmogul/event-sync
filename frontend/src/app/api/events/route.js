@@ -97,6 +97,7 @@ export async function GET(request) {
           guest_groups(id, title),
           guest_gender(id, state),
           guest_age_group(id, state),
+          guest_type(id, name),
           rsvps(subevent_id, status_id, response)
         `,
         )
@@ -235,6 +236,18 @@ export async function GET(request) {
             });
           }
 
+          // Calculate guest limit based on guest type for frontend
+          let frontendGuestLimit = guest.guest_limit;
+          const guestTypeName = guest.guest_type?.name?.toLowerCase() || "single";
+          
+          if (guestTypeName === "single") {
+            frontendGuestLimit = 1;
+          } else if (guestTypeName === "variable") {
+            frontendGuestLimit = null; // Infinite
+          } else if (guestTypeName === "multiple") {
+            frontendGuestLimit = guest.guest_limit || 1;
+          }
+
           const guestData = {
             id: guest.id,
             public_id: guest.public_id, // Include public_id for frontend POC matching
@@ -246,6 +259,8 @@ export async function GET(request) {
             group_id: guest.group_id,
             gender: guest.guest_gender?.state || "",
             ageGroup: guest.guest_age_group?.state || "",
+            guestType: guest.guest_type?.name || "single", // Map to frontend format
+            guestLimit: frontendGuestLimit,
             isPointOfContact: guest.point_of_contact || false, // Include POC boolean status
             subEventRSVPs: subEventRSVPs, // Include transformed RSVPs
           };
@@ -852,7 +867,7 @@ export async function POST(request) {
       });
 
       if (validGuests.length > 0) {
-        // Fetch lookup tables for gender and age group
+        // Fetch lookup tables for gender, age group, and guest type
         const { data: genderLookup, error: genderError } = await supabase
           .from("guest_gender")
           .select("id, state");
@@ -860,6 +875,10 @@ export async function POST(request) {
         const { data: ageGroupLookup, error: ageGroupError } = await supabase
           .from("guest_age_group")
           .select("id, state");
+
+        const { data: guestTypeLookup, error: guestTypeError } = await supabase
+          .from("guest_type")
+          .select("id, name");
 
         if (genderError) {
           console.error("Error fetching gender lookup:", genderError);
@@ -869,6 +888,11 @@ export async function POST(request) {
         if (ageGroupError) {
           console.error("Error fetching age group lookup:", ageGroupError);
           throw ageGroupError;
+        }
+
+        if (guestTypeError) {
+          console.error("Error fetching guest type lookup:", guestTypeError);
+          throw guestTypeError;
         }
 
         // Create lookup mappings
@@ -882,8 +906,14 @@ export async function POST(request) {
           return acc;
         }, {});
 
+        const guestTypeMap = guestTypeLookup.reduce((acc, item) => {
+          acc[item.name.toLowerCase()] = item.id;
+          return acc;
+        }, {});
+
         console.log("Gender mapping:", genderMap);
         console.log("Age group mapping:", ageGroupMap);
+        console.log("Guest type mapping:", guestTypeMap);
 
         // Helper function to get gender ID from string
         const getGenderIdFromString = (genderString) => {
@@ -908,6 +938,14 @@ export async function POST(request) {
 
           const normalizedAgeGroup = ageGroupString.toLowerCase().trim();
           return ageGroupMap[normalizedAgeGroup] || null;
+        };
+
+        // Helper function to get guest type ID from string
+        const getGuestTypeIdFromString = (guestTypeString) => {
+          if (!guestTypeString || !guestTypeString.trim()) return guestTypeMap["single"]; // Default to single
+
+          const normalizedGuestType = guestTypeString.toLowerCase().trim();
+          return guestTypeMap[normalizedGuestType] || guestTypeMap["single"];
         };
 
         // Create group mapping
@@ -939,12 +977,31 @@ export async function POST(request) {
               groupId = groupMap[guest.group.trim()] || defaultGroupId;
             }
 
-            // Map gender and age group to their IDs
+            // Map gender, age group, and guest type to their IDs
             const genderId = getGenderIdFromString(guest.gender);
             const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+            const guestTypeId = getGuestTypeIdFromString(guest.guestType);
+
+            // Calculate guest_limit based on guest_type
+            let calculatedGuestLimit = null;
+            const guestTypeName = guest.guestType?.toLowerCase() || "single";
+            
+            switch (guestTypeName) {
+              case "single":
+                calculatedGuestLimit = 1;
+                break;
+              case "variable":
+                calculatedGuestLimit = null; // NULL for infinite
+                break;
+              case "multiple":
+                calculatedGuestLimit = guest.guestLimit && guest.guestLimit > 0 ? parseInt(guest.guestLimit) : 1;
+                break;
+              default:
+                calculatedGuestLimit = 1; // Default to single
+            }
 
             console.log(
-              `Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId}`,
+              `Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId} -> Guest Type: "${guest.guestType}" -> Guest Type ID: ${guestTypeId} -> Raw Guest Limit: ${guest.guestLimit} -> Calculated Guest Limit: ${calculatedGuestLimit}`,
             );
             return {
               group_id: groupId,
@@ -957,6 +1014,8 @@ export async function POST(request) {
               tag: guest.tag || null,
               gender_id: genderId,
               age_group_id: ageGroupId,
+              guest_type_id: guestTypeId,
+              guest_limit: calculatedGuestLimit,
               point_of_contact: guest.isPointOfContact || false, // Store POC as boolean on guest record
             };
           })
@@ -978,7 +1037,7 @@ export async function POST(request) {
         console.log("=== GUEST PAYLOADS FOR DATABASE ===");
         guestPayloads.forEach((payload, index) => {
           console.log(
-            `Guest ${index + 1}: "${payload.name}" | POC: ${payload.point_of_contact} | Group ID: ${payload.group_id}`,
+            `Guest ${index + 1}: "${payload.name}" | POC: ${payload.point_of_contact} | Group ID: ${payload.group_id} | Guest Type ID: ${payload.guest_type_id} | Guest Limit: ${payload.guest_limit} ${payload.guest_limit === null ? '(infinite)' : ''}`,
           );
         });
         console.log("=== END GUEST PAYLOADS ===");
@@ -995,10 +1054,11 @@ export async function POST(request) {
                 .from("guests")
                 .select(
                   `
-      id, name, group_id, point_of_contact,
+      id, name, group_id, point_of_contact, guest_type_id, guest_limit,
       guest_groups!inner(title),
       guest_gender(state),
-      guest_age_group(state)
+      guest_age_group(state),
+      guest_type(name)
     `,
                 )
                 .eq("guest_groups.event_id", createdEvent.id);
@@ -1142,10 +1202,10 @@ export async function POST(request) {
 
           console.log(`✓ Guests created: ${createdGuests.length}`);
 
-          // Log POC status for each created guest
+          // Log POC status and guest type for each created guest
           createdGuests.forEach((guest) => {
             console.log(
-              `Guest "${guest.name}" -> POC: ${guest.point_of_contact} (public_id: ${guest.public_id})`,
+              `Guest "${guest.name}" -> POC: ${guest.point_of_contact} (public_id: ${guest.public_id}) -> Guest Type ID: ${guest.guest_type_id} -> Guest Limit: ${guest.guest_limit} ${guest.guest_limit === null ? '(infinite)' : ''}`,
             );
           });
 

@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo} from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -11,24 +11,24 @@ import RSVPForm from "../components/RSVPForm";
 import styles from "../styles/events.module.css";
 
 // EventCards component matching the preview design
-const EventCards = ({ subEvents }) => {
-  // Get images from sub-events that have them, or create default placeholder cards
-  console.log(subEvents);
-  const cardImages = subEvents
-    .map((subEvent) => subEvent.image_url) // Changed from .image to .image_url
-    .filter(Boolean);
 
-  // If no images, create placeholder cards with event info
-  const cards =
-    cardImages.length > 0
-      ? subEvents.filter((subEvent) => subEvent.image_url) // Changed from .image to .image_url
-      : subEvents.slice(0, 3); // Limit to 3 cards like original
+const EventCards = ({ subEvents }) => {
+  // Compute cards only when subEvents change
+  const cards = useMemo(() => {
+    const cardImages = subEvents
+      .map((subEvent) => subEvent.image_url)
+      .filter(Boolean);
+
+    return cardImages.length > 0
+      ? subEvents.filter((subEvent) => subEvent.image_url)
+      : subEvents.slice(0, 3); // Limit to 3 placeholders
+  }, [subEvents]);
 
   const [cardOrder, setCardOrder] = useState([...cards].reverse());
 
   useEffect(() => {
     setCardOrder([...cards].reverse());
-  }, [subEvents, cards]);
+  }, [cards]);
 
   const handleCardClick = (clickedCard) => {
     const newOrder = cardOrder.filter((card) => card !== clickedCard);
@@ -52,9 +52,9 @@ const EventCards = ({ subEvents }) => {
               right: `${index * 10}px`,
             }}
           >
-            {card.image_url ? ( // Changed from card.image to card.image_url
+            {card.image_url ? (
               <Image
-                src={card.image_url} // Changed from card.image to card.image_url
+                src={card.image_url}
                 alt={card.title || `Sub-Event ${index + 1}`}
                 width={300}
                 height={200}
@@ -79,6 +79,7 @@ const EventCards = ({ subEvents }) => {
     </div>
   );
 };
+
 
 export default function RSVPPage() {
   const router = useRouter();
@@ -151,6 +152,7 @@ export default function RSVPPage() {
   // RSVP Form controls
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openForm = () => {
+    console.log(party)
     setShowForm(true);
   };
 
@@ -170,6 +172,8 @@ export default function RSVPPage() {
       const formattedParty = party.map((guest) => ({
         id: guest.id,
         public_id: guest.public_id,
+        guestType: guest.guestType,
+        guestLimit: guest.guestLimit,
         responses: responses[guest.id] || {},
       }));
 

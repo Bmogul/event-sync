@@ -1,0 +1,730 @@
+/* Getting Started Guide Styles - Purple Theme */
+
+.gettingStartedPage {
+  background: #f9fafb;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #faf5ff 100%);
+  padding: 140px 0 80px 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(124,58,237,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+  animation: float 30s infinite linear;
+  opacity: 0.5;
+}
+
+@keyframes float {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.breadcrumbLink {
+  color: #7c3aed;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.breadcrumbLink:hover {
+  color: #581c87;
+  text-decoration: underline;
+}
+
+.breadcrumbSeparator {
+  color: #9ca3af;
+}
+
+.heroTitle {
+  font-size: 56px;
+  font-weight: 800;
+  color: #581c87;
+  margin-bottom: 24px;
+  letter-spacing: -2px;
+  line-height: 1.1;
+}
+
+.highlight {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: 20px;
+  color: #4b5563;
+  margin-bottom: 48px;
+  line-height: 1.6;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroStats {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.heroStat {
+  text-align: center;
+}
+
+.statNumber {
+  display: block;
+  font-size: 36px;
+  font-weight: 800;
+  color: #581c87;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+.ctaButton {
+  margin-top: 24px;
+}
+
+/* Quick Start Section */
+.quickStart {
+  padding: 80px 0;
+  background: white;
+}
+
+.quickStartContent {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.sectionTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.sectionSubtitle {
+  font-size: 18px;
+  color: #6b7280;
+  margin-bottom: 48px;
+  line-height: 1.6;
+}
+
+.checklist {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.checklistItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.checklistItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.checklistItem:hover {
+  border-color: #7c3aed;
+  background: #faf5ff;
+}
+
+.checklistItem:hover::before {
+  background: #7c3aed;
+}
+
+.checklistItem.completed {
+  background: #f0fdf4;
+  border-color: #22c55e;
+}
+
+.checklistItem.completed::before {
+  background: #22c55e;
+}
+
+.checklistIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.checklistItem .checklistIcon {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.checklistItem:hover .checklistIcon {
+  background: #7c3aed;
+  color: white;
+}
+
+.checklistItem.completed .checklistIcon {
+  background: #22c55e;
+  color: white;
+}
+
+.checklistText {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
+}
+
+.checklistItem.completed .checklistText {
+  color: #059669;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressText {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Detailed Guide Section */
+.detailedGuide {
+  padding: 80px 0;
+}
+
+.stepsContainer {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Steps Navigation */
+.stepsNavigation {
+  background: white;
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.navTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.stepNavItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 8px;
+  position: relative;
+  font-family: inherit;
+}
+
+.stepNavItem:hover {
+  background: #faf5ff;
+}
+
+.stepNavItem.active {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+}
+
+.stepNavItem .stepNumber {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+  background: #e5e7eb;
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.stepNavItem:hover .stepNumber {
+  background: #7c3aed;
+  color: white;
+}
+
+.stepNavItem.active .stepNumber {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.stepNavTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.stepNavItem:hover .stepNavTitle {
+  color: #581c87;
+}
+
+.stepNavItem.active .stepNavTitle {
+  color: white;
+}
+
+.premiumBadge {
+  font-size: 10px;
+  background: #f59e0b;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Step Content */
+.stepContent {
+  background: white;
+  border-radius: 20px;
+  padding: 48px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.stepHeader {
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.stepMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stepMeta .stepNumber {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stepDuration {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.premiumTag {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stepTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.stepDescription {
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.stepBody {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.stepDetails {
+  display: grid;
+  gap: 32px;
+}
+
+.subheading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 16px;
+}
+
+.stepList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: step-counter;
+}
+
+.stepListItem {
+  counter-increment: step-counter;
+  position: relative;
+  padding: 16px 0 16px 48px;
+  color: #374151;
+  line-height: 1.6;
+  font-size: 16px;
+  border-left: 2px solid #f3f4f6;
+  margin-left: 20px;
+}
+
+.stepListItem::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: -21px;
+  top: 16px;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tipsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tipItem {
+  position: relative;
+  padding: 12px 0 12px 32px;
+  color: #4b5563;
+  line-height: 1.6;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.tipItem::before {
+  content: "💡";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  font-size: 16px;
+}
+
+.stepScreenshot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screenshotPlaceholder {
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.screenshotIcon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.screenshotPlaceholder p {
+  color: #6b7280;
+  font-weight: 600;
+  margin: 0;
+}
+
+.screenshotPlaceholder small {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.stepNavigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 32px;
+  border-top: 2px solid #f3f4f6;
+}
+
+.stepNavigation button:only-child {
+  margin-left: auto;
+}
+
+/* Help Section */
+.helpSection {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+}
+
+.helpContent {
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.helpTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 16px;
+}
+
+.helpDescription {
+  font-size: 18px;
+  color: #6b7280;
+  margin-bottom: 48px;
+  line-height: 1.6;
+}
+
+.helpOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 32px;
+}
+
+.helpOption {
+  background: white;
+  padding: 32px 24px;
+  border-radius: 16px;
+  text-align: center;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.helpOption:hover {
+  border-color: #7c3aed;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15);
+}
+
+.helpIcon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.helpOption h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.helpOption p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .hero {
+    padding: 120px 20px 60px 20px;
+  }
+
+  .heroTitle {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+
+  .heroSubtitle {
+    font-size: 18px;
+    margin-bottom: 32px;
+  }
+
+  .heroStats {
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+
+  .quickStart {
+    padding: 60px 20px;
+  }
+
+  .detailedGuide {
+    padding: 60px 20px;
+  }
+
+  .stepsContainer {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .stepsNavigation {
+    position: static;
+    order: 2;
+  }
+
+  .stepContent {
+    order: 1;
+    padding: 32px 24px;
+  }
+
+  .stepBody {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .helpSection {
+    padding: 60px 20px;
+  }
+
+  .helpOptions {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .heroStats {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .stepContent {
+    padding: 24px 20px;
+  }
+
+  .stepListItem {
+    padding: 12px 0 12px 40px;
+  }
+
+  .stepNavigation {
+    flex-direction: column;
+  }
+}
+
+/* Animations */
+.quickStart,
+.detailedGuide,
+.helpSection {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

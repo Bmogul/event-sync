@@ -1,0 +1,40 @@
+import stylesL from '../styles/login.module.css'
+import styles from '../styles/portal.module.css'
+
+import Image from "next/image";
+import React, { useEffect, useState } from 'react'
+
+const Login = ({ event, password, setPassword, handleLogin}) => {
+
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+  const startLogin = () =>{
+    handleLogin(event)
+  }
+
+
+  return (
+    <div className={styles.portalBox}>
+      <div className={stylesL.eventLoginInfo}>
+        <h2>{event.eventTitle}</h2>
+        <h3>Event ID: {event.eventID}</h3>
+        <div className={stylesL.formBox}>
+          <div>
+            <label for="password" >Event Password:</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={handlePasswordChange}
+            />
+          </div>
+          <button onClick={startLogin}>Enter</button>
+        </div>
+      </div>
+      <div className={styles.verticalLine} />
+    </div>)
+}
+
+export default Login

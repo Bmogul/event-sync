@@ -1,0 +1,571 @@
+.modal {
+  /* Modern CSS Variables */
+  --modal-bg: rgba(255, 255, 255, 0.95);
+  --modal-text-color: #374151;
+  --modal-border: rgba(124, 58, 237, 0.1);
+  --response-btn-bg: #f3f4f6;
+  --response-btn-bg-active: #7c3aed;
+  --response-btn-bg-hover: #8b5cf6;
+
+  border: none;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 800px;
+  height: 85vh;
+  max-height: 900px;
+  z-index: 1000;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--modal-bg);
+  color: var(--modal-text-color);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--modal-border);
+
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.closeBtnDiv {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.closeBtn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #6b7280;
+  transition: color 0.2s ease;
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  color: #374151;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.formHeader {
+  padding: 24px 32px 16px 32px;
+  border-bottom: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+}
+
+.formHeader h3 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: inherit;
+}
+
+.formHeader h4 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 8px 0 16px 0;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formBody {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Modern Scrollbar Styling */
+.formBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.formBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.formBody::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.3);
+  border-radius: 3px;
+}
+
+.formBody::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
+}
+
+.formBody {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+}
+
+.resBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.resBlock > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resBlock label {
+  font-weight: 600;
+  font-size: 16px;
+  color: #374151;
+}
+
+.responseBtn {
+  padding: 12px 24px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: center;
+  background: var(--response-btn-bg);
+  color: #374151;
+}
+
+.responseBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.selectedBtn {
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.formSubmit {
+  padding: 24px 32px;
+  border-top: 1px solid #e5e7eb;
+  background: rgba(249, 250, 251, 0.8);
+}
+
+.formSubmit .responseBtn {
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 48px;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    height: 90vh;
+    border-radius: 12px;
+  }
+
+  .formHeader {
+    padding: 20px 24px 16px 24px;
+  }
+
+  .formBody {
+    padding: 24px;
+  }
+
+  .formSubmit {
+    padding: 20px 24px;
+  }
+
+  .resBlock {
+    padding: 16px;
+  }
+
+  .responseButtons {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .responseBtn {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-height: 600px) {
+  .modal {
+    height: 95vh;
+    width: 95vw;
+    border-radius: 8px;
+  }
+
+  .formHeader {
+    padding: 16px 20px 12px 20px;
+  }
+
+  .formHeader h3 {
+    font-size: 20px;
+  }
+
+  .formBody {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .resBlock {
+    padding: 12px;
+  }
+}
+
+/* Remove legacy hover styles - already defined above */
+
+.responseInput {
+  background: white;
+  width: 80px;
+  text-align: center;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.responseInput:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+/* Progress Indicator */
+.progressIndicator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+  padding: 16px;
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background-color: rgba(124, 58, 237, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.contactSection {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.contactSection h4 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.contactForm {
+  margin-bottom: 16px;
+}
+
+.contactFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.contactField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contactField label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.contactField input {
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.contactField input:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.rsvpSection {
+  margin-bottom: 24px;
+}
+
+.rsvpSection h4 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.subEventDetails {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.responseButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.responseBtn {
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.selectedBtn {
+  font-weight: 600;
+}
+
+.attendeeCount {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attendeeCount label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.attendeeCount input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 2px solid #e5e7eb;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.customQuestions {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.customQuestions h4 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.customQuestion {
+  margin-bottom: 16px;
+}
+
+.customQuestion label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.customQuestion input,
+.customQuestion textarea,
+.customQuestion select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.customQuestion input:focus,
+.customQuestion textarea:focus,
+.customQuestion select:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .navButtons {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .navButtons .responseBtn {
+    width: 100%;
+  }
+}
+
+.eventDetails,
+.locationInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.calendarBtn,
+.mapBtn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.noGuestsMessage {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin: 16px 0;
+  opacity: 0.8;
+}
+
+.greetingMessage {
+  text-align: center;
+  font-size: 18px;
+  margin: 20px 0;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.eventInfo {
+  text-align: center;
+  padding: 24px;
+}
+
+.eventDescription {
+  font-size: 16px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.subEvents {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.subEvent {
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.subEvent h4 {
+  margin-bottom: 8px;
+  color: inherit;
+}
+
+.subEvent p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.rsvpButton {
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.rsvpButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .contactFields {
+    grid-template-columns: 1fr;
+  }
+  
+  .responseButtons {
+    flex-direction: column;
+  }
+  
+  .responseBtn {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .navButtons {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .eventDetails,
+  .locationInfo {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+}

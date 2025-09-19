@@ -1,0 +1,502 @@
+/* 404 Not Found Page Styles */
+
+.notFoundPage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding-top: 100px;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 0 80px 0;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.8s ease;
+}
+
+.content.animate {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  margin-bottom: 80px;
+  position: relative;
+}
+
+.errorCode {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.fourZeroFour {
+  font-size: 8rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: block;
+  line-height: 1;
+  text-shadow: 0 4px 8px rgba(124, 58, 237, 0.2);
+}
+
+.errorAnimation {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.floatingElement {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.7;
+  animation: float 3s ease-in-out infinite;
+}
+
+.floatingElement:nth-child(1) {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.floatingElement:nth-child(2) {
+  top: 30%;
+  right: 15%;
+  animation-delay: 0.5s;
+}
+
+.floatingElement:nth-child(3) {
+  bottom: 20%;
+  left: 20%;
+  animation-delay: 1s;
+}
+
+.floatingElement:nth-child(4) {
+  bottom: 30%;
+  right: 10%;
+  animation-delay: 1.5s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 24px;
+  line-height: 1.2;
+}
+
+.highlight {
+  background: linear-gradient(45deg, #7c3aed, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: #64748b;
+  margin-bottom: 40px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* Countdown */
+.countdown {
+  margin-bottom: 48px;
+}
+
+.countdownTimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 50px;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+}
+
+.countdownNumber {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(45deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  min-width: 40px;
+  text-align: center;
+}
+
+.countdownText {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 80px;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Quick Links */
+.quickLinks {
+  margin-bottom: 80px;
+  text-align: center;
+}
+
+.quickLinksTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 32px;
+}
+
+.linksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.linkCard {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.linkCard:hover {
+  border-color: #7c3aed;
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.1);
+}
+
+.linkIcon {
+  font-size: 2rem;
+  min-width: 40px;
+}
+
+.linkLabel {
+  font-weight: 600;
+  color: #374151;
+  flex-grow: 1;
+  text-align: left;
+}
+
+.linkArrow {
+  color: #7c3aed;
+  font-weight: 700;
+  transition: transform 0.2s ease;
+}
+
+.linkCard:hover .linkArrow {
+  transform: translateX(4px);
+}
+
+/* Coming Soon Features */
+.comingSoon {
+  margin-bottom: 80px;
+  text-align: center;
+}
+
+.comingSoonTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 48px;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.featureCard {
+  background: white;
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.featureCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+.featureCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(124, 58, 237, 0.15);
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.featureCard h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.featureCard p {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.comingSoonBadge {
+  display: inline-block;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #92400e;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Support Section */
+.support {
+  background: linear-gradient(135deg, #7c3aed 0%, #581c87 100%);
+  color: white;
+  border-radius: 24px;
+  padding: 48px;
+  margin-bottom: 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.support::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+}
+
+.supportContent {
+  position: relative;
+  z-index: 2;
+}
+
+.supportTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.supportDescription {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.supportOptions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Fun Facts */
+.funFacts {
+  text-align: center;
+}
+
+.funFactsTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 32px;
+}
+
+.factsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.fact:hover {
+  border-color: #7c3aed;
+  transform: translateY(-2px);
+}
+
+.factIcon {
+  font-size: 1.5rem;
+  min-width: 32px;
+}
+
+.fact span:last-child {
+  font-weight: 500;
+  color: #374151;
+  text-align: left;
+  line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .notFoundPage {
+    padding-top: 80px;
+  }
+  
+  .content {
+    padding: 20px 0 60px 0;
+  }
+  
+  .fourZeroFour {
+    font-size: 5rem;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1.125rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .linksGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .linkCard {
+    padding: 20px;
+  }
+  
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .support {
+    padding: 32px 24px;
+    border-radius: 16px;
+  }
+  
+  .supportOptions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .factsList {
+    grid-template-columns: 1fr;
+  }
+  
+  .fact {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .fourZeroFour {
+    font-size: 4rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  .countdownTimer {
+    padding: 12px 20px;
+  }
+  
+  .countdownNumber {
+    font-size: 1.5rem;
+    min-width: 32px;
+  }
+  
+  .countdownText {
+    font-size: 0.875rem;
+  }
+  
+  .featureCard {
+    padding: 24px 20px;
+  }
+  
+  .support {
+    padding: 24px 16px;
+  }
+  
+  .supportTitle {
+    font-size: 1.5rem;
+  }
+}

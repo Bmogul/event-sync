@@ -23,6 +23,19 @@ export const AuthProvider = ({ children }) => {
 
       if (error) {
         console.error('Error fetching user profile:', error)
+        
+        // If user doesn't exist in database, create a basic profile
+        if (error.code === 'PGRST116') {
+          // Return a basic profile structure instead of null
+          return {
+            id: null,
+            supa_id: userId,
+            first_name: '',
+            last_name: '',
+            created_at: new Date().toISOString(),
+            settings: {}
+          }
+        }
         return null
       }
 
@@ -48,7 +61,16 @@ export const AuthProvider = ({ children }) => {
           // Fetch user profile if user exists
           if (session?.user) {
             const profile = await fetchUserProfile(session.user.id)
-            setUserProfile(profile)
+            // Ensure we always have a userProfile object, even if it's basic
+            setUserProfile(profile || {
+              id: null,
+              supa_id: session.user.id,
+              first_name: session.user.user_metadata?.first_name || '',
+              last_name: session.user.user_metadata?.last_name || '',
+              email: session.user.email,
+              created_at: new Date().toISOString(),
+              settings: {}
+            })
           }
         }
       } catch (error) {
@@ -71,7 +93,16 @@ export const AuthProvider = ({ children }) => {
         // Fetch user profile if user exists
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id)
-          setUserProfile(profile)
+          // Ensure we always have a userProfile object, even if it's basic
+          setUserProfile(profile || {
+            id: null,
+            supa_id: session.user.id,
+            first_name: session.user.user_metadata?.first_name || '',
+            last_name: session.user.user_metadata?.last_name || '',
+            email: session.user.email,
+            created_at: new Date().toISOString(),
+            settings: {}
+          })
         } else {
           setUserProfile(null)
         }

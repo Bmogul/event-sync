@@ -35,6 +35,13 @@ const DashboardContent = () => {
     try {
       setEventsLoading(true);
       setEventsError(null);
+
+      // If userProfile doesn't have a database ID, we can't fetch events
+      if (!userProfile.id) {
+        console.log('UserProfile has no database ID, cannot fetch events');
+        setEvents([]);
+        return;
+      }
       
       // First get event IDs where user is a manager
       const { data: managerData, error: managerError } = await supabase
@@ -105,6 +112,13 @@ const DashboardContent = () => {
     try {
       setCollaborationsLoading(true);
       setCollaborationsError(null);
+
+      // If userProfile doesn't have a database ID, we can't fetch collaborations
+      if (!userProfile.id) {
+        console.log('UserProfile has no database ID, cannot fetch collaborations');
+        setCollaborations([]);
+        return;
+      }
       
       const { data, error } = await supabase
         .from('event_managers')

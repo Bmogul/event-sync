@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import * as XLSX from "xlsx";
 import styles from "./GuestListSection.module.css";
 
 const GuestListSection = ({
@@ -756,14 +757,73 @@ const GuestListSection = ({
       autoClose: 3000,
     });
 
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    
+    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      handleExcelFileUpload(file);
+    } else if (fileExtension === 'csv') {
+      handleCSVFileUpload(file);
+    } else {
+      toast.error("Unsupported file format. Please upload a CSV or Excel (.xlsx/.xls) file.", {
+        position: "top-center",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  // Handle Excel file upload
+  const handleExcelFileUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        // Check if "GuestList" sheet exists
+        const guestListSheetName = workbook.SheetNames.find(name => 
+          name.toLowerCase() === 'guestlist' || name.toLowerCase() === 'guest list'
+        );
+        
+        if (!guestListSheetName) {
+          toast.error("No 'GuestList' sheet found in the Excel file. Please make sure your data is in a sheet named 'GuestList'.", {
+            position: "top-center",
+            autoClose: 5000,
+          });
+          return;
+        }
+
+        const worksheet = workbook.Sheets[guestListSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        if (jsonData.length < 2) {
+          toast.error("Excel file must have at least a header row and one data row", {
+            position: "top-center",
+          });
+          return;
+        }
+
+        // Process the Excel data similar to CSV
+        processImportData(jsonData);
+
+      } catch (error) {
+        console.error('Excel parsing error:', error);
+        toast.error("Error parsing Excel file. Please check the format and try again.", {
+          position: "top-center",
+          autoClose: 5000,
+        });
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Handle CSV file upload
+  const handleCSVFileUpload = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = e.target.result;
         const lines = text.split('\n').filter(line => line.trim());
-        
-        console.log('Total lines after filtering:', lines.length);
-        console.log('First few lines:', lines.slice(0, 5));
         
         if (lines.length < 2) {
           toast.error("CSV file must have at least a header row and one data row", {
@@ -772,235 +832,9 @@ const GuestListSection = ({
           return;
         }
 
-        // Skip first empty line if exists and get header
-        let headerIndex = 0;
-        while (headerIndex < lines.length) {
-          const line = lines[headerIndex].trim();
-          if (!line) {
-            headerIndex++;
-            continue;
-          }
-          
-          const cells = line.split(',').map(h => h.trim());
-          // Check if this line has actual header content (not all empty)
-          if (cells.some(cell => cell && cell.toLowerCase().includes('name'))) {
-            break;
-          }
-          
-          headerIndex++;
-        }
-        
-        if (headerIndex >= lines.length) {
-          toast.error("No valid header found in CSV file", {
-            position: "top-center",
-          });
-          return;
-        }
-
-        const headers = lines[headerIndex].split(',').map(h => h.trim());
-        const dataLines = lines.slice(headerIndex + 1);
-        
-        console.log('Header index:', headerIndex);
-        console.log('Headers:', headers);
-        console.log('Data lines count:', dataLines.length);
-
-        // Find column indices
-        const guidIndex = headers.findIndex(h => h.toLowerCase().includes('guid'));
-        const orderIndex = headers.findIndex(h => h.toLowerCase().includes('order'));
-        const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
-        const genderIndex = headers.findIndex(h => h.toLowerCase().includes('gender'));
-        const emailIndex = headers.findIndex(h => h.toLowerCase().includes('email'));
-        const phoneIndex = headers.findIndex(h => h.toLowerCase().includes('phone'));
-        const tagIndex = headers.findIndex(h => h.toLowerCase().includes('tag'));
-        const functionsIndex = headers.findIndex(h => h.toLowerCase().includes('functions'));
-
-        // Find sub-event columns (everything after Functions)
-        const subEventStartIndex = Math.max(functionsIndex, tagIndex) + 1;
-        
-        const subEventHeaders = headers.slice(subEventStartIndex).filter(h => h.trim());
-
-        console.log('Column indices:', {
-          guidIndex, orderIndex, nameIndex, genderIndex, 
-          emailIndex, phoneIndex, tagIndex, functionsIndex
-        });
-        console.log('Sub-event start index:', subEventStartIndex);
-        console.log('Sub-event headers:', subEventHeaders);
-        console.log('Available sub-events in event data:', subEvents);
-
-        const processedGuests = [];
-        const guestGroups = new Map();
-        let groupId = Date.now();
-
-        dataLines.forEach((line, index) => {
-          if (!line.trim()) return;
-          
-          const values = line.split(',').map(v => v.trim());
-          
-          // Skip if no name
-          if (nameIndex === -1 || !values[nameIndex] || !values[nameIndex].trim()) {
-            console.log('Skipping line due to missing name:', {nameIndex, values, line});
-            return;
-          }
-          
-            console.log('Processing guest:', values[nameIndex]);
-
-          // Determine age group based on gender field
-          const genderValue = (genderIndex !== -1) ? values[genderIndex] || '' : '';
-          let ageGroup = 'adult'; // Default
-          let actualGender = genderValue;
-          
-          // If gender is 'C', it means child age group
-          if (genderValue.toUpperCase() === 'C') {
-            ageGroup = 'child';
-            actualGender = ''; // Clear gender since C was age indicator
-          } else if (genderValue.toUpperCase() === 'M') {
-            actualGender = 'Male';
-          } else if (genderValue.toUpperCase() === 'F') {
-            actualGender = 'Female';
-          }
-
-          const guest = {
-            id: Date.now() + index + Math.random(),
-            public_id: crypto.randomUUID(),
-            order: (orderIndex !== -1 && values[orderIndex]) ? values[orderIndex] : (index + 1),
-            name: values[nameIndex],
-            email: (emailIndex !== -1) ? values[emailIndex] || '' : '',
-            phone: (phoneIndex !== -1) ? values[phoneIndex] || '' : '',
-            gender: actualGender,
-            ageGroup: ageGroup,
-            tag: (tagIndex !== -1) ? values[tagIndex] || '' : '',
-            group: '', // Will be set below
-            rsvpStatus: 'pending',
-            plusOne: false,
-            subEventRSVPs: {},
-            invitedAt: null,
-            respondedAt: null,
-            isPointOfContact: false, // Default to false, will be set to true for first member of each group
-          };
-
-          // Process sub-event RSVPs
-          subEventHeaders.forEach((subEventName, subIndex) => {
-            const subEventValue = values[subEventStartIndex + subIndex];
-            if (subEventValue && (subEventValue.toLowerCase() === 'yes' || subEventValue.toLowerCase() === 'true')) {
-              // Find matching sub-event in event data by name similarity
-              const matchingSubEvent = subEvents.find(se => {
-                const csvName = subEventName.toLowerCase().trim();
-                const eventName = se.name.toLowerCase().trim();
-                // Check for exact match or partial match
-                return eventName.includes(csvName) || csvName.includes(eventName) || eventName === csvName;
-              });
-              
-              if (matchingSubEvent) {
-                guest.subEventRSVPs[matchingSubEvent.id] = 'invited';
-              } else {
-                // If no exact match found, create a sub-event ID based on the CSV header
-                const subEventId = subEventName.replace(/\s+/g, '_').toLowerCase();
-                guest.subEventRSVPs[subEventId] = 'invited';
-              }
-            }
-          });
-
-          // Group guests by GUID (same GUID = same group)
-          const guid = (guidIndex !== -1 && values[guidIndex]) ? values[guidIndex].trim() : '';
-          if (guid) {
-            if (!guestGroups.has(guid)) {
-              guestGroups.set(guid, {
-                id: groupId++,
-                title: '',
-                members: [],
-                color: groupColors[guestGroups.size % groupColors.length]
-              });
-            }
-            guestGroups.get(guid).members.push(guest);
-          } else {
-            // Individual guest without group
-            guest.group = `${guest.name} (Individual)`;
-            processedGuests.push(guest);
-          }
-        });
-
-        // Process groups and assign group names
-        let groupNumber = 1;
-        const allNewGroups = [];
-        
-        guestGroups.forEach((groupData, guid) => {
-          if (groupData.members.length > 0) {
-            // Use first member's name for group title if multiple members
-            const groupTitle = groupData.members.length > 1 
-              ? `Group ${groupNumber++}` 
-              : `${groupData.members[0].name} (Individual)`;
-            
-            groupData.title = groupTitle;
-            
-            // Assign group to all members and set first member as POC
-            groupData.members.forEach((member, memberIndex) => {
-              member.group = groupTitle;
-              member.isPointOfContact = memberIndex === 0; // First member is POC
-            });
-
-            processedGuests.push(...groupData.members);
-
-            // Create group object
-            const newGroup = {
-              id: groupData.id,
-              event_id: eventData.id || null,
-              title: groupTitle,
-              size: groupData.members.length,
-              invite_sent_at: null,
-              invite_sent_by: null,
-              status: "draft",
-              details: {
-                color: groupData.color,
-                description: groupData.members.length > 1 ? "Family/Group" : "Individual guest",
-              },
-              // POC will be handled by setting isPointOfContact on the first member
-            };
-
-            allNewGroups.push(newGroup);
-          }
-        });
-
-        // Handle individual guests without groups
-        if (processedGuests.some(guest => !guest.group || guest.group.includes('(Individual)'))) {
-          const individualGuests = processedGuests.filter(guest => guest.group.includes('(Individual)'));
-          
-          // Set individual guests as POC of their own group
-          individualGuests.forEach(guest => {
-            guest.isPointOfContact = true;
-          });
-          
-          const individualGroups = individualGuests.map((guest, index) => ({
-            id: Date.now() + 10000 + index,
-            event_id: eventData.id || null,
-            title: guest.group,
-            size: 1,
-            invite_sent_at: null,
-            invite_sent_by: null,
-            status: "draft",
-            details: {
-              color: groupColors[(allNewGroups.length + index) % groupColors.length],
-              description: "Individual guest",
-            },
-          }));
-          allNewGroups.push(...individualGroups);
-        }
-
-        console.log('Final processed guests count:', processedGuests.length);
-        console.log('Final processed guests:', processedGuests.map(g => g.name));
-        console.log('Groups created:', allNewGroups.length);
-
-        // Add all guests and groups at once
-        if (processedGuests.length > 0) {
-          updateEventData({
-            guests: [...(eventData.guests || []), ...processedGuests],
-            guestGroups: [...(eventData.guestGroups || []), ...allNewGroups],
-          });
-        }
-
-        toast.success(`Successfully imported ${processedGuests.length} guests!`, {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        // Convert CSV to array format similar to Excel
+        const csvData = lines.map(line => line.split(',').map(cell => cell.trim()));
+        processImportData(csvData);
 
       } catch (error) {
         console.error('CSV parsing error:', error);
@@ -1012,6 +846,253 @@ const GuestListSection = ({
     };
 
     reader.readAsText(file);
+  };
+
+  // Process imported data (common function for both CSV and Excel)
+  const processImportData = (data) => {
+    try {
+      console.log('Total rows after filtering:', data.length);
+      console.log('First few rows:', data.slice(0, 5));
+
+      // Find header row
+      let headerIndex = 0;
+      while (headerIndex < data.length) {
+        const row = data[headerIndex];
+        if (!row || row.length === 0) {
+          headerIndex++;
+          continue;
+        }
+        
+        // Check if this row has actual header content
+        if (row.some(cell => cell && cell.toString().toLowerCase().includes('name'))) {
+          break;
+        }
+        
+        headerIndex++;
+      }
+      
+      if (headerIndex >= data.length) {
+        toast.error("No valid header found in the file", {
+          position: "top-center",
+        });
+        return;
+      }
+
+      const headers = data[headerIndex].map(h => h ? h.toString().trim() : '');
+      const dataRows = data.slice(headerIndex + 1);
+      
+      console.log('Header index:', headerIndex);
+      console.log('Headers:', headers);
+      console.log('Data rows count:', dataRows.length);
+
+      // Find column indices
+      const guidIndex = headers.findIndex(h => h.toLowerCase().includes('guid'));
+      const orderIndex = headers.findIndex(h => h.toLowerCase().includes('order'));
+      const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
+      const genderIndex = headers.findIndex(h => h.toLowerCase().includes('gender'));
+      const emailIndex = headers.findIndex(h => h.toLowerCase().includes('email'));
+      const phoneIndex = headers.findIndex(h => h.toLowerCase().includes('phone'));
+      const tagIndex = headers.findIndex(h => h.toLowerCase().includes('tag'));
+      const functionsIndex = headers.findIndex(h => h.toLowerCase().includes('functions'));
+
+      // Find sub-event columns (everything after Functions)
+      const subEventStartIndex = Math.max(functionsIndex, tagIndex) + 1;
+      const subEventHeaders = headers.slice(subEventStartIndex).filter(h => h.trim());
+
+      console.log('Column indices:', {
+        guidIndex, orderIndex, nameIndex, genderIndex, 
+        emailIndex, phoneIndex, tagIndex, functionsIndex
+      });
+      console.log('Sub-event start index:', subEventStartIndex);
+      console.log('Sub-event headers:', subEventHeaders);
+      console.log('Available sub-events in event data:', subEvents);
+
+      const processedGuests = [];
+      const guestGroups = new Map();
+      let groupId = Date.now();
+
+      dataRows.forEach((row, index) => {
+        if (!row || row.length === 0) return;
+        
+        const values = row.map(v => v ? v.toString().trim() : '');
+        
+        // Skip if no name
+        if (nameIndex === -1 || !values[nameIndex] || !values[nameIndex].trim()) {
+          console.log('Skipping row due to missing name:', {nameIndex, values, row});
+          return;
+        }
+        
+        console.log('Processing guest:', values[nameIndex]);
+
+        // Determine age group based on gender field
+        const genderValue = (genderIndex !== -1) ? values[genderIndex] || '' : '';
+        let ageGroup = 'adult'; // Default
+        let actualGender = genderValue;
+        
+        // If gender is 'C', it means child age group
+        if (genderValue.toUpperCase() === 'C') {
+          ageGroup = 'child';
+          actualGender = ''; // Clear gender since C was age indicator
+        } else if (genderValue.toUpperCase() === 'M') {
+          actualGender = 'Male';
+        } else if (genderValue.toUpperCase() === 'F') {
+          actualGender = 'Female';
+        }
+
+        const guest = {
+          id: Date.now() + index + Math.random(),
+          public_id: crypto.randomUUID(),
+          order: (orderIndex !== -1 && values[orderIndex]) ? values[orderIndex] : (index + 1),
+          name: values[nameIndex],
+          email: (emailIndex !== -1) ? values[emailIndex] || '' : '',
+          phone: (phoneIndex !== -1) ? values[phoneIndex] || '' : '',
+          gender: actualGender,
+          ageGroup: ageGroup,
+          tag: (tagIndex !== -1) ? values[tagIndex] || '' : '',
+          group: '', // Will be set below
+          rsvpStatus: 'pending',
+          plusOne: false,
+          subEventRSVPs: {},
+          invitedAt: null,
+          respondedAt: null,
+          isPointOfContact: false, // Default to false, will be set to true for first member of each group
+        };
+
+        // Process sub-event RSVPs
+        subEventHeaders.forEach((subEventName, subIndex) => {
+          const subEventValue = values[subEventStartIndex + subIndex];
+          if (subEventValue && (subEventValue.toLowerCase() === 'yes' || subEventValue.toLowerCase() === 'true')) {
+            // Find matching sub-event in event data by name similarity
+            const matchingSubEvent = subEvents.find(se => {
+              const csvName = subEventName.toLowerCase().trim();
+              const eventName = se.name.toLowerCase().trim();
+              // Check for exact match or partial match
+              return eventName.includes(csvName) || csvName.includes(eventName) || eventName === csvName;
+            });
+            
+            if (matchingSubEvent) {
+              guest.subEventRSVPs[matchingSubEvent.id] = 'invited';
+            } else {
+              // If no exact match found, create a sub-event ID based on the CSV header
+              const subEventId = subEventName.replace(/\s+/g, '_').toLowerCase();
+              guest.subEventRSVPs[subEventId] = 'invited';
+            }
+          }
+        });
+
+        // Group guests by GUID (same GUID = same group)
+        const guid = (guidIndex !== -1 && values[guidIndex]) ? values[guidIndex].trim() : '';
+        if (guid) {
+          if (!guestGroups.has(guid)) {
+            guestGroups.set(guid, {
+              id: groupId++,
+              title: '',
+              members: [],
+              color: groupColors[guestGroups.size % groupColors.length]
+            });
+          }
+          guestGroups.get(guid).members.push(guest);
+        } else {
+          // Individual guest without group
+          guest.group = `${guest.name} (Individual)`;
+          processedGuests.push(guest);
+        }
+      });
+
+      // Process groups and assign group names
+      let groupNumber = 1;
+      const allNewGroups = [];
+      
+      guestGroups.forEach((groupData, guid) => {
+        if (groupData.members.length > 0) {
+          // Use first member's name for group title if multiple members
+          const groupTitle = groupData.members.length > 1 
+            ? `Group ${groupNumber++}` 
+            : `${groupData.members[0].name} (Individual)`;
+          
+          groupData.title = groupTitle;
+          
+          // Assign group to all members and set first member as POC
+          groupData.members.forEach((member, memberIndex) => {
+            member.group = groupTitle;
+            member.isPointOfContact = memberIndex === 0; // First member is POC
+          });
+
+          processedGuests.push(...groupData.members);
+
+          // Create group object
+          const newGroup = {
+            id: groupData.id,
+            event_id: eventData.id || null,
+            title: groupTitle,
+            size: groupData.members.length,
+            invite_sent_at: null,
+            invite_sent_by: null,
+            status: "draft",
+            details: {
+              color: groupData.color,
+              description: groupData.members.length > 1 ? "Family/Group" : "Individual guest",
+            },
+          };
+
+          allNewGroups.push(newGroup);
+        }
+      });
+
+      // Handle individual guests without groups
+      if (processedGuests.some(guest => !guest.group || guest.group.includes('(Individual)'))) {
+        const individualGuests = processedGuests.filter(guest => guest.group.includes('(Individual)'));
+        
+        // Set individual guests as POC of their own group
+        individualGuests.forEach(guest => {
+          guest.isPointOfContact = true;
+        });
+        
+        const individualGroups = individualGuests.map((guest, index) => ({
+          id: Date.now() + 10000 + index,
+          event_id: eventData.id || null,
+          title: guest.group,
+          size: 1,
+          invite_sent_at: null,
+          invite_sent_by: null,
+          status: "draft",
+          details: {
+            color: groupColors[(allNewGroups.length + index) % groupColors.length],
+            description: "Individual guest",
+          },
+        }));
+        allNewGroups.push(...individualGroups);
+      }
+
+      console.log('Final processed guests count:', processedGuests.length);
+      console.log('Final processed guests:', processedGuests.map(g => g.name));
+      console.log('Groups created:', allNewGroups.length);
+
+      // Add all guests and groups at once
+      if (processedGuests.length > 0) {
+        updateEventData({
+          guests: [...(eventData.guests || []), ...processedGuests],
+          guestGroups: [...(eventData.guestGroups || []), ...allNewGroups],
+        });
+
+        toast.success(`Successfully imported ${processedGuests.length} guests from the file!`, {
+          position: "top-center",
+          autoClose: 3000,
+        });
+      } else {
+        toast.warning("No valid guest data found in the file.", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+      }
+
+    } catch (error) {
+      console.error('Data processing error:', error);
+      toast.error("Error processing the file data. Please check the format and try again.", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+    }
   };
 
   // Handle clearing all guests
@@ -1101,7 +1182,7 @@ const GuestListSection = ({
             <div className={styles.importIcon}>📤</div>
             <div className={styles.importTitle}>Import from Spreadsheet</div>
             <div className={styles.importDescription}>
-              Upload a CSV or Excel file with your guest information
+              Upload a CSV or Excel (.xlsx) file with your guest information
             </div>
           </div>
           <div
@@ -1129,6 +1210,8 @@ const GuestListSection = ({
               />
               <div className={styles.fieldHelp}>
                 Expected format: GUID, Order, Name, Gender, Email, Phone, Tag, Functions, [Sub-Event Names]
+                <br />
+                For Excel files (.xlsx): Data must be in a sheet named "GuestList"
                 <br />
                 GUID: Use same GUID for guests in the same group/family
                 <br />

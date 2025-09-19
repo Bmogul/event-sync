@@ -10,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 import Loading from "../components/loading";
 import Email from "../components/emailPortal";
+import EmailTemplateEditor from "../components/EmailTemplateEditor";
 
 import styles from "../styles/portal.module.css";
 
@@ -21,6 +22,7 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState("email"); // "email" or "template-editor"
 
   const { session, supabase, user, userProfile, loading: authLoading } = useAuth(); // get supabase client and session from context
 
@@ -162,10 +164,20 @@ const Page = () => {
               Event Management Portal • Guest Communication & Analytics
             </p>
             <div className={styles.eventActions}>
-              <button className={styles.btnPrimary}>✉️ Send Mail</button>
+              <button 
+                className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
+                onClick={() => setCurrentView("email")}
+              >
+                ✉️ Send Mail
+              </button>
               <button className={styles.btnOutline}>📊 View Analytics</button>
-              <button className={styles.btnOutline}>📱 Share Event</button>
               <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
+              <button 
+                className={currentView === "template-editor" ? styles.btnPrimary : styles.btnOutline}
+                onClick={() => setCurrentView("template-editor")}
+              >
+                🎨 Edit Templates
+              </button>
             </div>
           </div>
 
@@ -202,16 +214,27 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Email Portal Component */}
-          <Email
-            toast={toast}
-            event={event}
-            params={params}
-            guestList={guestList}
-            session={session}
-            getGuestList={getGuestList}
-            updateGuestList={updateGuestList}
-          />
+          {/* Conditional Component Rendering */}
+          {currentView === "email" ? (
+            <Email
+              toast={toast}
+              event={event}
+              params={params}
+              guestList={guestList}
+              session={session}
+              getGuestList={getGuestList}
+              updateGuestList={updateGuestList}
+              setCurrentView={setCurrentView}
+            />
+          ) : currentView === "template-editor" ? (
+            <EmailTemplateEditor
+              toast={toast}
+              event={event}
+              params={params}
+              session={session}
+              setCurrentView={setCurrentView}
+            />
+          ) : null}
         </div>
       </main>
       <ToastContainer

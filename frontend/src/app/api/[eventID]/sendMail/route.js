@@ -16,7 +16,7 @@ export const POST = async (req, { params }) => {
   try {
     const supabase = createClient();
     const body = await req.json();
-    const { guestList, emailType = 'invitation' } = body;
+    const { guestList, emailType = 'invitation', templateId } = body;
 
     // Get auth token from request headers
     const authHeader = req.headers.get("Authorization");
@@ -94,7 +94,39 @@ export const POST = async (req, { params }) => {
       return NextResponse.json({ error: "No guests provided" }, { status: 400 });
     }
 
-    // Extract email content from event.details JSONB
+    // Fetch email template from database if templateId is provided
+    let databaseTemplate = null;
+    if (templateId) {
+      console.log("Fetching email template with ID:", templateId);
+      const { data: template, error: templateError } = await supabase
+        .from("email_templates")
+        .select(`
+          *,
+          email_template_categories(name),
+          email_template_status(name)
+        `)
+        .eq("id", templateId)
+        .eq("event_id", event.id)
+        .single();
+
+      if (templateError) {
+        console.error("Template fetch error:", templateError);
+        return NextResponse.json({ 
+          error: "Email template not found" 
+        }, { status: 404 });
+      }
+
+      if (!template) {
+        return NextResponse.json({ 
+          error: "Email template not found for this event" 
+        }, { status: 404 });
+      }
+
+      databaseTemplate = template;
+      console.log("✓ Email template fetched:", template.name);
+    }
+
+    // Extract email content from event.details JSONB (fallback for when no template is selected)
     const eventDetails = event.details || {};
     const emailConfig = eventDetails.emailConfig || {};
     
@@ -103,12 +135,17 @@ export const POST = async (req, { params }) => {
       name: eventDetails.organizerName || eventDetails.senderName || "Event Organizer"
     };
 
+    // Build email content - prioritize database template, then fall back to event details/config
     const emailContent = {
-      greeting: emailConfig.greeting || eventDetails.greeting || "Dear Guest,",
-      body: emailConfig.body || eventDetails.body || eventDetails.email_message || "You are invited to our special event.",
-      signoff: emailConfig.signoff || eventDetails.signoff || "Best regards,",
-      subjectLine: emailConfig.subjectLine || eventDetails.subjectLine || `Invitation: ${event.title}`,
-      senderName: emailConfig.senderName || eventDetails.senderName || defaultSender.name
+      greeting: databaseTemplate?.greeting || emailConfig.greeting || eventDetails.greeting || "Dear Guest,",
+      body: databaseTemplate?.body || emailConfig.body || eventDetails.body || eventDetails.email_message || "You are invited to our special event.",
+      signoff: databaseTemplate?.signoff || emailConfig.signoff || eventDetails.signoff || "Best regards,",
+      subjectLine: databaseTemplate?.subject_line || emailConfig.subjectLine || eventDetails.subjectLine || `Invitation: ${event.title}`,
+      senderName: databaseTemplate?.sender_name || emailConfig.senderName || eventDetails.senderName || defaultSender.name,
+      // Add template colors for the base template
+      primary_color: databaseTemplate?.primary_color || "#ffffff",
+      secondary_color: databaseTemplate?.secondary_color || "#e1c0b7", 
+      text_color: databaseTemplate?.font_color || "#333333"
     };
 
     const updatedGuestList = [];
@@ -130,7 +167,7 @@ export const POST = async (req, { params }) => {
         }
 
         // Generate RSVP link using guest public_id
-        const rsvpLink = `${process.env.HOST || 'http://localhost:3000'}/${eventID}/rsvp?guestId=${guest.public_id}`;
+        const rsvpLink = `${process.env.HOST || 'http://localhost:3000'}/${eventID}/rsvp?guestId=${guest.group_id}`;
         
         const templateData = {
           rsvpLink: rsvpLink,
@@ -146,7 +183,11 @@ export const POST = async (req, { params }) => {
             month: 'long', 
             day: 'numeric'
           }) : 'Date TBD',
-          eventDescription: event.description || ''
+          eventDescription: event.description || '',
+          // Add template colors for the base template styling
+          primary_color: emailContent.primary_color,
+          secondary_color: emailContent.secondary_color,
+          text_color: emailContent.text_color
         };
 
         const msg = {

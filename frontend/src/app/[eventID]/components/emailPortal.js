@@ -10,12 +10,15 @@ const EmailPortal = ({
   session,
   getGuestList,
   updateGuestList,
+  setCurrentView,
 }) => {
   const [reminderDate, setReminderDate] = useState();
   const [selectedRows, setSelectedRows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("all");
   const [filterValue, setFilterValue] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [availableTemplates, setAvailableTemplates] = useState([]);
 
   // Guest management states
   const [addMode, setAddMode] = useState("individual"); // 'individual' or 'group'
@@ -63,6 +66,40 @@ const EmailPortal = ({
     { value: "senior", label: "Senior (65+ years)", order: 5 },
     { value: "unknown", label: "Age not specified", order: 6 },
   ];
+
+  // Fetch available email templates for this event
+  useEffect(() => {
+    console.log("FETCHING TEMPLATES")
+    const fetchEmailTemplates = async () => {
+
+    console.log("valid event", event)
+      if (!event?.eventID || !session?.access_token) return;
+
+      try {
+        const response = await fetch(`/api/events?public_id=${event.eventID}`, {
+          headers: {
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("EVENT TAMPLATES", data.event.emailTemplates)
+          if (data.success && data.event?.emailTemplates) {
+            setAvailableTemplates(data.event.emailTemplates);
+            // Auto-select first template if available
+            if (data.event.emailTemplates.length > 0) {
+              setSelectedTemplateId(data.event.emailTemplates[0].id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching email templates:", error);
+      }
+    };
+
+    fetchEmailTemplates();
+  }, [event?.public_id, session?.access_token]);
 
   // Transform guest list to match API response structure
   const transformedGuestList =
@@ -239,6 +276,11 @@ const EmailPortal = ({
       return;
     }
 
+    if (!selectedTemplateId) {
+      toast("Please select an email template");
+      return;
+    }
+
     toast("Sending Mail");
     const res = await fetch(`/api/${params.eventID}/sendMail`, {
       method: "POST",
@@ -248,6 +290,7 @@ const EmailPortal = ({
       },
       body: JSON.stringify({
         guestList: selectedRows,
+        templateId: selectedTemplateId,
       }),
     });
     const result = await res.json();
@@ -686,6 +729,7 @@ const EmailPortal = ({
         <button
           className={styles.actionBtn}
           onClick={SendMail}
+          disabled={!selectedTemplateId || selectedRows.length === 0}
           title="Send invite to selected guests"
         >
           <div className={styles.actionBtnIcon}>📮</div>
@@ -787,7 +831,32 @@ const EmailPortal = ({
             <span className={styles.bulkCount}>
               {selectedRows.length} guests selected
             </span>
-            <button className={styles.btnPrimarySmall} onClick={SendMail}>
+            
+            {/* Email Template Selection */}
+            <div className={styles.templateSelection}>
+              <label htmlFor="template-select" className={styles.templateLabel}>
+                Email Template:
+              </label>
+              <select
+                id="template-select"
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className={styles.templateSelect}
+              >
+                <option value="">Select a template...</option>
+                {availableTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.title} ({template.category})
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <button 
+              className={styles.btnPrimarySmall} 
+              onClick={SendMail}
+              disabled={!selectedTemplateId}
+            >
               Send Invites
             </button>
             <button 

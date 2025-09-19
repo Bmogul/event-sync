@@ -565,7 +565,7 @@ const EmailPortal = ({
 
   // Handle copying RSVP link to clipboard
   const handleCopyRSVPLink = async (guest) => {
-    const rsvpLink = `http://localhost:3000/${params.eventID}/rsvp?guestId=${guest.group_id}`;
+    const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
 
     try {
       await navigator.clipboard.writeText(rsvpLink);

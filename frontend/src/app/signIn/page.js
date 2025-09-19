@@ -1,13 +1,13 @@
 
 'use client'
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from "./page.module.css"
 import Branding from "./components/sections/Branding";
 import AuthForm from "./components/sections/Form";
 import { createClient } from "../utils/supabase/client";
 
-const SignIn = () => {
+const SignInContent = () => {
   const [isSignUp, setIsSignUp] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -130,5 +130,13 @@ const SignIn = () => {
     </div>
   )
 }
+
+const SignIn = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
+  );
+};
 
 export default SignIn;

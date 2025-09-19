@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -11,7 +11,7 @@ import GuestListSection from "./components/sections/GuestListSection";
 import RSVPCustomization from "./components/sections/RSVPCustomization";
 import LaunchSection from "./components/sections/LaunchSection";
 
-const CreateEvent = () => {
+const CreateEventContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
@@ -688,6 +688,14 @@ const CreateEvent = () => {
         style={{ zIndex: 9999 }}
       />
     </>
+  );
+};
+
+const CreateEvent = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateEventContent />
+    </Suspense>
   );
 };
 

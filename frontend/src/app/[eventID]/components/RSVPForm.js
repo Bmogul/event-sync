@@ -3,13 +3,14 @@ import styles from "../styles/form.module.css";
 import Image from "next/image";
 import Loading from "./loading";
 
+
 const GuestRSVPBlock = ({ guest, subEvent, responses, onResponseChange, themeStyles }) => {
   const guestId = guest.id;
   const subEventId = subEvent.id;
-  const currentResponse = responses[guestId]?.[subEventId] || 'pending';
+  const currentResponse = responses[guestId]?.[subEventId] ?? 'pending';
 
-  const handleResponse = (status) => {
-    onResponseChange(guestId, subEventId, status);
+  const handleResponse = (value) => {
+    onResponseChange(guestId, subEventId, value);
   };
 
   return (
@@ -23,33 +24,64 @@ const GuestRSVPBlock = ({ guest, subEvent, responses, onResponseChange, themeSty
           </div>
         )}
       </div>
+
       <div className={styles.responseButtons}>
-        <button
-          className={`${styles.responseBtn} ${currentResponse === 'attending' ? styles.selectedBtn : ''}`}
-          onClick={() => handleResponse('attending')}
-          style={{
-            backgroundColor: currentResponse === 'attending' ? themeStyles.primaryColor : 'transparent',
-            borderColor: themeStyles.primaryColor,
-            color: currentResponse === 'attending' ? 'white' : themeStyles.primaryColor
-          }}
-        >
-          Yes
-        </button>
-        <button
-          className={`${styles.responseBtn} ${currentResponse === 'not_attending' ? styles.selectedBtn : ''}`}
-          onClick={() => handleResponse('not_attending')}
-          style={{
-            backgroundColor: currentResponse === 'not_attending' ? '#dc2626' : 'transparent',
-            borderColor: '#dc2626',
-            color: currentResponse === 'not_attending' ? 'white' : '#dc2626'
-          }}
-        >
-          No
-        </button>
+        {/* Render RSVP input depending on guest type */}
+        {guest.guestType === "single" && (
+          <>
+            <button
+              className={`${styles.responseBtn} ${currentResponse === 'attending' ? styles.selectedBtn : ''}`}
+              onClick={() => handleResponse('attending')}
+              style={{
+                backgroundColor: currentResponse === 'attending' ? themeStyles.primaryColor : 'transparent',
+                borderColor: themeStyles.primaryColor,
+                color: currentResponse === 'attending' ? 'white' : themeStyles.primaryColor
+              }}
+            >
+              Yes
+            </button>
+            <button
+              className={`${styles.responseBtn} ${currentResponse === 'not_attending' ? styles.selectedBtn : ''}`}
+              onClick={() => handleResponse('not_attending')}
+              style={{
+                backgroundColor: currentResponse === 'not_attending' ? '#dc2626' : 'transparent',
+                borderColor: '#dc2626',
+                color: currentResponse === 'not_attending' ? 'white' : '#dc2626'
+              }}
+            >
+              No
+            </button>
+          </>
+        )}
+
+        {guest.guestType === "multiple" && (
+          <select
+            value={currentResponse === 'pending' ? '' : currentResponse}
+            onChange={(e) => handleResponse(Number(e.target.value))}
+            style={{ borderColor: themeStyles.primaryColor }}
+          >
+            <option value="">Select number attending</option>
+            {Array.from({ length: (guest.guestLimit ?? 1) + 1 }, (_, i) => i).map((num) => (
+              <option key={num} value={num}>{num}</option>
+            ))}
+          </select>
+        )}
+
+        {guest.guestType === "variable" && (
+          <input
+            type="number"
+            min="0"
+            value={currentResponse === 'pending' ? '' : currentResponse}
+            onChange={(e) => handleResponse(Number(e.target.value))}
+            style={{ borderColor: themeStyles.primaryColor }}
+            placeholder="Enter number attending"
+          />
+        )}
       </div>
     </div>
   );
 };
+
 
 const RsvpForm = ({
   formLoading,
@@ -81,8 +113,51 @@ const RsvpForm = ({
         phone: guest.phone || ''
       };
 
-      // Set existing responses
-      if (guest.invites) {
+      // Set existing responses based on guest type and RSVP data
+      if (guest.rsvps && guest.rsvps.length > 0) {
+        guest.rsvps.forEach(rsvp => {
+          const subEvent = subEvents.find(se => se.id === rsvp.subevent_id);
+          if (subEvent) {
+            const guestType = (guest.guestType || 'single').toLowerCase();
+            
+            // Convert database response back to frontend format based on guest type
+            let frontendResponse;
+            switch (guestType) {
+              case 'single':
+                // For single type: status_id determines the response
+                if (rsvp.status_id === 3) {
+                  frontendResponse = 'attending';
+                } else if (rsvp.status_id === 4) {
+                  frontendResponse = 'not_attending';
+                } else if (rsvp.status_id === 5) {
+                  frontendResponse = 'maybe';
+                } else {
+                  frontendResponse = 'pending';
+                }
+                break;
+                
+              case 'multiple':
+              case 'variable':
+                // For multiple/variable types: use the numeric response value
+                if (rsvp.response !== null && rsvp.response !== undefined) {
+                  frontendResponse = rsvp.response;
+                } else {
+                  // Fallback: if no response value, determine from status
+                  frontendResponse = rsvp.status_id === 3 ? 1 : 0;
+                }
+                break;
+                
+              default:
+                // Default to pending
+                frontendResponse = 'pending';
+            }
+            
+            console.log(`Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`);
+            initialResponses[guest.id][subEvent.id] = frontendResponse;
+          }
+        });
+      } else if (guest.invites) {
+        // Fallback: use old invites structure if rsvps not available
         Object.entries(guest.invites).forEach(([subEventTitle, statusId]) => {
           const subEvent = subEvents.find(se => se.title === subEventTitle);
           if (subEvent) {
@@ -97,6 +172,12 @@ const RsvpForm = ({
           }
         });
       }
+    });
+    
+    console.log('RSVP Form Initialization Summary:', {
+      totalGuests: party.length,
+      guestsWithResponses: Object.keys(initialResponses).filter(guestId => Object.keys(initialResponses[guestId]).length > 0).length,
+      initialResponses
     });
     
     setResponses(initialResponses);

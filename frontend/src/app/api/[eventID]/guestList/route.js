@@ -136,7 +136,12 @@ export async function GET(request, { params }) {
             id,
             title
           )
-        )
+        ),
+        guest_type (
+          id,
+          name
+        ),
+        guest_limit
       `,
       )
       .eq("guest_groups.event_id", event.id)
@@ -145,10 +150,12 @@ export async function GET(request, { params }) {
     if (guestError) {
       console.error("Guest fetch error:", guestError);
       return NextResponse.json(
-        { error: "Failed to fetch guest list" },
+        { error: "Failed to fetch guest list" , message:guestError},
         { status: 500 },
       );
     }
+    
+    console.log("\n\nGUEST\n\n",allGuests)
 
     // Transform guests
     const transformedUsers =
@@ -166,6 +173,8 @@ export async function GET(request, { params }) {
         gender_id: guest.guest_gender?.id,
         ageGroup: guest.guest_age_group?.state,
         age_group_id: guest.guest_age_group?.id,
+        guest_type: guest.guest_type?.name,
+        guest_limit: guest.guest_limit,
         rsvp_status:
           guest.rsvps?.reduce((acc, rsvp) => {
             if (rsvp.subevents) {

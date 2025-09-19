@@ -14,7 +14,42 @@ export async function DELETE(request, { params }) {
     const { eventID, guestId } = params;
     const supabase = getSupabaseClient();
 
-    console.log(`Deleting guest ${guestId} from event ${eventID}`);
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    console.log(`Deleting guest ${guestId} from event ${eventID} by user ${userProfile.id}`);
 
     // Get guest info before deletion to handle group cleanup
     const { data: guestToDelete, error: fetchError } = await supabase
@@ -37,10 +72,39 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    // Get event details and verify access
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
     // Verify the guest belongs to the correct event
-    if (guestToDelete.guest_groups.event_id !== parseInt(eventID)) {
+    if (guestToDelete.guest_groups.event_id !== eventData.id) {
       return NextResponse.json(
         { error: 'Guest does not belong to this event' },
+        { status: 403 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
         { status: 403 }
       );
     }
@@ -117,9 +181,73 @@ export async function PUT(request, { params }) {
     const { guest } = body;
     const supabase = getSupabaseClient();
 
-    console.log(`Updating guest ${guestId} in event ${eventID}`);
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
 
-    // Fetch lookup tables for gender and age group
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    // Get event details and verify access
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
+        { status: 403 }
+      );
+    }
+
+    console.log(`Updating guest ${guestId} in event ${eventID} by user ${userProfile.id}`);
+
+    // Fetch lookup tables for gender, age group, and guest type
     const { data: genderLookup, error: genderError } = await supabase
       .from("guest_gender")
       .select("id, state");
@@ -128,8 +256,12 @@ export async function PUT(request, { params }) {
       .from("guest_age_group")
       .select("id, state");
 
-    if (genderError || ageGroupError) {
-      console.error("Error fetching lookup tables:", genderError || ageGroupError);
+    const { data: guestTypeLookup, error: guestTypeError } = await supabase
+      .from("guest_type")
+      .select("id, name, description");
+
+    if (genderError || ageGroupError || guestTypeError) {
+      console.error("Error fetching lookup tables:", genderError || ageGroupError || guestTypeError);
       return NextResponse.json(
         { error: 'Failed to fetch lookup tables' },
         { status: 500 }
@@ -144,6 +276,11 @@ export async function PUT(request, { params }) {
 
     const ageGroupMap = ageGroupLookup.reduce((acc, item) => {
       acc[item.state.toLowerCase()] = item.id;
+      return acc;
+    }, {});
+
+    const guestTypeMap = guestTypeLookup.reduce((acc, item) => {
+      acc[item.name.toLowerCase()] = item.id;
       return acc;
     }, {});
 
@@ -163,8 +300,51 @@ export async function PUT(request, { params }) {
       return ageGroupMap[normalizedAgeGroup] || null;
     };
 
+    // Helper function to get guest type ID from string
+    const getGuestTypeIdFromString = (guestTypeString) => {
+      if (!guestTypeString || !guestTypeString.trim()) {
+        return guestTypeMap['single']; // Default to 'single' type
+      }
+      
+      const normalizedGuestType = guestTypeString.toLowerCase().trim();
+      return guestTypeMap[normalizedGuestType] || guestTypeMap['single'];
+    };
+
+    // Helper function to calculate guest limit based on guest type
+    const calculateGuestLimit = (guestTypeId, providedGuestLimit) => {
+      const guestType = guestTypeLookup.find(type => type.id === guestTypeId);
+      if (!guestType) return 1; // Default to single behavior
+      
+      switch (guestType.name.toLowerCase()) {
+        case 'single':
+          return 1; // Always 1 for single type
+        case 'variable':
+          return null; // NULL for infinite
+        case 'multiple':
+          // Require a positive integer limit for multiple type
+          if (providedGuestLimit === null || providedGuestLimit === undefined || providedGuestLimit < 0) {
+            throw new Error('Guest limit is required for multiple guest type and must be >= 0');
+          }
+          return parseInt(providedGuestLimit);
+        default:
+          return 1; // Default to single behavior
+      }
+    };
+
     const genderId = getGenderIdFromString(guest.gender);
     const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+    const guestTypeId = getGuestTypeIdFromString(guest.guestType);
+    
+    let calculatedGuestLimit;
+    try {
+      calculatedGuestLimit = calculateGuestLimit(guestTypeId, guest.guestLimit);
+    } catch (error) {
+      console.error(`Validation error for guest update:`, error.message);
+      return NextResponse.json(
+        { error: `Validation error: ${error.message}` },
+        { status: 400 }
+      );
+    }
 
     // Update guest
     const { data: updatedGuest, error: updateError } = await supabase
@@ -176,6 +356,8 @@ export async function PUT(request, { params }) {
         tag: guest.tag || null,
         gender_id: genderId,
         age_group_id: ageGroupId,
+        guest_type_id: guestTypeId,
+        guest_limit: calculatedGuestLimit,
         point_of_contact: guest.isPointOfContact || false
       })
       .eq("id", guestId)
@@ -191,6 +373,43 @@ export async function PUT(request, { params }) {
     }
 
     console.log(`Successfully updated guest ${guestId}`);
+
+    // Update RSVP entries for sub-event invitations (backward compatible)
+    if (guest.subEventInvitations !== undefined) {
+      try {
+        // First, delete existing RSVPs for this guest
+        await supabase
+          .from("rsvps")
+          .delete()
+          .eq("guest_id", parseInt(guestId));
+
+        // Create new RSVP entries if invitations provided
+        if (guest.subEventInvitations && guest.subEventInvitations.length > 0) {
+          const rsvpEntries = guest.subEventInvitations.map(subEventId => ({
+            guest_id: parseInt(guestId),
+            subevent_id: parseInt(subEventId),
+            status_id: 1, // "invited"
+            created_at: new Date().toISOString()
+          }));
+          
+          const { error: rsvpError } = await supabase
+            .from("rsvps")
+            .insert(rsvpEntries);
+            
+          if (rsvpError) {
+            console.error("Error updating RSVP entries:", rsvpError);
+            // Don't fail the entire operation, just log the error
+          } else {
+            console.log(`Updated ${rsvpEntries.length} RSVP invitations for guest ${guestId}`);
+          }
+        } else {
+          console.log(`Removed all RSVP invitations for guest ${guestId}`);
+        }
+      } catch (rsvpError) {
+        console.error("Error managing RSVP entries:", rsvpError);
+        // Don't fail the guest update operation
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -16,6 +16,70 @@ export async function POST(request, { params }) {
     const { guests, event } = body;
     const supabase = getSupabaseClient();
 
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    // Get event details and verify it exists
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
+        { status: 403 }
+      );
+    }
+
     if (!guests || !Array.isArray(guests) || guests.length === 0) {
       return NextResponse.json(
         { error: 'No guests provided' },
@@ -23,9 +87,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`Creating ${guests.length} guests for event ${eventID}`);
+    console.log(`Creating ${guests.length} guests for event ${eventID} by user ${userProfile.id}`);
 
-    // Fetch lookup tables for gender and age group
+    // Fetch lookup tables for gender, age group, and guest type
     const { data: genderLookup, error: genderError } = await supabase
       .from("guest_gender")
       .select("id, state");
@@ -34,8 +98,12 @@ export async function POST(request, { params }) {
       .from("guest_age_group")
       .select("id, state");
 
-    if (genderError || ageGroupError) {
-      console.error("Error fetching lookup tables:", genderError || ageGroupError);
+    const { data: guestTypeLookup, error: guestTypeError } = await supabase
+      .from("guest_type")
+      .select("id, name, description");
+
+    if (genderError || ageGroupError || guestTypeError) {
+      console.error("Error fetching lookup tables:", genderError || ageGroupError || guestTypeError);
       return NextResponse.json(
         { error: 'Failed to fetch lookup tables' },
         { status: 500 }
@@ -50,6 +118,11 @@ export async function POST(request, { params }) {
 
     const ageGroupMap = ageGroupLookup.reduce((acc, item) => {
       acc[item.state.toLowerCase()] = item.id;
+      return acc;
+    }, {});
+
+    const guestTypeMap = guestTypeLookup.reduce((acc, item) => {
+      acc[item.name.toLowerCase()] = item.id;
       return acc;
     }, {});
 
@@ -74,6 +147,37 @@ export async function POST(request, { params }) {
       return ageGroupMap[normalizedAgeGroup] || null;
     };
 
+    // Helper function to get guest type ID from string
+    const getGuestTypeIdFromString = (guestTypeString) => {
+      if (!guestTypeString || !guestTypeString.trim()) {
+        return guestTypeMap['single']; // Default to 'single' type
+      }
+      
+      const normalizedGuestType = guestTypeString.toLowerCase().trim();
+      return guestTypeMap[normalizedGuestType] || guestTypeMap['single'];
+    };
+
+    // Helper function to calculate guest limit based on guest type
+    const calculateGuestLimit = (guestTypeId, providedGuestLimit, guestName = "") => {
+      const guestType = guestTypeLookup.find(type => type.id === guestTypeId);
+      if (!guestType) return 1; // Default to single behavior
+      
+      switch (guestType.name.toLowerCase()) {
+        case 'single':
+          return 1; // Always 1 for single type
+        case 'variable':
+          return null; // NULL for infinite
+        case 'multiple':
+          // Require a positive integer limit for multiple type
+          if (providedGuestLimit === null || providedGuestLimit === undefined || providedGuestLimit < 0) {
+            throw new Error(`Guest limit is required for multiple guest type and must be >= 0${guestName ? ` (guest: ${guestName})` : ''}`);
+          }
+          return parseInt(providedGuestLimit);
+        default:
+          return 1; // Default to single behavior
+      }
+    };
+
     // Process guests to create groups first
     const groupsToCreate = new Map();
     const guestsToCreate = [];
@@ -84,7 +188,7 @@ export async function POST(request, { params }) {
       if (!groupsToCreate.has(groupTitle)) {
         groupsToCreate.set(groupTitle, {
           title: groupTitle,
-          event_id: parseInt(eventID),
+          event_id: eventData.id, // Use verified event ID
           size_limit: -1,
           status_id: 1, // draft status
           details: {
@@ -127,6 +231,18 @@ export async function POST(request, { params }) {
 
       const genderId = getGenderIdFromString(guest.gender);
       const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+      const guestTypeId = getGuestTypeIdFromString(guest.guestType);
+      
+      let calculatedGuestLimit;
+      try {
+        calculatedGuestLimit = calculateGuestLimit(guestTypeId, guest.guestLimit, guest.name);
+      } catch (error) {
+        console.error(`Validation error for guest ${guest.name}:`, error.message);
+        return NextResponse.json(
+          { error: `Validation error for guest ${guest.name}: ${error.message}` },
+          { status: 400 }
+        );
+      }
 
       const guestPayload = {
         group_id: groupId,
@@ -137,6 +253,8 @@ export async function POST(request, { params }) {
         tag: guest.tag || null,
         gender_id: genderId,
         age_group_id: ageGroupId,
+        guest_type_id: guestTypeId,
+        guest_limit: calculatedGuestLimit,
         point_of_contact: guest.isPointOfContact || false
       };
 
@@ -158,6 +276,42 @@ export async function POST(request, { params }) {
     }
 
     console.log(`Successfully created ${createdGuests.length} guests`);
+
+    // Create RSVP entries for sub-event invitations (backward compatible)
+    const hasInvitations = guests.some(g => g.subEventInvitations && g.subEventInvitations.length > 0);
+    
+    if (hasInvitations) {
+      const rsvpEntries = [];
+      
+      for (let i = 0; i < guests.length; i++) {
+        const guest = guests[i];
+        const createdGuest = createdGuests[i];
+        
+        if (guest.subEventInvitations && guest.subEventInvitations.length > 0) {
+          for (const subEventId of guest.subEventInvitations) {
+            rsvpEntries.push({
+              guest_id: createdGuest.id,
+              subevent_id: parseInt(subEventId),
+              status_id: 1, // 1 = "invited" status
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
+      if (rsvpEntries.length > 0) {
+        const { error: rsvpError } = await supabase
+          .from("rsvps")
+          .insert(rsvpEntries);
+          
+        if (rsvpError) {
+          console.error("Error creating RSVP entries:", rsvpError);
+          // Don't fail the entire operation, just log the error
+        } else {
+          console.log(`Created ${rsvpEntries.length} RSVP invitations`);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -20,28 +20,17 @@ const EmailPortal = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [availableTemplates, setAvailableTemplates] = useState([]);
 
-  // Guest management states
-  const [addMode, setAddMode] = useState("individual"); // 'individual' or 'group'
-  const [newGuest, setNewGuest] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    gender: "",
-    ageGroup: "",
-    tag: "",
-    selectedGroup: "",
-    subEventRSVPs: {},
-    isPointOfContact: true,
-  });
-  const [newGroup, setNewGroup] = useState({
-    name: "",
-    members: [],
-  });
-  const [tempGroupMembers, setTempGroupMembers] = useState([]);
-  const [editingMemberIndex, setEditingMemberIndex] = useState(-1);
-  const [importMethod, setImportMethod] = useState("manual"); // 'manual' or 'upload'
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [editingGuest, setEditingGuest] = useState(null);
+  // Enhanced sorting and filtering states
+  const [sortBy, setSortBy] = useState("group"); // Default to group sorting
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [secondarySortBy, setSecondarySortBy] = useState("name");
+  const [groupFilters, setGroupFilters] = useState([]);
+  const [statusFilters, setStatusFilters] = useState([]);
+  const [genderFilters, setGenderFilters] = useState([]);
+  const [ageGroupFilters, setAgeGroupFilters] = useState([]);
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pocTransferData, setPocTransferData] = useState(null);
 
@@ -57,15 +46,16 @@ const EmailPortal = ({
     "#ea580c",
   ];
 
-  // Age group options
-  const ageGroups = [
-    { value: "infant", label: "Infant (0-2 years)", order: 1 },
-    { value: "child", label: "Child (3-12 years)", order: 2 },
-    { value: "teen", label: "Teenager (13-17 years)", order: 3 },
-    { value: "adult", label: "Adult (18-64 years)", order: 4 },
-    { value: "senior", label: "Senior (65+ years)", order: 5 },
-    { value: "unknown", label: "Age not specified", order: 6 },
-  ];
+
+  // Handle guest type change
+  const handleGuestTypeChange = (guestType) => {
+    setNewGuest(prev => ({
+      ...prev,
+      guestType,
+      guestLimit: guestType === "multiple" ? 1 : null // Set default limit for multiple type
+    }));
+  };
+
 
   // Fetch available email templates for this event
   useEffect(() => {
@@ -158,7 +148,45 @@ const EmailPortal = ({
 
   const subevents = getAllSubevents();
 
-  // Filter guests based on search term and filters
+  // Enhanced sorting function
+  const sortGuests = (guests, primarySort, direction, secondarySort = "name") => {
+    return [...guests].sort((a, b) => {
+      let primaryA = a[primarySort] || "";
+      let primaryB = b[primarySort] || "";
+      
+      // Handle special cases for sorting
+      if (primarySort === "group") {
+        primaryA = a.group || `${a.name} (Individual)`;
+        primaryB = b.group || `${b.name} (Individual)`;
+      } else if (primarySort === "inviteStatus") {
+        primaryA = a.total_rsvps > 0 ? "Invited" : "Not Invited";
+        primaryB = b.total_rsvps > 0 ? "Invited" : "Not Invited";
+      }
+      
+      // Primary sort comparison
+      let comparison = 0;
+      if (primaryA < primaryB) {
+        comparison = -1;
+      } else if (primaryA > primaryB) {
+        comparison = 1;
+      }
+      
+      // If primary values are equal, use secondary sort
+      if (comparison === 0 && secondarySort) {
+        const secondaryA = a[secondarySort] || "";
+        const secondaryB = b[secondarySort] || "";
+        if (secondaryA < secondaryB) {
+          comparison = -1;
+        } else if (secondaryA > secondaryB) {
+          comparison = 1;
+        }
+      }
+      
+      return direction === "desc" ? -comparison : comparison;
+    });
+  };
+
+  // Enhanced filter guests function with advanced filtering
   const getFilteredGuests = () => {
     let filtered = transformedGuestList;
 
@@ -175,7 +203,7 @@ const EmailPortal = ({
       );
     }
 
-    // Apply additional filters
+    // Apply legacy single filters for backward compatibility
     if (filterBy !== "all" && filterValue) {
       switch (filterBy) {
         case "gender":
@@ -203,6 +231,45 @@ const EmailPortal = ({
       }
     }
 
+    // Apply advanced multi-select filters
+    if (groupFilters.length > 0) {
+      filtered = filtered.filter((guest) => 
+        groupFilters.includes(guest.group || `${guest.name} (Individual)`)
+      );
+    }
+
+    if (statusFilters.length > 0) {
+      filtered = filtered.filter((guest) => {
+        const isInvited = guest.total_rsvps > 0;
+        const hasResponded = Object.keys(guest.rsvpStatus || {}).length > 0;
+        
+        return statusFilters.some(status => {
+          switch (status) {
+            case "invited": return isInvited;
+            case "not_invited": return !isInvited;
+            case "responded": return hasResponded;
+            case "pending": return isInvited && !hasResponded;
+            default: return false;
+          }
+        });
+      });
+    }
+
+    if (genderFilters.length > 0) {
+      filtered = filtered.filter((guest) => 
+        genderFilters.includes(guest.gender)
+      );
+    }
+
+    if (ageGroupFilters.length > 0) {
+      filtered = filtered.filter((guest) => 
+        ageGroupFilters.includes(guest.ageGroup)
+      );
+    }
+
+    // Apply sorting (default to group-based sorting)
+    filtered = sortGuests(filtered, sortBy, sortDirection, secondarySortBy);
+
     return filtered;
   };
 
@@ -228,6 +295,365 @@ const EmailPortal = ({
     setSearchTerm("");
     setFilterBy("all");
     setFilterValue("");
+    setGroupFilters([]);
+    setStatusFilters([]);
+    setGenderFilters([]);
+    setAgeGroupFilters([]);
+  };
+
+  // Handle multi-select filter changes
+  const handleMultiSelectFilter = (filterType, value, checked) => {
+    const setFilter = {
+      'group': setGroupFilters,
+      'status': setStatusFilters,
+      'gender': setGenderFilters,
+      'ageGroup': setAgeGroupFilters
+    }[filterType];
+
+    if (setFilter) {
+      setFilter(prev => {
+        if (checked) {
+          return [...prev, value];
+        } else {
+          return prev.filter(item => item !== value);
+        }
+      });
+    }
+  };
+
+  // Get sorting indicator for table headers
+  const getSortIndicator = (column) => {
+    if (sortBy !== column) return "↕️";
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
+
+  // Check if any advanced filters are active
+  const hasAdvancedFilters = () => {
+    return groupFilters.length > 0 || statusFilters.length > 0 || 
+           genderFilters.length > 0 || ageGroupFilters.length > 0;
+  };
+
+  // Handle column header clicks for sorting
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, default to ascending
+      setSortBy(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Group guests by their group name
+  const groupGuestsByGroup = (guests) => {
+    const grouped = {};
+    guests.forEach(guest => {
+      const groupName = guest.group || `${guest.name} (Individual)`;
+      if (!grouped[groupName]) {
+        grouped[groupName] = {
+          name: groupName,
+          members: [],
+          totalMembers: 0,
+          invitedCount: 0,
+          respondedCount: 0
+        };
+      }
+      grouped[groupName].members.push(guest);
+      grouped[groupName].totalMembers++;
+      if (guest.total_rsvps > 0) grouped[groupName].invitedCount++;
+      if (Object.keys(guest.rsvpStatus || {}).length > 0) grouped[groupName].respondedCount++;
+    });
+    return grouped;
+  };
+
+  // Toggle group collapse
+  const toggleGroupCollapse = (groupName) => {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupName)) {
+      newCollapsed.delete(groupName);
+    } else {
+      newCollapsed.add(groupName);
+    }
+    setCollapsedGroups(newCollapsed);
+  };
+
+  // Select/deselect entire group
+  const handleGroupSelection = (groupName, isSelected) => {
+    const groupGuests = filteredGuests.filter(guest => 
+      (guest.group || `${guest.name} (Individual)`) === groupName
+    );
+    
+    setSelectedRows(prev => {
+      if (isSelected) {
+        // Add all group members to selection
+        const newSelected = [...prev];
+        groupGuests.forEach(guest => {
+          if (!newSelected.some(g => g.id === guest.id)) {
+            newSelected.push(guest);
+          }
+        });
+        return newSelected;
+      } else {
+        // Remove all group members from selection
+        return prev.filter(guest => 
+          !groupGuests.some(groupGuest => groupGuest.id === guest.id)
+        );
+      }
+    });
+  };
+
+  // Check if entire group is selected
+  const isGroupSelected = (groupName) => {
+    const groupGuests = filteredGuests.filter(guest => 
+      (guest.group || `${guest.name} (Individual)`) === groupName
+    );
+    if (groupGuests.length === 0) return false;
+    return groupGuests.every(guest => 
+      selectedRows.some(selected => selected.id === guest.id)
+    );
+  };
+
+  // Get group statistics
+  const getGroupStats = (groupName) => {
+    const groupGuests = transformedGuestList.filter(guest => 
+      (guest.group || `${guest.name} (Individual)`) === groupName
+    );
+    
+    return {
+      total: groupGuests.length,
+      invited: groupGuests.filter(g => g.total_rsvps > 0).length,
+      responded: groupGuests.filter(g => Object.keys(g.rsvpStatus || {}).length > 0).length,
+      pending: groupGuests.filter(g => g.total_rsvps > 0 && Object.keys(g.rsvpStatus || {}).length === 0).length
+    };
+  };
+
+  // Render individual guest row
+  const renderGuestRow = (guest, isGroupMember = false) => {
+    const isPointOfContact = guest.isPointOfContact === true;
+    const isSelected = isGuestSelected(guest);
+
+    return (
+      <tr
+        key={guest.id}
+        className={`${
+          isPointOfContact ? styles.pointOfContactRow : ''
+        } ${
+          isSelected ? styles.selectedRow : ''
+        } ${
+          isGroupMember ? styles.groupMemberRow : ''
+        }`}
+      >
+        <td>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => handleRowSelection(guest, e.target.checked)}
+          />
+        </td>
+        <td>
+          <div className={styles.actionButtons}>
+            <button
+              type="button"
+              className={`${styles.btnGhost} ${styles.btnIcon}`}
+              onClick={() => handleCopyRSVPLink(guest)}
+              title="Copy RSVP link"
+            >
+              📋
+            </button>
+            {/*<button
+              type="button"
+              className={`${styles.btnDanger} ${styles.btnIcon}`}
+              onClick={() => handleRemoveGuest(guest.id)}
+              title="Remove guest"
+            >
+              🗑️
+            </button>*/}
+            <button
+              type="button"
+              className={`${styles.btnGhost} ${styles.btnIcon}`}
+              onClick={() => handleShareWhatsApp(guest)}
+              title="Share RSVP via WhatsApp"
+              aria-label="Share RSVP via WhatsApp"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                role="img"
+                aria-hidden="false"
+              >
+                <path
+                  d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z"
+                  fill="#25D366"
+                />
+                <path
+                  d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z"
+                  fill="#fff"
+                />
+              </svg>
+            </button>
+          </div>
+        </td>
+        <td>
+          <div className={styles.guestName}>
+            {guest.name || "-"}
+            {isPointOfContact && (
+              <span className={styles.pocBadge}>POC</span>
+            )}
+          </div>
+        </td>
+        <td>
+          <div className={styles.guestEmail}>
+            {guest.email || "-"}
+          </div>
+        </td>
+        <td>
+          <div className={styles.guestPhone}>
+            {guest.phone || "-"}
+          </div>
+        </td>
+        <td>
+          <div className={styles.groupInfo}>
+            {guest.group ? (
+              <>
+                <div
+                  className={styles.groupColorDot}
+                  style={{
+                    backgroundColor: groupColors[Math.abs(guest.group.charCodeAt(0)) % groupColors.length],
+                  }}
+                />
+                <span>{guest.group}</span>
+              </>
+            ) : (
+              "-"
+            )}
+          </div>
+        </td>
+        <td>{guest.gender || "-"}</td>
+        <td>{guest.ageGroup || "-"}</td>
+        <td>{guest.tag || "-"}</td>
+        {subevents.map((subevent) => {
+          const rsvp = guest.rsvpStatus[subevent];
+          return (
+            <td key={subevent}>
+              {rsvp ? (
+                <div className={styles.rsvpCell}>
+                  <span
+                    className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}
+                  >
+                    {rsvp.status_name}
+                  </span>
+                  {rsvp.response && (
+                    <div className={styles.responseCount}>
+                      +{rsvp.response}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span
+                  className={`${styles.statusBadge} ${styles.statusNotInvited}`}
+                >
+                  Not Invited
+                </span>
+              )}
+            </td>
+          );
+        })}
+        <td>
+          <span
+            className={`${styles.statusBadge} ${
+              guest.inviteStatus === "Invited"
+                ? styles.statusInvited
+                : styles.statusNotInvited
+            }`}
+          >
+            {guest.inviteStatus}
+          </span>
+        </td>
+      </tr>
+    );
+  };
+
+  // Render grouped table content
+  const renderGroupedTable = () => {
+    if (sortBy !== 'group') {
+      // Render flat table when not sorted by group
+      return filteredGuests.map((guest) => renderGuestRow(guest));
+    }
+
+    // Group guests and render with group headers
+    const grouped = groupGuestsByGroup(filteredGuests);
+    const groupNames = Object.keys(grouped).sort();
+
+    return groupNames.map(groupName => {
+      const groupData = grouped[groupName];
+      const isCollapsed = collapsedGroups.has(groupName);
+      const groupStats = getGroupStats(groupName);
+      const isGroupFullySelected = isGroupSelected(groupName);
+
+      return (
+        <React.Fragment key={groupName}>
+          {/* Group Header Row */}
+          <tr className={styles.groupHeaderRow}>
+            <td colSpan={subevents.length + 10} className={styles.groupHeaderCell}>
+              <div className={styles.groupHeader}>
+                <div className={styles.groupInfo}>
+                  <button
+                    className={styles.groupToggle}
+                    onClick={() => toggleGroupCollapse(groupName)}
+                    title={isCollapsed ? 'Expand group' : 'Collapse group'}
+                  >
+                    {isCollapsed ? '▶️' : '▼️'}
+                  </button>
+                  
+                  <input
+                    type="checkbox"
+                    checked={isGroupFullySelected}
+                    onChange={(e) => handleGroupSelection(groupName, e.target.checked)}
+                    title="Select/deselect entire group"
+                  />
+                  
+                  <div
+                    className={styles.groupColorDot}
+                    style={{ backgroundColor: groupColors[Math.abs(groupName.charCodeAt(0)) % groupColors.length] }}
+                  />
+                  
+                  <strong className={styles.groupName}>{groupName}</strong>
+                  
+                  <div className={styles.groupStats}>
+                    <span className={styles.groupStatBadge}>👥 {groupStats.total}</span>
+                    <span className={styles.groupStatBadge}>📧 {groupStats.invited}</span>
+                    <span className={styles.groupStatBadge}>✅ {groupStats.responded}</span>
+                    <span className={styles.groupStatBadge}>⏳ {groupStats.pending}</span>
+                  </div>
+                </div>
+                
+                <div className={styles.groupActions}>
+                  <button
+                    className={styles.btnGhost}
+                    onClick={() => {
+                      const groupGuests = filteredGuests.filter(guest => 
+                        (guest.group || `${guest.name} (Individual)`) === groupName
+                      );
+                      setSelectedRows(groupGuests);
+                    }}
+                    title="Select group for email"
+                  >
+                    📧 Select for Email
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          
+          {/* Group Members */}
+          {!isCollapsed && groupData.members.map((guest) => renderGuestRow(guest, true))}
+        </React.Fragment>
+      );
+    });
   };
 
   // Handle row selection
@@ -248,6 +674,13 @@ const EmailPortal = ({
     } else {
       setSelectedRows([]);
     }
+  };
+
+  // Handle select all POCs
+  const handleSelectAllPOCs = () => {
+    const pocGuests = filteredGuests.filter(guest => guest.isPointOfContact === true);
+    setSelectedRows(pocGuests);
+    toast(`Selected ${pocGuests.length} Point of Contact guests`);
   };
 
   // Check if guest is selected
@@ -393,203 +826,10 @@ const EmailPortal = ({
     }
   };
 
-  // Guest Management Helper Functions
 
-  // Get existing groups for dropdown
-  const getExistingGroups = () => {
-    const groups = [
-      ...new Set(transformedGuestList.map((g) => g.group).filter(Boolean)),
-    ];
-    return groups.map((groupName) => ({
-      title: groupName,
-      size: transformedGuestList.filter((g) => g.group === groupName).length,
-    }));
-  };
 
-  // Check if a group already has a point of contact
-  const groupHasPOC = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(
-      (guest) => guest.group === groupTitle,
-    );
-    return groupGuests.some((guest) => guest.isPointOfContact === true);
-  };
 
-  // Get the current POC name for a group
-  const getCurrentPOCName = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(
-      (guest) => guest.group === groupTitle,
-    );
-    const pocGuest = groupGuests.find(
-      (guest) => guest.isPointOfContact === true,
-    );
-    return pocGuest?.name || null;
-  };
 
-  // Handle group selection change
-  const handleGroupSelectionChange = (selectedGroup) => {
-    setNewGuest((prev) => ({
-      ...prev,
-      selectedGroup,
-      isPointOfContact: selectedGroup
-        ? editingGuest && selectedGroup === editingGuest.group
-          ? prev.isPointOfContact
-          : false
-        : true,
-    }));
-  };
-
-  // Handle POC checkbox change with confirmation
-  const handlePOCChange = (checked) => {
-    if (
-      checked &&
-      newGuest.selectedGroup &&
-      groupHasPOC(newGuest.selectedGroup)
-    ) {
-      if (editingGuest && newGuest.selectedGroup === editingGuest.group) {
-        setNewGuest((prev) => ({
-          ...prev,
-          isPointOfContact: checked,
-        }));
-        return;
-      }
-
-      const currentPOCName = getCurrentPOCName(newGuest.selectedGroup);
-      setPocTransferData({
-        fromName: currentPOCName,
-        toName: newGuest.name,
-        groupName: newGuest.selectedGroup,
-      });
-      setShowPOCConfirmation(true);
-    } else {
-      setNewGuest((prev) => ({
-        ...prev,
-        isPointOfContact: checked,
-      }));
-    }
-  };
-
-  // Handle POC transfer confirmation
-  const handlePOCTransferConfirm = () => {
-    setNewGuest((prev) => ({
-      ...prev,
-      isPointOfContact: true,
-    }));
-    setShowPOCConfirmation(false);
-    setPocTransferData(null);
-  };
-
-  // Handle POC transfer cancellation
-  const handlePOCTransferCancel = () => {
-    setShowPOCConfirmation(false);
-    setPocTransferData(null);
-  };
-
-  // Handle adding/editing individual guest
-  const handleAddIndividualGuest = async () => {
-    if (!newGuest.name.trim()) {
-      toast("Guest name is required");
-      return;
-    }
-
-    // Create guest payload
-    const guestPayload = {
-      name: newGuest.name,
-      email: newGuest.email,
-      phone: newGuest.phone,
-      gender: newGuest.gender,
-      ageGroup: newGuest.ageGroup,
-      tag: newGuest.tag,
-      group: newGuest.selectedGroup || `${newGuest.name} (Individual)`,
-      isPointOfContact: newGuest.isPointOfContact || false,
-      subEventRSVPs: newGuest.subEventRSVPs,
-    };
-
-    try {
-      let response;
-
-      if (editingGuest) {
-        // Update existing guest
-        response = await fetch(
-          `/api/${params.eventID}/guests/${editingGuest.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              guest: guestPayload,
-            }),
-          },
-        );
-      } else {
-        // Create new guest
-        response = await fetch(`/api/${params.eventID}/guests`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            guests: [guestPayload],
-            event: event,
-          }),
-        });
-      }
-
-      if (response.ok) {
-        toast(
-          editingGuest
-            ? "Guest updated successfully!"
-            : "Guest added successfully!",
-        );
-        await getGuestList(event); // Refresh guest list
-        setShowGuestForm(false);
-        setEditingGuest(null);
-        setNewGuest({
-          name: "",
-          email: "",
-          phone: "",
-          gender: "",
-          ageGroup: "",
-          tag: "",
-          selectedGroup: "",
-          subEventRSVPs: {},
-          isPointOfContact: true,
-        });
-      } else {
-        throw new Error(
-          editingGuest ? "Failed to update guest" : "Failed to add guest",
-        );
-      }
-    } catch (error) {
-      console.error(
-        editingGuest ? "Error updating guest:" : "Error adding guest:",
-        error,
-      );
-      toast(
-        editingGuest
-          ? "Failed to update guest. Please try again."
-          : "Failed to add guest. Please try again.",
-      );
-    }
-  };
-
-  // Handle editing a guest
-  const handleEditGuest = (guest) => {
-    setEditingGuest(guest);
-    setAddMode("individual");
-    setNewGuest({
-      name: guest.name,
-      email: guest.email,
-      phone: guest.phone || "",
-      gender: guest.gender || "",
-      ageGroup: guest.ageGroup || "",
-      tag: guest.tag || "",
-      selectedGroup: guest.group || "",
-      subEventRSVPs: guest.rsvpStatus || {},
-      isPointOfContact: guest.isPointOfContact || false,
-    });
-    setShowGuestForm(true);
-  };
 
   // Handle removing a guest
   const handleRemoveGuest = async (guestId) => {
@@ -600,6 +840,9 @@ const EmailPortal = ({
     try {
       const response = await fetch(`/api/${params.eventID}/guests/${guestId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.ok) {
@@ -724,6 +967,7 @@ const EmailPortal = ({
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({
               guests: guestPayloads,
@@ -809,7 +1053,7 @@ const EmailPortal = ({
           <h2 className={styles.sectionTitle}>Guest Management</h2>
           <div className={styles.sectionControls}>
             <div className={styles.addGuestActions}>
-              <button
+              {/*              <button
                 className={styles.btnOutlineSmall}
                 onClick={() => {
                   setAddMode("individual");
@@ -841,7 +1085,7 @@ const EmailPortal = ({
                   onChange={handleFileUpload}
                   style={{ display: "none" }}
                 />
-              </label>
+              </label>*/}
             </div>
           </div>
         </div>
@@ -968,7 +1212,7 @@ const EmailPortal = ({
               </select>
             )}
 
-            {(searchTerm || filterBy !== "all") && (
+            {(searchTerm || filterBy !== "all" || hasAdvancedFilters()) && (
               <button
                 className={`${styles.btnSecondarySmall}`}
                 onClick={clearFilters}
@@ -977,6 +1221,158 @@ const EmailPortal = ({
                 Clear Filters
               </button>
             )}
+
+            <button
+              className={`${styles.btnSecondarySmall} ${showAdvancedFilters ? styles.active : ''}`}
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              title="Toggle advanced filters"
+            >
+              🔧 Advanced Filters {showAdvancedFilters ? '▼' : '▶'}
+            </button>
+          </div>
+
+          {/* Advanced Filters Panel */}
+          {showAdvancedFilters && (
+            <div className={styles.advancedFiltersPanel}>
+              <h4 className={styles.advancedFiltersTitle}>Advanced Filters</h4>
+              
+              <div className={styles.advancedFiltersGrid}>
+                {/* Group Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>Groups:</label>
+                  <div className={styles.checkboxGrid}>
+                    {getFilterOptions().groups.map((group) => (
+                      <label key={group} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={groupFilters.includes(group)}
+                          onChange={(e) => handleMultiSelectFilter('group', group, e.target.checked)}
+                        />
+                        <span>{group}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>Status:</label>
+                  <div className={styles.checkboxGrid}>
+                    {[
+                      { value: 'invited', label: 'Invited' },
+                      { value: 'not_invited', label: 'Not Invited' },
+                      { value: 'responded', label: 'Responded' },
+                      { value: 'pending', label: 'Pending Response' }
+                    ].map((status) => (
+                      <label key={status.value} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={statusFilters.includes(status.value)}
+                          onChange={(e) => handleMultiSelectFilter('status', status.value, e.target.checked)}
+                        />
+                        <span>{status.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Gender Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>Gender:</label>
+                  <div className={styles.checkboxGrid}>
+                    {getFilterOptions().genders.map((gender) => (
+                      <label key={gender} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={genderFilters.includes(gender)}
+                          onChange={(e) => handleMultiSelectFilter('gender', gender, e.target.checked)}
+                        />
+                        <span>{gender}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Age Group Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>Age Groups:</label>
+                  <div className={styles.checkboxGrid}>
+                    {getFilterOptions().ageGroups.map((ageGroup) => (
+                      <label key={ageGroup} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={ageGroupFilters.includes(ageGroup)}
+                          onChange={(e) => handleMultiSelectFilter('ageGroup', ageGroup, e.target.checked)}
+                        />
+                        <span>{ageGroup}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className={styles.filterQuickActions}>
+                <button 
+                  className={styles.btnOutlineSmall}
+                  onClick={() => {
+                    setGroupFilters(getFilterOptions().groups);
+                    setStatusFilters(['invited', 'not_invited', 'responded', 'pending']);
+                    setGenderFilters(getFilterOptions().genders);
+                    setAgeGroupFilters(getFilterOptions().ageGroups);
+                  }}
+                >
+                  Select All
+                </button>
+                <button 
+                  className={styles.btnOutlineSmall}
+                  onClick={() => {
+                    setGroupFilters([]);
+                    setStatusFilters([]);
+                    setGenderFilters([]);
+                    setAgeGroupFilters([]);
+                  }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sort Controls */}
+        <div className={styles.sortControls}>
+          <div className={styles.sortInfo}>
+            <span>Showing {filteredGuests.length} guests</span>
+            <span>• Sorted by: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)} ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})</span>
+            {secondarySortBy && <span>• Then by: {secondarySortBy.charAt(0).toUpperCase() + secondarySortBy.slice(1)}</span>}
+          </div>
+          <div className={styles.sortPresets}>
+            <button 
+              className={`${styles.btnOutlineSmall} ${sortBy === 'group' && secondarySortBy === 'name' ? styles.active : ''}`}
+              onClick={() => { setSortBy('group'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            >
+              📁 Group → Name
+            </button>
+            <button 
+              className={`${styles.btnOutlineSmall} ${sortBy === 'inviteStatus' && secondarySortBy === 'name' ? styles.active : ''}`}
+              onClick={() => { setSortBy('inviteStatus'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            >
+              📧 Status → Name
+            </button>
+            <button 
+              className={`${styles.btnOutlineSmall} ${sortBy === 'ageGroup' && secondarySortBy === 'name' ? styles.active : ''}`}
+              onClick={() => { setSortBy('ageGroup'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            >
+              👥 Age → Name
+            </button>
+            <button 
+              className={styles.btnPrimarySmall}
+              onClick={handleSelectAllPOCs}
+              title="Select all Point of Contact guests"
+            >
+              👑 Select All POCs
+            </button>
           </div>
         </div>
 
@@ -986,11 +1382,11 @@ const EmailPortal = ({
             <div className={styles.noResultsIcon}>🔍</div>
             <h4 className={styles.noResultsTitle}>No guests found</h4>
             <p className={styles.noResultsText}>
-              {searchTerm || filterBy !== "all"
+              {searchTerm || filterBy !== "all" || hasAdvancedFilters()
                 ? "Try adjusting your search or filter criteria"
                 : "No guests have been added yet"}
             </p>
-            {(searchTerm || filterBy !== "all") && (
+            {(searchTerm || filterBy !== "all" || hasAdvancedFilters()) && (
               <button
                 className={`${styles.btnPrimarySmall}`}
                 onClick={clearFilters}
@@ -1016,174 +1412,69 @@ const EmailPortal = ({
                       />
                     </th>
                     <th>Actions</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Group</th>
-                    <th>Gender</th>
-                    <th>Age Group</th>
-                    <th>Tag</th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("name")}
+                      title="Click to sort by name"
+                    >
+                      Name {getSortIndicator("name")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("email")}
+                      title="Click to sort by email"
+                    >
+                      Email {getSortIndicator("email")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("phone")}
+                      title="Click to sort by phone"
+                    >
+                      Phone {getSortIndicator("phone")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("group")}
+                      title="Click to sort by group"
+                    >
+                      Group {getSortIndicator("group")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("gender")}
+                      title="Click to sort by gender"
+                    >
+                      Gender {getSortIndicator("gender")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("ageGroup")}
+                      title="Click to sort by age group"
+                    >
+                      Age Group {getSortIndicator("ageGroup")}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("tag")}
+                      title="Click to sort by tag"
+                    >
+                      Tag {getSortIndicator("tag")}
+                    </th>
                     {subevents.map((subevent) => (
                       <th key={subevent}>{subevent}</th>
                     ))}
-                    <th>Invite Status</th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleSort("inviteStatus")}
+                      title="Click to sort by invite status"
+                    >
+                      Invite Status {getSortIndicator("inviteStatus")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredGuests.map((guest) => {
-                    const isPointOfContact = guest.isPointOfContact === true;
-                    const isSelected = isGuestSelected(guest);
-
-                    return (
-                      <tr
-                        key={guest.id}
-                        className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${isSelected ? styles.selectedRow : ""}`}
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) =>
-                              handleRowSelection(guest, e.target.checked)
-                            }
-                          />
-                        </td>
-                        <td>
-                          <div className={styles.actionButtons}>
-                            <button
-                              type="button"
-                              className={`${styles.btnGhost} ${styles.btnIcon}`}
-                              onClick={() => handleCopyRSVPLink(guest)}
-                              title="Copy RSVP link"
-                            >
-                              {" "}
-                              📋
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.btnGhost} ${styles.btnIcon}`}
-                              onClick={() => handleEditGuest(guest)}
-                              title="Edit guest"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.btnDanger} ${styles.btnIcon}`}
-                              onClick={() => handleRemoveGuest(guest.id)}
-                              title="Remove guest"
-                            >
-                              🗑️
-                            </button>
-
-                            <button
-                              type="button"
-                              className={`${styles.btnGhost} ${styles.btnIcon}`}
-                              onClick={() => handleShareWhatsApp(guest)}
-                              title="Share RSVP via WhatsApp"
-                              aria-label="Share RSVP via WhatsApp"
-                            >
-                              {/* WhatsApp SVG icon */}
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                role="img"
-                                aria-hidden="false"
-                              >
-                                <path
-                                  d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z"
-                                  fill="#25D366"
-                                />
-                                <path
-                                  d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z"
-                                  fill="#fff"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.guestName}>
-                            {guest.name || "-"}
-                            {isPointOfContact && (
-                              <span className={styles.pocBadge}>POC</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.guestEmail}>
-                            {guest.email || "-"}
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.guestPhone}>
-                            {guest.phone || "-"}
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.groupInfo}>
-                            {guest.group ? (
-                              <>
-                                <div
-                                  className={styles.groupColorDot}
-                                  style={{
-                                    backgroundColor: "#7c3aed",
-                                  }}
-                                />
-                                <span>{guest.group}</span>
-                              </>
-                            ) : (
-                              "-"
-                            )}
-                          </div>
-                        </td>
-                        <td>{guest.gender || "-"}</td>
-                        <td>{guest.ageGroup || "-"}</td>
-                        <td>{guest.tag || "-"}</td>
-                        {subevents.map((subevent) => {
-                          const rsvp = guest.rsvpStatus[subevent];
-                          return (
-                            <td key={subevent}>
-                              {rsvp ? (
-                                <div className={styles.rsvpCell}>
-                                  <span
-                                    className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}
-                                  >
-                                    {rsvp.status_name}
-                                  </span>
-                                  {rsvp.response && (
-                                    <div className={styles.responseCount}>
-                                      +{rsvp.response}
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span
-                                  className={`${styles.statusBadge} ${styles.statusNotInvited}`}
-                                >
-                                  Not Invited
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td>
-                          <span
-                            className={`${styles.statusBadge} ${
-                              guest.inviteStatus === "Invited"
-                                ? styles.statusInvited
-                                : styles.statusNotInvited
-                            }`}
-                          >
-                            {guest.inviteStatus}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {renderGroupedTable()}
                 </tbody>
               </table>
             </div>
@@ -1191,8 +1482,8 @@ const EmailPortal = ({
         )}
       </div>
 
-      {/* Guest Form Modal */}
-      {showGuestForm && (
+      {/* Guest Form Modal - REMOVED */}
+      {false && (
         <div className={styles.guestFormOverlay}>
           <div className={styles.guestFormModal}>
             <div className={styles.modalHeader}>
@@ -1218,6 +1509,8 @@ const EmailPortal = ({
                     selectedGroup: "",
                     subEventRSVPs: {},
                     isPointOfContact: true,
+                    guestType: "single",
+                    guestLimit: null,
                   });
                   setNewGroup({ name: "", members: [] });
                   setTempGroupMembers([]);
@@ -1231,13 +1524,12 @@ const EmailPortal = ({
             <div className={styles.modalContent}>
               {addMode === "individual" ? (
                 <>
+                  {/* Guest Information Section */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Guest Information
-                    </h4>
+                    <h4 className={styles.formSectionTitle}>Guest Information</h4>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Full Name *</label>
+                        <label className={styles.formLabel}>Name *</label>
                         <input
                           type="text"
                           className={styles.formInput}
@@ -1245,12 +1537,11 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, name: e.target.value })
                           }
-                          placeholder="Enter full name"
-                          required
+                          placeholder="Guest name"
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Email</label>
+                        <label className={styles.formLabel}>Email *</label>
                         <input
                           type="email"
                           className={styles.formInput}
@@ -1258,7 +1549,7 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, email: e.target.value })
                           }
-                          placeholder="email@example.com"
+                          placeholder="guest@example.com"
                         />
                       </div>
                       <div className={styles.formGroup}>
@@ -1294,33 +1585,13 @@ const EmailPortal = ({
                           className={styles.formSelect}
                           value={newGuest.ageGroup}
                           onChange={(e) =>
-                            setNewGuest({
-                              ...newGuest,
-                              ageGroup: e.target.value,
-                            })
+                            setNewGuest({ ...newGuest, ageGroup: e.target.value })
                           }
                         >
                           <option value="">Select age group</option>
                           {ageGroups.map((group) => (
                             <option key={group.value} value={group.value}>
                               {group.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Group</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.selectedGroup}
-                          onChange={(e) =>
-                            handleGroupSelectionChange(e.target.value)
-                          }
-                        >
-                          <option value="">Create new individual group</option>
-                          {getExistingGroups().map((group) => (
-                            <option key={group.title} value={group.title}>
-                              {group.title} ({group.size} members)
                             </option>
                           ))}
                         </select>
@@ -1334,50 +1605,360 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, tag: e.target.value })
                           }
-                          placeholder="e.g., Bride's Side, College Friend"
+                          placeholder="e.g., Bride's Side"
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Group</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.selectedGroup}
+                          onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                        >
+                          <option value="">Create new individual group</option>
+                          {getExistingGroups().map((group) => (
+                            <option key={group.title} value={group.title}>
+                              {group.title} ({group.size} members)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Guest Type</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.guestType}
+                          onChange={(e) => handleGuestTypeChange(e.target.value)}
+                        >
+                          {guestTypes.map((type) => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className={styles.fieldHelp}>
+                          {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                        </div>
+                      </div>
+                      {newGuest.guestType === "multiple" && (
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Guest Limit *</label>
+                          <input
+                            type="number"
+                            className={styles.formInput}
+                            value={newGuest.guestLimit || ""}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                            }
+                            placeholder="Enter maximum number of guests"
+                            min="0"
+                            required
+                          />
+                          <div className={styles.fieldHelp}>
+                            Maximum number of guests this person can bring (including themselves)
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Point of Contact Section */}
-                  <div className={styles.pointOfContactSection}>
-                    <label className={styles.pointOfContactLabel}>
+                  <div className={styles.formSectionGroup}>
+                    <label className={styles.checkboxOption}>
                       <input
                         type="checkbox"
                         checked={newGuest.isPointOfContact}
                         onChange={(e) => handlePOCChange(e.target.checked)}
                       />
-                      Mark as Point of Contact
-                      {newGuest.selectedGroup &&
-                        groupHasPOC(newGuest.selectedGroup) && (
-                          <span className={styles.pocWarning}>
-                            {" "}
-                            (Group already has a POC)
-                          </span>
-                        )}
+                      <span>Point of Contact</span>
                     </label>
-                    <div className={styles.pointOfContactHelp}>
-                      Point of contact will receive important updates and can
-                      help coordinate with their group
-                      {newGuest.selectedGroup &&
-                        groupHasPOC(newGuest.selectedGroup) && (
-                          <div className={styles.pocWarningText}>
-                            This group already has a POC (
-                            {getCurrentPOCName(newGuest.selectedGroup)}).
-                            Checking this box will transfer POC status to this
-                            guest.
-                          </div>
-                        )}
+                    <div className={styles.fieldHelp}>
+                      Point of contact will receive important updates and can help coordinate with their group
+                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
+                        <div className={styles.pocWarningText}>
+                          This group already has a POC ({getCurrentPOCName(newGuest.selectedGroup)}).
+                          Checking this box will transfer POC status to this guest.
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Sub-Event Selection */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                    {loadingSubEvents ? (
+                      <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                    ) : (
+                      <div className={styles.subEventGrid}>
+                        {subEvents.map((subEvent) => (
+                          <label key={subEvent.id} className={styles.checkboxOption}>
+                            <input
+                              type="checkbox"
+                              checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                              onChange={(e) => {
+                                const updated = { ...newGuest.subEventRSVPs };
+                                if (e.target.checked) {
+                                  updated[subEvent.id] = "invited";
+                                } else {
+                                  delete updated[subEvent.id];
+                                }
+                                setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                              }}
+                            />
+                            <span>{subEvent.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
-                <div className={styles.groupFormPlaceholder}>
-                  <h4>Group Creation Feature</h4>
-                  <p>Group creation functionality would be implemented here.</p>
-                  <p>For now, please use individual guest creation.</p>
-                </div>
+                <>
+                  {/* Group Name Section */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Group Information</h4>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Group Name *</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={newGroup.name}
+                          onChange={(e) =>
+                            setNewGroup({ ...newGroup, name: e.target.value })
+                          }
+                          placeholder="Enter group name"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Member Addition Form */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Add Group Members</h4>
+                    
+                    <div className={styles.memberForm}>
+                      <div className={styles.formGrid}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Name *</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={newGuest.name}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, name: e.target.value })
+                            }
+                            placeholder="Member name"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Email</label>
+                          <input
+                            type="email"
+                            className={styles.formInput}
+                            value={newGuest.email}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, email: e.target.value })
+                            }
+                            placeholder="member@example.com"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Phone</label>
+                          <input
+                            type="tel"
+                            className={styles.formInput}
+                            value={newGuest.phone}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, phone: e.target.value })
+                            }
+                            placeholder="+1 (555) 123-4567"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Gender</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.gender}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, gender: e.target.value })
+                            }
+                          >
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Age Group</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.ageGroup}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                            }
+                          >
+                            <option value="">Select age group</option>
+                            {ageGroups.map((group) => (
+                              <option key={group.value} value={group.value}>
+                                {group.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Tag/Side</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={newGuest.tag}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, tag: e.target.value })
+                            }
+                            placeholder="e.g., Bride's Side"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Guest Type</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.guestType}
+                            onChange={(e) => handleGuestTypeChange(e.target.value)}
+                          >
+                            {guestTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                          <div className={styles.fieldHelp}>
+                            {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                          </div>
+                        </div>
+                        {newGuest.guestType === "multiple" && (
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Guest Limit *</label>
+                            <input
+                              type="number"
+                              className={styles.formInput}
+                              value={newGuest.guestLimit || ""}
+                              onChange={(e) =>
+                                setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                              }
+                              placeholder="Enter maximum number of guests"
+                              min="0"
+                              required
+                            />
+                            <div className={styles.fieldHelp}>
+                              Maximum number of guests this person can bring (including themselves)
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={styles.memberFormActions}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.checkboxOption}>
+                            <input
+                              type="checkbox"
+                              checked={newGuest.isPointOfContact}
+                              onChange={(e) =>
+                                setNewGuest({ ...newGuest, isPointOfContact: e.target.checked })
+                              }
+                            />
+                            <span>Point of Contact</span>
+                          </label>
+                        </div>
+                        
+                        {/* Sub-Event Selection for Group */}
+                        <div className={styles.formSectionGroup}>
+                          <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                          {loadingSubEvents ? (
+                            <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                          ) : (
+                            <div className={styles.subEventGrid}>
+                              {subEvents.map((subEvent) => (
+                                <label key={subEvent.id} className={styles.checkboxOption}>
+                                  <input
+                                    type="checkbox"
+                                    checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                                    onChange={(e) => {
+                                      const updated = { ...newGuest.subEventRSVPs };
+                                      if (e.target.checked) {
+                                        updated[subEvent.id] = "invited";
+                                      } else {
+                                        delete updated[subEvent.id];
+                                      }
+                                      setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                                    }}
+                                  />
+                                  <span>{subEvent.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <button
+                          type="button"
+                          className={styles.btnSecondary}
+                          onClick={handleAddMemberToGroup}
+                        >
+                          {editingMemberIndex >= 0 ? "Update Member" : "Add to Group"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Members List */}
+                    {tempGroupMembers.length > 0 && (
+                      <div className={styles.membersList}>
+                        <h5 className={styles.membersListTitle}>
+                          Group Members ({tempGroupMembers.length})
+                        </h5>
+                        {tempGroupMembers.map((member, index) => (
+                          <div key={index} className={styles.memberCard}>
+                            <div className={styles.memberInfo}>
+                              <div className={styles.memberName}>
+                                {member.name}
+                                {member.isPointOfContact && (
+                                  <span className={styles.pocBadge}>POC</span>
+                                )}
+                              </div>
+                              <div className={styles.memberDetails}>
+                                {member.email} • {member.phone || "No phone"} • 
+                                {member.gender || "No gender"} • 
+                                {member.ageGroup ? 
+                                  ageGroups.find(group => group.value === member.ageGroup)?.label || member.ageGroup 
+                                  : "No age group"}
+                              </div>
+                              {member.tag && (
+                                <div className={styles.memberTag}>{member.tag}</div>
+                              )}
+                            </div>
+                            <div className={styles.memberActions}>
+                              <button
+                                type="button"
+                                className={styles.btnGhost}
+                                onClick={() => handleEditMember(index)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.btnDanger}
+                                onClick={() => handleRemoveMember(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
@@ -1398,6 +1979,8 @@ const EmailPortal = ({
                     selectedGroup: "",
                     subEventRSVPs: {},
                     isPointOfContact: true,
+                    guestType: "single",
+                    guestLimit: null,
                   });
                 }}
               >
@@ -1409,11 +1992,21 @@ const EmailPortal = ({
                 onClick={() => {
                   if (editingGuest || addMode === "individual") {
                     handleAddIndividualGuest();
+                  } else if (addMode === "group") {
+                    handleCreateGroup();
                   }
                 }}
-                disabled={!newGuest.name.trim()}
+                disabled={
+                  addMode === "group" 
+                    ? !newGroup.name.trim() || tempGroupMembers.length === 0
+                    : !newGuest.name.trim()
+                }
               >
-                {editingGuest ? "Save Changes" : "Add Guest"}
+                {editingGuest 
+                  ? "Save Changes" 
+                  : addMode === "group" 
+                    ? "Create Group" 
+                    : "Add Guest"}
               </button>
             </div>
           </div>

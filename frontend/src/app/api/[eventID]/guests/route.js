@@ -277,6 +277,42 @@ export async function POST(request, { params }) {
 
     console.log(`Successfully created ${createdGuests.length} guests`);
 
+    // Create RSVP entries for sub-event invitations (backward compatible)
+    const hasInvitations = guests.some(g => g.subEventInvitations && g.subEventInvitations.length > 0);
+    
+    if (hasInvitations) {
+      const rsvpEntries = [];
+      
+      for (let i = 0; i < guests.length; i++) {
+        const guest = guests[i];
+        const createdGuest = createdGuests[i];
+        
+        if (guest.subEventInvitations && guest.subEventInvitations.length > 0) {
+          for (const subEventId of guest.subEventInvitations) {
+            rsvpEntries.push({
+              guest_id: createdGuest.id,
+              subevent_id: parseInt(subEventId),
+              status_id: 1, // 1 = "invited" status
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
+      if (rsvpEntries.length > 0) {
+        const { error: rsvpError } = await supabase
+          .from("rsvps")
+          .insert(rsvpEntries);
+          
+        if (rsvpError) {
+          console.error("Error creating RSVP entries:", rsvpError);
+          // Don't fail the entire operation, just log the error
+        } else {
+          console.log(`Created ${rsvpEntries.length} RSVP invitations`);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       guests: createdGuests,

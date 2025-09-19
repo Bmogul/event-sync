@@ -374,6 +374,43 @@ export async function PUT(request, { params }) {
 
     console.log(`Successfully updated guest ${guestId}`);
 
+    // Update RSVP entries for sub-event invitations (backward compatible)
+    if (guest.subEventInvitations !== undefined) {
+      try {
+        // First, delete existing RSVPs for this guest
+        await supabase
+          .from("rsvps")
+          .delete()
+          .eq("guest_id", parseInt(guestId));
+
+        // Create new RSVP entries if invitations provided
+        if (guest.subEventInvitations && guest.subEventInvitations.length > 0) {
+          const rsvpEntries = guest.subEventInvitations.map(subEventId => ({
+            guest_id: parseInt(guestId),
+            subevent_id: parseInt(subEventId),
+            status_id: 1, // "invited"
+            created_at: new Date().toISOString()
+          }));
+          
+          const { error: rsvpError } = await supabase
+            .from("rsvps")
+            .insert(rsvpEntries);
+            
+          if (rsvpError) {
+            console.error("Error updating RSVP entries:", rsvpError);
+            // Don't fail the entire operation, just log the error
+          } else {
+            console.log(`Updated ${rsvpEntries.length} RSVP invitations for guest ${guestId}`);
+          }
+        } else {
+          console.log(`Removed all RSVP invitations for guest ${guestId}`);
+        }
+      } catch (rsvpError) {
+        console.error("Error managing RSVP entries:", rsvpError);
+        // Don't fail the guest update operation
+      }
+    }
+
     return NextResponse.json({
       success: true,
       guest: updatedGuest

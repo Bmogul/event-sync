@@ -31,30 +31,6 @@ const EmailPortal = ({
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Guest management states
-  const [addMode, setAddMode] = useState("individual"); // 'individual' or 'group'
-  const [newGuest, setNewGuest] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    gender: "",
-    ageGroup: "",
-    tag: "",
-    selectedGroup: "",
-    subEventRSVPs: {},
-    isPointOfContact: true,
-    guestType: "single",
-    guestLimit: null,
-  });
-  const [newGroup, setNewGroup] = useState({
-    name: "",
-    members: [],
-  });
-  const [tempGroupMembers, setTempGroupMembers] = useState([]);
-  const [editingMemberIndex, setEditingMemberIndex] = useState(-1);
-  const [importMethod, setImportMethod] = useState("manual"); // 'manual' or 'upload'
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [editingGuest, setEditingGuest] = useState(null);
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pocTransferData, setPocTransferData] = useState(null);
 
@@ -70,12 +46,6 @@ const EmailPortal = ({
     "#ea580c",
   ];
 
-  // Guest type options
-  const guestTypes = [
-    { value: "single", label: "Single (Yes/No RSVP)", description: "Simple yes/no RSVP, response 1 or 0" },
-    { value: "multiple", label: "Multiple (Fixed limit)", description: "Dropdown RSVP with fixed number of guests (0 - limit)" },
-    { value: "variable", label: "Variable (Unlimited)", description: "Free-form number of guests (0 - ∞)" },
-  ];
 
   // Handle guest type change
   const handleGuestTypeChange = (guestType) => {
@@ -86,15 +56,6 @@ const EmailPortal = ({
     }));
   };
 
-  // Age group options
-  const ageGroups = [
-    { value: "infant", label: "Infant (0-2 years)", order: 1 },
-    { value: "child", label: "Child (3-12 years)", order: 2 },
-    { value: "teen", label: "Teenager (13-17 years)", order: 3 },
-    { value: "adult", label: "Adult (18-64 years)", order: 4 },
-    { value: "senior", label: "Senior (65+ years)", order: 5 },
-    { value: "unknown", label: "Age not specified", order: 6 },
-  ];
 
   // Fetch available email templates for this event
   useEffect(() => {
@@ -502,14 +463,6 @@ const EmailPortal = ({
             </button>
             <button
               type="button"
-              className={`${styles.btnGhost} ${styles.btnIcon}`}
-              onClick={() => handleEditGuest(guest)}
-              title="Edit guest"
-            >
-              ✏️
-            </button>
-            <button
-              type="button"
               className={`${styles.btnDanger} ${styles.btnIcon}`}
               onClick={() => handleRemoveGuest(guest.id)}
               title="Remove guest"
@@ -525,8 +478,8 @@ const EmailPortal = ({
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 role="img"
@@ -723,6 +676,13 @@ const EmailPortal = ({
     }
   };
 
+  // Handle select all POCs
+  const handleSelectAllPOCs = () => {
+    const pocGuests = filteredGuests.filter(guest => guest.isPointOfContact === true);
+    setSelectedRows(pocGuests);
+    toast(`Selected ${pocGuests.length} Point of Contact guests`);
+  };
+
   // Check if guest is selected
   const isGuestSelected = (guest) => {
     return selectedRows.some((g) => g.id === guest.id);
@@ -866,207 +826,10 @@ const EmailPortal = ({
     }
   };
 
-  // Guest Management Helper Functions
 
-  // Get existing groups for dropdown
-  const getExistingGroups = () => {
-    const groups = [
-      ...new Set(transformedGuestList.map((g) => g.group).filter(Boolean)),
-    ];
-    return groups.map((groupName) => ({
-      title: groupName,
-      size: transformedGuestList.filter((g) => g.group === groupName).length,
-    }));
-  };
 
-  // Check if a group already has a point of contact
-  const groupHasPOC = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(
-      (guest) => guest.group === groupTitle,
-    );
-    return groupGuests.some((guest) => guest.isPointOfContact === true);
-  };
 
-  // Get the current POC name for a group
-  const getCurrentPOCName = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(
-      (guest) => guest.group === groupTitle,
-    );
-    const pocGuest = groupGuests.find(
-      (guest) => guest.isPointOfContact === true,
-    );
-    return pocGuest?.name || null;
-  };
 
-  // Handle group selection change
-  const handleGroupSelectionChange = (selectedGroup) => {
-    setNewGuest((prev) => ({
-      ...prev,
-      selectedGroup,
-      isPointOfContact: selectedGroup
-        ? editingGuest && selectedGroup === editingGuest.group
-          ? prev.isPointOfContact
-          : false
-        : true,
-    }));
-  };
-
-  // Handle POC checkbox change with confirmation
-  const handlePOCChange = (checked) => {
-    if (
-      checked &&
-      newGuest.selectedGroup &&
-      groupHasPOC(newGuest.selectedGroup)
-    ) {
-      if (editingGuest && newGuest.selectedGroup === editingGuest.group) {
-        setNewGuest((prev) => ({
-          ...prev,
-          isPointOfContact: checked,
-        }));
-        return;
-      }
-
-      const currentPOCName = getCurrentPOCName(newGuest.selectedGroup);
-      setPocTransferData({
-        fromName: currentPOCName,
-        toName: newGuest.name,
-        groupName: newGuest.selectedGroup,
-      });
-      setShowPOCConfirmation(true);
-    } else {
-      setNewGuest((prev) => ({
-        ...prev,
-        isPointOfContact: checked,
-      }));
-    }
-  };
-
-  // Handle POC transfer confirmation
-  const handlePOCTransferConfirm = () => {
-    setNewGuest((prev) => ({
-      ...prev,
-      isPointOfContact: true,
-    }));
-    setShowPOCConfirmation(false);
-    setPocTransferData(null);
-  };
-
-  // Handle POC transfer cancellation
-  const handlePOCTransferCancel = () => {
-    setShowPOCConfirmation(false);
-    setPocTransferData(null);
-  };
-
-  // Handle adding/editing individual guest
-  const handleAddIndividualGuest = async () => {
-    if (!newGuest.name.trim()) {
-      toast("Guest name is required");
-      return;
-    }
-
-    // Create guest payload
-    const guestPayload = {
-      name: newGuest.name,
-      email: newGuest.email,
-      phone: newGuest.phone,
-      gender: newGuest.gender,
-      ageGroup: newGuest.ageGroup,
-      tag: newGuest.tag,
-      group: newGuest.selectedGroup || `${newGuest.name} (Individual)`,
-      isPointOfContact: newGuest.isPointOfContact || false,
-      subEventRSVPs: newGuest.subEventRSVPs,
-    };
-
-    try {
-      let response;
-
-      if (editingGuest) {
-        // Update existing guest
-        response = await fetch(
-          `/api/${params.eventID}/guests/${editingGuest.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              guest: guestPayload,
-            }),
-          },
-        );
-      } else {
-        // Create new guest
-        response = await fetch(`/api/${params.eventID}/guests`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            guests: [guestPayload],
-            event: event,
-          }),
-        });
-      }
-
-      if (response.ok) {
-        toast(
-          editingGuest
-            ? "Guest updated successfully!"
-            : "Guest added successfully!",
-        );
-        await getGuestList(event); // Refresh guest list
-        setShowGuestForm(false);
-        setEditingGuest(null);
-        setNewGuest({
-          name: "",
-          email: "",
-          phone: "",
-          gender: "",
-          ageGroup: "",
-          tag: "",
-          selectedGroup: "",
-          subEventRSVPs: {},
-          isPointOfContact: true,
-          guestType: "single",
-          guestLimit: null,
-        });
-      } else {
-        throw new Error(
-          editingGuest ? "Failed to update guest" : "Failed to add guest",
-        );
-      }
-    } catch (error) {
-      console.error(
-        editingGuest ? "Error updating guest:" : "Error adding guest:",
-        error,
-      );
-      toast(
-        editingGuest
-          ? "Failed to update guest. Please try again."
-          : "Failed to add guest. Please try again.",
-      );
-    }
-  };
-
-  // Handle editing a guest
-  const handleEditGuest = (guest) => {
-    setEditingGuest(guest);
-    setAddMode("individual");
-    setNewGuest({
-      name: guest.name,
-      email: guest.email,
-      phone: guest.phone || "",
-      gender: guest.gender || "",
-      ageGroup: guest.ageGroup || "",
-      tag: guest.tag || "",
-      selectedGroup: guest.group || "",
-      subEventRSVPs: guest.rsvpStatus || {},
-      isPointOfContact: guest.isPointOfContact || false,
-      guestType: guest.guestType || "single",
-      guestLimit: guest.guestLimit || null,
-    });
-    setShowGuestForm(true);
-  };
 
   // Handle removing a guest
   const handleRemoveGuest = async (guestId) => {
@@ -1077,6 +840,9 @@ const EmailPortal = ({
     try {
       const response = await fetch(`/api/${params.eventID}/guests/${guestId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.ok) {
@@ -1201,6 +967,7 @@ const EmailPortal = ({
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({
               guests: guestPayloads,
@@ -1599,6 +1366,13 @@ const EmailPortal = ({
             >
               👥 Age → Name
             </button>
+            <button 
+              className={styles.btnPrimarySmall}
+              onClick={handleSelectAllPOCs}
+              title="Select all Point of Contact guests"
+            >
+              👑 Select All POCs
+            </button>
           </div>
         </div>
 
@@ -1708,8 +1482,8 @@ const EmailPortal = ({
         )}
       </div>
 
-      {/* Guest Form Modal */}
-      {showGuestForm && (
+      {/* Guest Form Modal - REMOVED */}
+      {false && (
         <div className={styles.guestFormOverlay}>
           <div className={styles.guestFormModal}>
             <div className={styles.modalHeader}>
@@ -1750,13 +1524,12 @@ const EmailPortal = ({
             <div className={styles.modalContent}>
               {addMode === "individual" ? (
                 <>
+                  {/* Guest Information Section */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Guest Information
-                    </h4>
+                    <h4 className={styles.formSectionTitle}>Guest Information</h4>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Full Name *</label>
+                        <label className={styles.formLabel}>Name *</label>
                         <input
                           type="text"
                           className={styles.formInput}
@@ -1764,12 +1537,11 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, name: e.target.value })
                           }
-                          placeholder="Enter full name"
-                          required
+                          placeholder="Guest name"
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Email</label>
+                        <label className={styles.formLabel}>Email *</label>
                         <input
                           type="email"
                           className={styles.formInput}
@@ -1777,7 +1549,7 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, email: e.target.value })
                           }
-                          placeholder="email@example.com"
+                          placeholder="guest@example.com"
                         />
                       </div>
                       <div className={styles.formGroup}>
@@ -1813,33 +1585,13 @@ const EmailPortal = ({
                           className={styles.formSelect}
                           value={newGuest.ageGroup}
                           onChange={(e) =>
-                            setNewGuest({
-                              ...newGuest,
-                              ageGroup: e.target.value,
-                            })
+                            setNewGuest({ ...newGuest, ageGroup: e.target.value })
                           }
                         >
                           <option value="">Select age group</option>
                           {ageGroups.map((group) => (
                             <option key={group.value} value={group.value}>
                               {group.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Group</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.selectedGroup}
-                          onChange={(e) =>
-                            handleGroupSelectionChange(e.target.value)
-                          }
-                        >
-                          <option value="">Create new individual group</option>
-                          {getExistingGroups().map((group) => (
-                            <option key={group.title} value={group.title}>
-                              {group.title} ({group.size} members)
                             </option>
                           ))}
                         </select>
@@ -1853,8 +1605,23 @@ const EmailPortal = ({
                           onChange={(e) =>
                             setNewGuest({ ...newGuest, tag: e.target.value })
                           }
-                          placeholder="e.g., Bride's Side, College Friend"
+                          placeholder="e.g., Bride's Side"
                         />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Group</label>
+                        <select
+                          className={styles.formSelect}
+                          value={newGuest.selectedGroup}
+                          onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                        >
+                          <option value="">Create new individual group</option>
+                          {getExistingGroups().map((group) => (
+                            <option key={group.title} value={group.title}>
+                              {group.title} ({group.size} members)
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Guest Type</label>
@@ -1896,43 +1663,302 @@ const EmailPortal = ({
                   </div>
 
                   {/* Point of Contact Section */}
-                  <div className={styles.pointOfContactSection}>
-                    <label className={styles.pointOfContactLabel}>
+                  <div className={styles.formSectionGroup}>
+                    <label className={styles.checkboxOption}>
                       <input
                         type="checkbox"
                         checked={newGuest.isPointOfContact}
                         onChange={(e) => handlePOCChange(e.target.checked)}
                       />
-                      Mark as Point of Contact
-                      {newGuest.selectedGroup &&
-                        groupHasPOC(newGuest.selectedGroup) && (
-                          <span className={styles.pocWarning}>
-                            {" "}
-                            (Group already has a POC)
-                          </span>
-                        )}
+                      <span>Point of Contact</span>
                     </label>
-                    <div className={styles.pointOfContactHelp}>
-                      Point of contact will receive important updates and can
-                      help coordinate with their group
-                      {newGuest.selectedGroup &&
-                        groupHasPOC(newGuest.selectedGroup) && (
-                          <div className={styles.pocWarningText}>
-                            This group already has a POC (
-                            {getCurrentPOCName(newGuest.selectedGroup)}).
-                            Checking this box will transfer POC status to this
-                            guest.
-                          </div>
-                        )}
+                    <div className={styles.fieldHelp}>
+                      Point of contact will receive important updates and can help coordinate with their group
+                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
+                        <div className={styles.pocWarningText}>
+                          This group already has a POC ({getCurrentPOCName(newGuest.selectedGroup)}).
+                          Checking this box will transfer POC status to this guest.
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Sub-Event Selection */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                    {loadingSubEvents ? (
+                      <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                    ) : (
+                      <div className={styles.subEventGrid}>
+                        {subEvents.map((subEvent) => (
+                          <label key={subEvent.id} className={styles.checkboxOption}>
+                            <input
+                              type="checkbox"
+                              checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                              onChange={(e) => {
+                                const updated = { ...newGuest.subEventRSVPs };
+                                if (e.target.checked) {
+                                  updated[subEvent.id] = "invited";
+                                } else {
+                                  delete updated[subEvent.id];
+                                }
+                                setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                              }}
+                            />
+                            <span>{subEvent.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
-                <div className={styles.groupFormPlaceholder}>
-                  <h4>Group Creation Feature</h4>
-                  <p>Group creation functionality would be implemented here.</p>
-                  <p>For now, please use individual guest creation.</p>
-                </div>
+                <>
+                  {/* Group Name Section */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Group Information</h4>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Group Name *</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={newGroup.name}
+                          onChange={(e) =>
+                            setNewGroup({ ...newGroup, name: e.target.value })
+                          }
+                          placeholder="Enter group name"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Member Addition Form */}
+                  <div className={styles.formSectionGroup}>
+                    <h4 className={styles.formSectionTitle}>Add Group Members</h4>
+                    
+                    <div className={styles.memberForm}>
+                      <div className={styles.formGrid}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Name *</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={newGuest.name}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, name: e.target.value })
+                            }
+                            placeholder="Member name"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Email</label>
+                          <input
+                            type="email"
+                            className={styles.formInput}
+                            value={newGuest.email}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, email: e.target.value })
+                            }
+                            placeholder="member@example.com"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Phone</label>
+                          <input
+                            type="tel"
+                            className={styles.formInput}
+                            value={newGuest.phone}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, phone: e.target.value })
+                            }
+                            placeholder="+1 (555) 123-4567"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Gender</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.gender}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, gender: e.target.value })
+                            }
+                          >
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Age Group</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.ageGroup}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                            }
+                          >
+                            <option value="">Select age group</option>
+                            {ageGroups.map((group) => (
+                              <option key={group.value} value={group.value}>
+                                {group.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Tag/Side</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={newGuest.tag}
+                            onChange={(e) =>
+                              setNewGuest({ ...newGuest, tag: e.target.value })
+                            }
+                            placeholder="e.g., Bride's Side"
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Guest Type</label>
+                          <select
+                            className={styles.formSelect}
+                            value={newGuest.guestType}
+                            onChange={(e) => handleGuestTypeChange(e.target.value)}
+                          >
+                            {guestTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                          <div className={styles.fieldHelp}>
+                            {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                          </div>
+                        </div>
+                        {newGuest.guestType === "multiple" && (
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Guest Limit *</label>
+                            <input
+                              type="number"
+                              className={styles.formInput}
+                              value={newGuest.guestLimit || ""}
+                              onChange={(e) =>
+                                setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                              }
+                              placeholder="Enter maximum number of guests"
+                              min="0"
+                              required
+                            />
+                            <div className={styles.fieldHelp}>
+                              Maximum number of guests this person can bring (including themselves)
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={styles.memberFormActions}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.checkboxOption}>
+                            <input
+                              type="checkbox"
+                              checked={newGuest.isPointOfContact}
+                              onChange={(e) =>
+                                setNewGuest({ ...newGuest, isPointOfContact: e.target.checked })
+                              }
+                            />
+                            <span>Point of Contact</span>
+                          </label>
+                        </div>
+                        
+                        {/* Sub-Event Selection for Group */}
+                        <div className={styles.formSectionGroup}>
+                          <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                          {loadingSubEvents ? (
+                            <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                          ) : (
+                            <div className={styles.subEventGrid}>
+                              {subEvents.map((subEvent) => (
+                                <label key={subEvent.id} className={styles.checkboxOption}>
+                                  <input
+                                    type="checkbox"
+                                    checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                                    onChange={(e) => {
+                                      const updated = { ...newGuest.subEventRSVPs };
+                                      if (e.target.checked) {
+                                        updated[subEvent.id] = "invited";
+                                      } else {
+                                        delete updated[subEvent.id];
+                                      }
+                                      setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                                    }}
+                                  />
+                                  <span>{subEvent.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <button
+                          type="button"
+                          className={styles.btnSecondary}
+                          onClick={handleAddMemberToGroup}
+                        >
+                          {editingMemberIndex >= 0 ? "Update Member" : "Add to Group"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Members List */}
+                    {tempGroupMembers.length > 0 && (
+                      <div className={styles.membersList}>
+                        <h5 className={styles.membersListTitle}>
+                          Group Members ({tempGroupMembers.length})
+                        </h5>
+                        {tempGroupMembers.map((member, index) => (
+                          <div key={index} className={styles.memberCard}>
+                            <div className={styles.memberInfo}>
+                              <div className={styles.memberName}>
+                                {member.name}
+                                {member.isPointOfContact && (
+                                  <span className={styles.pocBadge}>POC</span>
+                                )}
+                              </div>
+                              <div className={styles.memberDetails}>
+                                {member.email} • {member.phone || "No phone"} • 
+                                {member.gender || "No gender"} • 
+                                {member.ageGroup ? 
+                                  ageGroups.find(group => group.value === member.ageGroup)?.label || member.ageGroup 
+                                  : "No age group"}
+                              </div>
+                              {member.tag && (
+                                <div className={styles.memberTag}>{member.tag}</div>
+                              )}
+                            </div>
+                            <div className={styles.memberActions}>
+                              <button
+                                type="button"
+                                className={styles.btnGhost}
+                                onClick={() => handleEditMember(index)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.btnDanger}
+                                onClick={() => handleRemoveMember(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
@@ -1966,11 +1992,21 @@ const EmailPortal = ({
                 onClick={() => {
                   if (editingGuest || addMode === "individual") {
                     handleAddIndividualGuest();
+                  } else if (addMode === "group") {
+                    handleCreateGroup();
                   }
                 }}
-                disabled={!newGuest.name.trim()}
+                disabled={
+                  addMode === "group" 
+                    ? !newGroup.name.trim() || tempGroupMembers.length === 0
+                    : !newGuest.name.trim()
+                }
               >
-                {editingGuest ? "Save Changes" : "Add Guest"}
+                {editingGuest 
+                  ? "Save Changes" 
+                  : addMode === "group" 
+                    ? "Create Group" 
+                    : "Add Guest"}
               </button>
             </div>
           </div>

@@ -1687,3 +1687,202 @@
     justify-content: center;
   }
 }
+
+/* Form styling to match create-event */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formLabel {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.formInput,
+.formSelect {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+  background: white;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.fieldHelp {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.formSectionGroup {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formSectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.checkboxOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+}
+
+.checkboxOption input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #7c3aed;
+}
+
+/* Member management styles */
+.memberForm {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.memberFormActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.membersList {
+  margin-top: 24px;
+}
+
+.membersListTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.memberCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.memberCard:hover {
+  border-color: #7c3aed;
+}
+
+.memberInfo {
+  flex: 1;
+}
+
+.memberName {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pocBadge {
+  background: #7c3aed;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.memberDetails {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.memberTag {
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.memberActions {
+  display: flex;
+  gap: 8px;
+}
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnGhost:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.btnDanger {
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnDanger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Sub-event grid styling */
+.subEventGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}

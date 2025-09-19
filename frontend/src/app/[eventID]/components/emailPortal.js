@@ -461,14 +461,14 @@ const EmailPortal = ({
             >
               📋
             </button>
-            <button
+            {/*<button
               type="button"
               className={`${styles.btnDanger} ${styles.btnIcon}`}
               onClick={() => handleRemoveGuest(guest.id)}
               title="Remove guest"
             >
               🗑️
-            </button>
+            </button>*/}
             <button
               type="button"
               className={`${styles.btnGhost} ${styles.btnIcon}`}
@@ -1053,7 +1053,7 @@ const EmailPortal = ({
           <h2 className={styles.sectionTitle}>Guest Management</h2>
           <div className={styles.sectionControls}>
             <div className={styles.addGuestActions}>
-              <button
+              {/*              <button
                 className={styles.btnOutlineSmall}
                 onClick={() => {
                   setAddMode("individual");
@@ -1085,7 +1085,7 @@ const EmailPortal = ({
                   onChange={handleFileUpload}
                   style={{ display: "none" }}
                 />
-              </label>
+              </label>*/}
             </div>
           </div>
         </div>

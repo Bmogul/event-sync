@@ -25,15 +25,21 @@ export async function GET(request) {
 
     if (profileError || !userProfile) {
       console.error("❌ Profile error:", profileError);
-      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 404 },
+      );
     }
 
     // Get public_id from query params
     const url = new URL(request.url);
-    const publicId = url.searchParams.get('public_id');
+    const publicId = url.searchParams.get("public_id");
 
     if (!publicId) {
-      return NextResponse.json({ error: "public_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "public_id is required" },
+        { status: 400 },
+      );
     }
 
     console.log("Fetching event details for public_id:", publicId);
@@ -41,17 +47,22 @@ export async function GET(request) {
     // Fetch main event
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select(`
+      .select(
+        `
         *,
         event_managers!inner(user_id, role_id)
-      `)
+      `,
+      )
       .eq("public_id", publicId)
       .eq("event_managers.user_id", userProfile.id)
       .single();
 
     if (eventError || !event) {
       console.error("❌ Event not found or unauthorized:", eventError);
-      return NextResponse.json({ error: "Event not found or unauthorized" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Event not found or unauthorized" },
+        { status: 404 },
+      );
     }
 
     // Fetch sub-events
@@ -71,34 +82,36 @@ export async function GET(request) {
     // Fetch guests
     let guests = [];
     let guestsError = null;
-    
+
     console.log("Fetching guests for event ID:", event.id);
-    
+
     if (guestGroups && guestGroups.length > 0) {
-      const guestGroupIds = guestGroups.map(g => g.id);
+      const guestGroupIds = guestGroups.map((g) => g.id);
       console.log("Guest group IDs to fetch guests for:", guestGroupIds);
-      
+
       const { data: guestData, error: guestFetchError } = await supabase
         .from("guests")
-        .select(`
+        .select(
+          `
           *,
           guest_groups(id, title),
           guest_gender(id, state),
           guest_age_group(id, state),
           rsvps(subevent_id, status_id, response)
-        `)
+        `,
+        )
         .in("group_id", guestGroupIds)
         .order("created_at");
-      
+
       guests = guestData || [];
       guestsError = guestFetchError;
-      
+
       console.log("Guest fetch result:", {
         success: !guestFetchError,
         count: guests.length,
-        error: guestFetchError?.message
+        error: guestFetchError?.message,
       });
-      
+
       if (guestFetchError) {
         console.error("Guest fetch error:", guestFetchError);
       }
@@ -127,7 +140,9 @@ export async function GET(request) {
       requireRSVP: event.details?.require_rsvp || true,
       allowPlusOnes: event.details?.allow_plus_ones || false,
       rsvpDeadline: event.details?.rsvp_deadline || "",
-      timezone: event.details?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone:
+        event.details?.timezone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
 
       // Transform sub-events
       subEvents: subEvents?.map((se, index) => ({
@@ -139,106 +154,137 @@ export async function GET(request) {
         endTime: se.end_time || "",
         location: se.venue_address || "",
         maxGuests: se.capacity || "",
-        timezone: event.details?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone:
+          event.details?.timezone ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
         isRequired: se.details?.is_required || true,
         image: se.image_url || null,
-      })) || [{
-        id: 1,
-        title: '',
-        description: '',
-        date: '',
-        startTime: '',
-        endTime: '',
-        location: '',
-        maxGuests: '',
-        timezone: event.details?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        isRequired: true,
-      }],
+      })) || [
+        {
+          id: 1,
+          title: "",
+          description: "",
+          date: "",
+          startTime: "",
+          endTime: "",
+          location: "",
+          maxGuests: "",
+          timezone:
+            event.details?.timezone ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          isRequired: true,
+        },
+      ],
 
       // Transform guest groups
-      guestGroups: guestGroups?.map(group => {
-        // Calculate actual size by counting guests in this group
-        // Check both guest_groups.id and direct group_id for flexibility
-        const groupGuests = guests?.filter(guest => 
-          guest.group_id === group.id || guest.guest_groups?.id === group.id
-        ) || [];
-        
-        // Find point of contact - now stored as boolean on individual guests
-        const pocGuest = groupGuests.find(guest => guest.point_of_contact === true);
-        
-        console.log(`Group "${group.title}" (ID: ${group.id}) has ${groupGuests.length} guests, POC: ${pocGuest ? pocGuest.name + ' (' + pocGuest.public_id + ')' : 'none'}`);
-        
-        return {
-          id: group.id,
-          name: group.title,  // Frontend uses 'name' for display/input
-          title: group.title, // Frontend also uses 'title' for lookups
-          description: group.details?.description || "",
-          maxSize: group.size_limit === -1 ? "" : group.size_limit,
-          size: groupGuests.length, // Actual count of guests in this group
-          color: group.details?.color || "#7c3aed",
-          point_of_contact: pocGuest ? pocGuest.public_id : null // POC public_id if exists
-        };
-      }) || [],
+      guestGroups:
+        guestGroups?.map((group) => {
+          // Calculate actual size by counting guests in this group
+          // Check both guest_groups.id and direct group_id for flexibility
+          const groupGuests =
+            guests?.filter(
+              (guest) =>
+                guest.group_id === group.id ||
+                guest.guest_groups?.id === group.id,
+            ) || [];
+
+          // Find point of contact - now stored as boolean on individual guests
+          const pocGuest = groupGuests.find(
+            (guest) => guest.point_of_contact === true,
+          );
+
+          console.log(
+            `Group "${group.title}" (ID: ${group.id}) has ${groupGuests.length} guests, POC: ${pocGuest ? pocGuest.name + " (" + pocGuest.public_id + ")" : "none"}`,
+          );
+
+          return {
+            id: group.id,
+            name: group.title, // Frontend uses 'name' for display/input
+            title: group.title, // Frontend also uses 'title' for lookups
+            description: group.details?.description || "",
+            maxSize: group.size_limit === -1 ? "" : group.size_limit,
+            size: groupGuests.length, // Actual count of guests in this group
+            color: group.details?.color || "#7c3aed",
+            point_of_contact: pocGuest ? pocGuest.public_id : null, // POC public_id if exists
+          };
+        }) || [],
 
       // Transform guests
-      guests: guests?.map(guest => {
-        // Transform RSVPs back to frontend format
-        const subEventRSVPs = {};
-        if (guest.rsvps && guest.rsvps.length > 0) {
-          guest.rsvps.forEach(rsvp => {
-            // Status 1 = pending, which means they were invited
-            if (rsvp.status_id === 1) {
-              subEventRSVPs[rsvp.subevent_id] = "invited";
-            }
-          });
-        }
+      guests:
+        guests?.map((guest) => {
+          // Transform RSVPs back to frontend format
+          const subEventRSVPs = {};
+          if (guest.rsvps && guest.rsvps.length > 0) {
+            guest.rsvps.forEach((rsvp) => {
+              // Status 1 = pending, which means they were invited
+              if (rsvp.status_id === 1) {
+                subEventRSVPs[rsvp.subevent_id] = "invited";
+              }
+            });
+          }
 
-        const guestData = {
-          id: guest.id,
-          public_id: guest.public_id, // Include public_id for frontend POC matching
-          name: guest.name,
-          email: guest.email || "",
-          phone: guest.phone || "",
-          tag: guest.tag || "",
-          group: guest.guest_groups?.title || "",
-          group_id: guest.group_id,
-          gender: guest.guest_gender?.state || "",
-          ageGroup: guest.guest_age_group?.state || "",
-          isPointOfContact: guest.point_of_contact || false, // Include POC boolean status
-          subEventRSVPs: subEventRSVPs // Include transformed RSVPs
-        };
-        
-        console.log(`Guest "${guest.name}" -> Group: "${guestData.group}" (group_id: ${guest.group_id}, public_id: ${guest.public_id}, POC: ${guest.point_of_contact}) -> RSVPs: ${Object.keys(subEventRSVPs).length}`);
-        return guestData;
-      }) || [],
+          const guestData = {
+            id: guest.id,
+            public_id: guest.public_id, // Include public_id for frontend POC matching
+            name: guest.name,
+            email: guest.email || "",
+            phone: guest.phone || "",
+            tag: guest.tag || "",
+            group: guest.guest_groups?.title || "",
+            group_id: guest.group_id,
+            gender: guest.guest_gender?.state || "",
+            ageGroup: guest.guest_age_group?.state || "",
+            isPointOfContact: guest.point_of_contact || false, // Include POC boolean status
+            subEventRSVPs: subEventRSVPs, // Include transformed RSVPs
+          };
+
+          console.log(
+            `Guest "${guest.name}" -> Group: "${guestData.group}" (group_id: ${guest.group_id}, public_id: ${guest.public_id}, POC: ${guest.point_of_contact}) -> RSVPs: ${Object.keys(subEventRSVPs).length}`,
+          );
+          return guestData;
+        }) || [],
 
       // Transform RSVP settings
-      rsvpSettings: landingConfig ? {
-        pageTitle: landingConfig.title || "You're Invited!",
-        subtitle: landingConfig.greeting_config?.subtitle || "Join us for our special event",
-        welcomeMessage: landingConfig.greeting_config?.message || "Welcome!",
-        theme: landingConfig.greeting_config?.theme || 'elegant',
-        fontFamily: landingConfig.greeting_config?.font_family || 'Playfair Display',
-        backgroundColor: landingConfig.greeting_config?.background_color || '#faf5ff',
-        textColor: landingConfig.greeting_config?.text_color || '#581c87',
-        primaryColor: landingConfig.greeting_config?.primary_color || '#7c3aed',
-        customQuestions: landingConfig.rsvp_config?.custom_questions || ['dietary', 'message'],
-        backgroundImage: landingConfig.greeting_config?.background_image || null,
-        backgroundOverlay: landingConfig.greeting_config?.background_overlay || 20,
-        logo: landingConfig.logo || null
-      } : {
-        pageTitle: "You're Invited!",
-        subtitle: "Join us for our special celebration",
-        welcomeMessage: "We're so excited to celebrate with you! Please let us know if you can make it.",
-        theme: 'elegant',
-        fontFamily: 'Playfair Display',
-        backgroundColor: '#faf5ff',
-        textColor: '#581c87',
-        primaryColor: '#7c3aed',
-        customQuestions: ['dietary', 'message'],
-        backgroundImage: null,
-        backgroundOverlay: 20
-      }
+      rsvpSettings: landingConfig
+        ? {
+            pageTitle: landingConfig.title || "You're Invited!",
+            subtitle:
+              landingConfig.greeting_config?.subtitle ||
+              "Join us for our special event",
+            welcomeMessage:
+              landingConfig.greeting_config?.message || "Welcome!",
+            theme: landingConfig.greeting_config?.theme || "elegant",
+            fontFamily:
+              landingConfig.greeting_config?.font_family || "Playfair Display",
+            backgroundColor:
+              landingConfig.greeting_config?.background_color || "#faf5ff",
+            textColor: landingConfig.greeting_config?.text_color || "#581c87",
+            primaryColor:
+              landingConfig.greeting_config?.primary_color || "#7c3aed",
+            customQuestions: landingConfig.rsvp_config?.custom_questions || [
+              "dietary",
+              "message",
+            ],
+            backgroundImage:
+              landingConfig.greeting_config?.background_image || null,
+            backgroundOverlay:
+              landingConfig.greeting_config?.background_overlay || 20,
+            logo: landingConfig.logo || null,
+          }
+        : {
+            pageTitle: "You're Invited!",
+            subtitle: "Join us for our special celebration",
+            welcomeMessage:
+              "We're so excited to celebrate with you! Please let us know if you can make it.",
+            theme: "elegant",
+            fontFamily: "Playfair Display",
+            backgroundColor: "#faf5ff",
+            textColor: "#581c87",
+            primaryColor: "#7c3aed",
+            customQuestions: ["dietary", "message"],
+            backgroundImage: null,
+            backgroundOverlay: 20,
+          },
     };
 
     console.log("✓ Event data loaded successfully");
@@ -248,46 +294,52 @@ export async function GET(request) {
     console.log("  - Guest groups count:", guestGroups?.length || 0);
     console.log("  - Guests count:", guests?.length || 0);
     console.log("  - Landing config:", !!landingConfig);
-    
+
     if (guestGroups?.length > 0) {
-      console.log("Raw guest groups:", guestGroups.map(g => ({ id: g.id, title: g.title })));
+      console.log(
+        "Raw guest groups:",
+        guestGroups.map((g) => ({ id: g.id, title: g.title })),
+      );
     }
-    
+
     if (guests?.length > 0) {
-      console.log("Raw guests:", guests.map(g => ({ 
-        id: g.id, 
-        name: g.name, 
-        group_id: g.group_id,
-        guest_groups: g.guest_groups 
-      })));
+      console.log(
+        "Raw guests:",
+        guests.map((g) => ({
+          id: g.id,
+          name: g.name,
+          group_id: g.group_id,
+          guest_groups: g.guest_groups,
+        })),
+      );
     }
-    
+
     console.log("Transformed event data structure:");
     console.log("  - Guest groups:", eventData.guestGroups?.length || 0);
     console.log("  - Guests:", eventData.guests?.length || 0);
 
     return NextResponse.json({
       success: true,
-      event: eventData
+      event: eventData,
     });
-
   } catch (error) {
     console.error("=== EVENT FETCH FAILED ===");
     console.error("Error:", error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Failed to fetch event details. Please try again.",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(request) {
   console.log("=== NEW EVENTS API START ===");
-  
+
   try {
     const supabase = createClient();
 
@@ -315,7 +367,10 @@ export async function POST(request) {
 
     if (profileError || !userProfile) {
       console.error("❌ Profile error:", profileError);
-      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 404 },
+      );
     }
 
     console.log("✓ User profile found:", userProfile.id);
@@ -323,7 +378,7 @@ export async function POST(request) {
     // Parse request data
     console.log("Step 3: Parsing request data...");
     const eventData = await request.json();
-    const action = eventData.status || 'draft';
+    const action = eventData.status || "draft";
 
     console.log("✓ Event data received:");
     console.log("  - Title:", eventData.title);
@@ -331,12 +386,14 @@ export async function POST(request) {
     console.log("  - Guest Groups:", eventData.guestGroups?.length || 0);
     console.log("  - Guests:", eventData.guests?.length || 0);
     console.log("  - Has RSVP Settings:", !!eventData.rsvpSettings);
-    
+
     // Debug: Log the raw guest data received from frontend
     console.log("=== RAW GUEST DATA RECEIVED FROM FRONTEND ===");
     if (eventData.guests && eventData.guests.length > 0) {
       eventData.guests.forEach((guest, index) => {
-        console.log(`Raw Guest ${index + 1}: "${guest.name}" | isPointOfContact: ${guest.isPointOfContact} | Group: "${guest.group}"`);
+        console.log(
+          `Raw Guest ${index + 1}: "${guest.name}" | isPointOfContact: ${guest.isPointOfContact} | Group: "${guest.group}"`,
+        );
       });
     } else {
       console.log("No guests received from frontend");
@@ -346,7 +403,10 @@ export async function POST(request) {
     // Validate only required fields
     if (!eventData.title) {
       console.error("❌ Validation failed: Title is required");
-      return NextResponse.json({ error: "Event title is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Event title is required" },
+        { status: 400 },
+      );
     }
 
     console.log("✓ Validation passed");
@@ -369,11 +429,14 @@ export async function POST(request) {
         require_rsvp: eventData.requireRSVP || false,
         allow_plus_ones: eventData.allowPlusOnes || false,
         rsvp_deadline: eventData.rsvpDeadline || null,
-      }
+      },
     };
 
     // Check if event already exists by public_id
-    console.log("Checking for existing event with public_id:", eventData.public_id);
+    console.log(
+      "Checking for existing event with public_id:",
+      eventData.public_id,
+    );
     const { data: existingEvent, error: existingEventError } = await supabase
       .from("events")
       .select("id")
@@ -381,10 +444,10 @@ export async function POST(request) {
       .single();
 
     let createdEvent;
-    
+
     if (existingEvent && !existingEventError) {
       console.log("✓ Found existing event, updating...", existingEvent.id);
-      
+
       // Update existing event
       const { data: updatedEvent, error: updateError } = await supabase
         .from("events")
@@ -401,8 +464,11 @@ export async function POST(request) {
       createdEvent = updatedEvent;
       console.log("✓ Event updated successfully:", createdEvent.id);
     } else {
-      console.log("Creating new event with payload:", JSON.stringify(eventPayload, null, 2));
-      
+      console.log(
+        "Creating new event with payload:",
+        JSON.stringify(eventPayload, null, 2),
+      );
+
       // Create new event
       const { data: newEvent, error: eventError } = await supabase
         .from("events")
@@ -446,37 +512,39 @@ export async function POST(request) {
     // Step 6: Handle sub-events (only if they have titles)
     if (eventData.subEvents && eventData.subEvents.length > 0) {
       console.log("Step 6: Handling sub-events...");
-      
-      const validSubEvents = eventData.subEvents.filter(subEvent => subEvent.title && subEvent.title.trim());
-      
+
+      const validSubEvents = eventData.subEvents.filter(
+        (subEvent) => subEvent.title && subEvent.title.trim(),
+      );
+
       if (validSubEvents.length > 0) {
         if (existingEvent && !existingEventError) {
           // For existing events, update/insert/delete sub-events to preserve IDs
           console.log("Updating existing sub-events...");
-          
+
           // Get existing sub-events
           const { data: existingSubEvents, error: fetchError } = await supabase
             .from("subevents")
             .select("*")
             .eq("event_id", createdEvent.id)
             .order("created_at");
-            
+
           if (fetchError) {
             console.error("Error fetching existing sub-events:", fetchError);
             throw fetchError;
           }
-          
+
           const existingSubEventsMap = new Map();
-          (existingSubEvents || []).forEach(se => {
+          (existingSubEvents || []).forEach((se) => {
             existingSubEventsMap.set(se.id, se);
           });
-          
+
           // Track which sub-events to update/insert
           const subEventsToUpdate = [];
           const subEventsToInsert = [];
           const processedIds = new Set();
-          
-          validSubEvents.forEach(subEvent => {
+
+          validSubEvents.forEach((subEvent) => {
             // If sub-event has an ID and exists in DB, update it
             if (subEvent.id && existingSubEventsMap.has(subEvent.id)) {
               subEventsToUpdate.push({
@@ -487,12 +555,14 @@ export async function POST(request) {
                 start_time: subEvent.startTime || null,
                 end_time: subEvent.endTime || null,
                 venue_address: subEvent.location || null,
-                capacity: subEvent.maxGuests ? parseInt(subEvent.maxGuests) : null,
+                capacity: subEvent.maxGuests
+                  ? parseInt(subEvent.maxGuests)
+                  : null,
                 status_id: action === "published" ? 2 : 1,
                 details: {
                   description: subEvent.description || null,
                   is_required: subEvent.isRequired || false,
-                }
+                },
               });
               processedIds.add(subEvent.id);
             } else {
@@ -504,73 +574,81 @@ export async function POST(request) {
                 start_time: subEvent.startTime || null,
                 end_time: subEvent.endTime || null,
                 venue_address: subEvent.location || null,
-                capacity: subEvent.maxGuests ? parseInt(subEvent.maxGuests) : null,
+                capacity: subEvent.maxGuests
+                  ? parseInt(subEvent.maxGuests)
+                  : null,
                 status_id: action === "published" ? 2 : 1,
                 details: {
                   description: subEvent.description || null,
                   is_required: subEvent.isRequired || false,
-                }
+                },
               });
             }
           });
-          
+
           // Delete sub-events that are no longer in the frontend data
           const subEventIdsToDelete = [];
-          existingSubEvents.forEach(se => {
+          existingSubEvents.forEach((se) => {
             if (!processedIds.has(se.id)) {
               subEventIdsToDelete.push(se.id);
             }
           });
-          
+
           // Perform updates
           if (subEventsToUpdate.length > 0) {
-            console.log(`Updating ${subEventsToUpdate.length} existing sub-events...`);
+            console.log(
+              `Updating ${subEventsToUpdate.length} existing sub-events...`,
+            );
             for (const subEvent of subEventsToUpdate) {
               const { id, ...updateData } = subEvent;
               const { error: updateError } = await supabase
                 .from("subevents")
                 .update(updateData)
                 .eq("id", id);
-                
+
               if (updateError) {
                 console.error(`Error updating sub-event ${id}:`, updateError);
                 throw updateError;
               }
             }
           }
-          
+
           // Perform inserts
           if (subEventsToInsert.length > 0) {
-            console.log(`Inserting ${subEventsToInsert.length} new sub-events...`);
+            console.log(
+              `Inserting ${subEventsToInsert.length} new sub-events...`,
+            );
             const { error: insertError } = await supabase
               .from("subevents")
               .insert(subEventsToInsert);
-              
+
             if (insertError) {
               console.error("Error inserting new sub-events:", insertError);
               throw insertError;
             }
           }
-          
+
           // Perform deletes
           if (subEventIdsToDelete.length > 0) {
-            console.log(`Deleting ${subEventIdsToDelete.length} removed sub-events...`);
+            console.log(
+              `Deleting ${subEventIdsToDelete.length} removed sub-events...`,
+            );
             const { error: deleteError } = await supabase
               .from("subevents")
               .delete()
               .in("id", subEventIdsToDelete);
-              
+
             if (deleteError) {
               console.error("Error deleting removed sub-events:", deleteError);
               throw deleteError;
             }
           }
-          
+
           console.log("✓ Sub-events updated successfully");
         } else {
           // For new events, just insert all sub-events
           console.log("Creating new sub-events...");
-          const subEventPayloads = validSubEvents.map(subEvent => ({
+          const subEventPayloads = validSubEvents.map((subEvent) => ({
             event_id: createdEvent.id,
             title: subEvent.title,
             event_date: subEvent.date || null,
@@ -582,13 +660,11 @@ export async function POST(request) {
             details: {
               description: subEvent.description || null,
               is_required: subEvent.isRequired || false,
-            }
+            },
           }));
 
-          const { data: createdSubEvents, error: subEventError } = await supabase
-            .from("subevents")
-            .insert(subEventPayloads)
-            .select();
+          const { data: createdSubEvents, error: subEventError } =
+            await supabase.from("subevents").insert(subEventPayloads).select();
 
           if (subEventError) {
             console.error("❌ Sub-event creation error:", subEventError);
@@ -602,112 +678,140 @@ export async function POST(request) {
 
     // Step 7: Handle guest groups and guests
     console.log("Step 7: Handling guest groups and guests...");
-    
+
     // For existing events, delete old guest groups (and their guests) first
     if (existingEvent && !existingEventError) {
       console.log("Deleting existing guest groups and guests...");
-      await supabase.from("guest_groups").delete().eq("event_id", createdEvent.id);
+      await supabase
+        .from("guest_groups")
+        .delete()
+        .eq("event_id", createdEvent.id);
     }
-    
+
     // Check if we have guests that need groups (only name is required)
-    const hasGuests = eventData.guests && eventData.guests.length > 0 && 
-      eventData.guests.some(guest => {
-        const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+    const hasGuests =
+      eventData.guests &&
+      eventData.guests.length > 0 &&
+      eventData.guests.some((guest) => {
+        const name =
+          guest.name ||
+          [guest.firstName, guest.lastName].filter(Boolean).join(" ");
         const hasValidName = name && name.trim();
         return hasValidName; // Only name is required, no contact info needed
       });
-    
+
     // Check if we have valid guest groups from eventData.guestGroups
-    const validGroups = (eventData.guestGroups || []).filter(group => group.name && group.name.trim());
-    
+    const validGroups = (eventData.guestGroups || []).filter(
+      (group) => group.name && group.name.trim(),
+    );
+
     // Also extract unique groups from guest assignments
     const guestGroupNames = new Set();
     if (eventData.guests && eventData.guests.length > 0) {
-      eventData.guests.forEach(guest => {
+      eventData.guests.forEach((guest) => {
         if (guest.group && guest.group.trim()) {
           guestGroupNames.add(guest.group.trim());
         }
       });
     }
-    
+
     console.log("Guest data analysis:");
     console.log("  - Raw guest groups:", eventData.guestGroups?.length || 0);
     console.log("  - Valid guest groups:", validGroups.length);
     console.log("  - Has guests needing groups:", hasGuests);
-    console.log("  - Unique guest group names from assignments:", Array.from(guestGroupNames));
-    
+    console.log(
+      "  - Unique guest group names from assignments:",
+      Array.from(guestGroupNames),
+    );
+
     if (eventData.guests && eventData.guests.length > 0) {
       console.log("Guest details:");
       eventData.guests.forEach((guest, index) => {
-        const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
-        console.log(`  Guest ${index + 1}: "${name}" | Email: "${guest.email || 'none'}" | Phone: "${guest.phone || 'none'}" | Group: "${guest.group || 'none'}" | POC: ${guest.isPointOfContact || false}`);
+        const name =
+          guest.name ||
+          [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+        console.log(
+          `  Guest ${index + 1}: "${name}" | Email: "${guest.email || "none"}" | Phone: "${guest.phone || "none"}" | Group: "${guest.group || "none"}" | POC: ${guest.isPointOfContact || false}`,
+        );
       });
     }
-    
+
     // Create groups based on predefined groups OR discovered group names from guests
     let groupsToCreate = [];
-    
+
     if (validGroups.length > 0) {
       // Use predefined guest groups
       groupsToCreate = validGroups;
     } else if (guestGroupNames.size > 0) {
       // Create groups based on guest assignments
-      groupsToCreate = Array.from(guestGroupNames).map(groupName => ({
+      groupsToCreate = Array.from(guestGroupNames).map((groupName) => ({
         name: groupName,
         description: "Auto-created from guest assignments",
         maxSize: "",
-        color: "#7c3aed"
+        color: "#7c3aed",
       }));
     } else if (hasGuests) {
       // Fallback to default group
-      groupsToCreate = [{ name: "All Guests", description: "Default guest group", maxSize: "", color: "#7c3aed" }];
+      groupsToCreate = [
+        {
+          name: "All Guests",
+          description: "Default guest group",
+          maxSize: "",
+          color: "#7c3aed",
+        },
+      ];
     }
-    
+
     console.log("  - Groups to create:", groupsToCreate.length);
-    console.log("  - Group names to create:", groupsToCreate.map(g => g.name));
-    
+    console.log(
+      "  - Group names to create:",
+      groupsToCreate.map((g) => g.name),
+    );
+
     let createdGroups = [];
-    
+
     if (groupsToCreate.length > 0) {
-        const groupPayloads = groupsToCreate.map(group => ({
-          event_id: createdEvent.id,
-          title: group.name,
-          size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
-          status_id: 1,
-          details: {
-            description: group.description || null,
-            color: group.color || "#7c3aed"
-          }
-        }));
+      const groupPayloads = groupsToCreate.map((group) => ({
+        event_id: createdEvent.id,
+        title: group.name,
+        size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
+        status_id: 1,
+        details: {
+          description: group.description || null,
+          color: group.color || "#7c3aed",
+        },
+      }));
 
-        console.log("Creating guest groups:", groupPayloads.length);
+      console.log("Creating guest groups:", groupPayloads.length);
 
-        const { data: groupResults, error: groupError } = await supabase
-          .from("guest_groups")
-          .insert(groupPayloads)
-          .select();
+      const { data: groupResults, error: groupError } = await supabase
+        .from("guest_groups")
+        .insert(groupPayloads)
+        .select();
 
-        if (groupError) {
-          console.error("❌ Guest group creation error:", groupError);
-          throw groupError;
-        }
+      if (groupError) {
+        console.error("❌ Guest group creation error:", groupError);
+        throw groupError;
+      }
 
-        createdGroups = groupResults;
-        console.log("✓ Guest groups created:", createdGroups.length);
+      createdGroups = groupResults;
+      console.log("✓ Guest groups created:", createdGroups.length);
     }
 
     // Step 8: Create guests (only if they have names and we have groups)
     if (hasGuests && createdGroups.length > 0) {
       console.log("Step 8: Creating guests...");
-      
-      const validGuests = eventData.guests.filter(guest => {
-        const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+
+      const validGuests = eventData.guests.filter((guest) => {
+        const name =
+          guest.name ||
+          [guest.firstName, guest.lastName].filter(Boolean).join(" ");
         const hasValidName = name && name.trim();
-        
+
         if (!hasValidName) {
           console.warn(`Guest skipped - missing or empty name`);
         }
-        
+
         return hasValidName; // Only name is required
       });
 
@@ -716,7 +820,7 @@ export async function POST(request) {
         const { data: genderLookup, error: genderError } = await supabase
           .from("guest_gender")
           .select("id, state");
-        
+
         const { data: ageGroupLookup, error: ageGroupError } = await supabase
           .from("guest_age_group")
           .select("id, state");
@@ -725,7 +829,7 @@ export async function POST(request) {
           console.error("Error fetching gender lookup:", genderError);
           throw genderError;
         }
-        
+
         if (ageGroupError) {
           console.error("Error fetching age group lookup:", ageGroupError);
           throw ageGroupError;
@@ -748,14 +852,16 @@ export async function POST(request) {
         // Helper function to get gender ID from string
         const getGenderIdFromString = (genderString) => {
           if (!genderString || !genderString.trim()) return null;
-          
+
           const normalizedGender = genderString.toLowerCase().trim();
-          
+
           // Map common frontend values to database states
-          if (normalizedGender === 'male' || normalizedGender === 'm') return genderMap['male'];
-          if (normalizedGender === 'female' || normalizedGender === 'f') return genderMap['female'];
-          if (normalizedGender === 'other') return genderMap['other'];
-          
+          if (normalizedGender === "male" || normalizedGender === "m")
+            return genderMap["male"];
+          if (normalizedGender === "female" || normalizedGender === "f")
+            return genderMap["female"];
+          if (normalizedGender === "other") return genderMap["other"];
+
           // Direct lookup
           return genderMap[normalizedGender] || null;
         };
@@ -763,7 +869,7 @@ export async function POST(request) {
         // Helper function to get age group ID from string
         const getAgeGroupIdFromString = (ageGroupString) => {
           if (!ageGroupString || !ageGroupString.trim()) return null;
-          
+
           const normalizedAgeGroup = ageGroupString.toLowerCase().trim();
           return ageGroupMap[normalizedAgeGroup] || null;
         };
@@ -781,271 +887,381 @@ export async function POST(request) {
         console.log("Group mapping:", groupMap);
         console.log("Default group ID:", defaultGroupId);
         console.log("Created groups details:");
-        createdGroups.forEach(group => {
+        createdGroups.forEach((group) => {
           console.log(`  Group ID ${group.id}: title="${group.title}"`);
         });
 
-        const guestPayloads = validGuests.map(guest => {
-          const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
-          
-          // Try to find group by name, fallback to default
-          let groupId = defaultGroupId;
-          if (guest.group && guest.group.trim()) {
-            groupId = groupMap[guest.group.trim()] || defaultGroupId;
-          }
-          
-          // Map gender and age group to their IDs
-          const genderId = getGenderIdFromString(guest.gender);
-          const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
-          
-          console.log(`Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId}`);
-          return {
-            group_id: groupId,
-            public_id: guest.public_id || crypto.randomUUID(), // Use frontend public_id or generate new one
-            name: name,
-            email: guest.email && guest.email.trim() ? guest.email.trim() : null,
-            phone: guest.phone && guest.phone.trim() ? guest.phone.trim() : null,
-            tag: guest.tag || null,
-            gender_id: genderId,
-            age_group_id: ageGroupId,
-            point_of_contact: guest.isPointOfContact || false // Store POC as boolean on guest record
-          };
-        }).filter(guest => {
-          if (!guest.group_id) {
-            console.warn(`Guest "${guest.name}" skipped - no valid group_id`);
-            return false;
-          }
-          return true;
-        });
+        const guestPayloads = validGuests
+          .map((guest) => {
+            const name =
+              guest.name ||
+              [guest.firstName, guest.lastName].filter(Boolean).join(" ");
 
-        console.log("Creating guests:", guestPayloads.length, "out of", validGuests.length, "valid guests");
+            // Try to find group by name, fallback to default
+            let groupId = defaultGroupId;
+            if (guest.group && guest.group.trim()) {
+              groupId = groupMap[guest.group.trim()] || defaultGroupId;
+            }
+
+            // Map gender and age group to their IDs
+            const genderId = getGenderIdFromString(guest.gender);
+            const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+
+            console.log(
+              `Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId}`,
+            );
+            return {
+              group_id: groupId,
+              public_id: guest.public_id || crypto.randomUUID(), // Use frontend public_id or generate new one
+              name: name,
+              email:
+                guest.email && guest.email.trim() ? guest.email.trim() : null,
+              phone:
+                guest.phone && guest.phone.trim() ? guest.phone.trim() : null,
+              tag: guest.tag || null,
+              gender_id: genderId,
+              age_group_id: ageGroupId,
+              point_of_contact: guest.isPointOfContact || false, // Store POC as boolean on guest record
+            };
+          })
+          .filter((guest) => {
+            if (!guest.group_id) {
+              console.warn(`Guest "${guest.name}" skipped - no valid group_id`);
+              return false;
+            }
+            return true;
+          });
+
+        console.log(
+          "Creating guests:",
+          guestPayloads.length,
+          "out of",
+          validGuests.length,
+          "valid guests",
+        );
         console.log("=== GUEST PAYLOADS FOR DATABASE ===");
         guestPayloads.forEach((payload, index) => {
-          console.log(`Guest ${index + 1}: "${payload.name}" | POC: ${payload.point_of_contact} | Group ID: ${payload.group_id}`);
+          console.log(
+            `Guest ${index + 1}: "${payload.name}" | POC: ${payload.point_of_contact} | Group ID: ${payload.group_id}`,
+          );
         });
         console.log("=== END GUEST PAYLOADS ===");
 
         if (guestPayloads.length > 0) {
           // Step 8a: Check for potential duplicates before saving
           console.log("Step 8a: Checking for potential duplicate guests...");
-          
+
           // Get existing guests for this event if it's an update
           let existingGuests = [];
           if (existingEvent && !existingEventError) {
-            const { data: existingGuestsData, error: existingGuestsError } = await supabase
-              .from("guests")
-              .select(`
-                id, name, group_id, point_of_contact,
-                guest_groups!inner(title),
-                guest_gender(state),
-                guest_age_group(state)
-              `)
-              .eq("guest_groups.event_id", createdEvent.id);
-              
+            const { data: existingGuestsData, error: existingGuestsError } =
+              await supabase
+                .from("guests")
+                .select(
+                  `
+      id, name, group_id, point_of_contact,
+      guest_groups!inner(title),
+      guest_gender(state),
+      guest_age_group(state)
+    `,
+                )
+                .eq("guest_groups.event_id", createdEvent.id);
+
             if (existingGuestsError) {
-              console.error("Error fetching existing guests:", existingGuestsError);
+              console.error(
+                "Error fetching existing guests:",
+                existingGuestsError,
+              );
             } else {
               existingGuests = existingGuestsData || [];
             }
           }
-          
-          // Check for duplicates (same name + same group)
+
+          // Filter out guests that already have database IDs - they are existing guests being updated
+          const newGuestsOnly = guestPayloads.filter((guestPayload, index) => {
+            const correspondingFrontendGuest = validGuests[index];
+            const hasExistingId =
+              correspondingFrontendGuest && correspondingFrontendGuest.id;
+
+            if (hasExistingId) {
+              console.log(
+                `Guest "${guestPayload.name}" has existing ID ${correspondingFrontendGuest.id} - skipping duplicate check`,
+              );
+            }
+
+            return !hasExistingId; // Only include guests without existing IDs
+          });
+
+          console.log(
+            `Checking duplicates for ${newGuestsOnly.length} new guests (filtered out ${guestPayloads.length - newGuestsOnly.length} existing guests)`,
+          );
+
+          // Check for duplicates only among new guests
           const duplicates = [];
           const duplicateMap = new Map(); // Track duplicates within the new guest list itself
-          
-          guestPayloads.forEach((newGuest, index) => {
+
+          newGuestsOnly.forEach((newGuest, newGuestIndex) => {
+            // Find the original index in the full validGuests array
+            const originalIndex = guestPayloads.findIndex(
+              (gp) => gp === newGuest,
+            );
+            const frontendGuest = validGuests[originalIndex];
+
             // Check within the new guest list for duplicates
             const duplicateKey = `${newGuest.name.toLowerCase().trim()}-${newGuest.group_id}`;
             if (duplicateMap.has(duplicateKey)) {
-              const firstIndex = duplicateMap.get(duplicateKey);
+              const firstGuestData = duplicateMap.get(duplicateKey);
               duplicates.push({
-                type: 'within_new_list',
+                type: "within_new_list",
                 newGuest: newGuest,
-                firstGuestIndex: firstIndex,
-                currentIndex: index,
-                groupTitle: Object.keys(groupMap).find(key => groupMap[key] === newGuest.group_id)
+                firstGuestIndex: firstGuestData.originalIndex,
+                currentIndex: originalIndex,
+                groupTitle: Object.keys(groupMap).find(
+                  (key) => groupMap[key] === newGuest.group_id,
+                ),
               });
             } else {
-              duplicateMap.set(duplicateKey, index);
+              duplicateMap.set(duplicateKey, {
+                guest: newGuest,
+                originalIndex: originalIndex,
+              });
             }
-            
-            // Check against existing guests for updates
+
+            // Check against existing guests for updates (only if we have existing guests)
             if (existingGuests.length > 0) {
-              const existingDuplicate = existingGuests.find(existing => 
-                existing.name.toLowerCase().trim() === newGuest.name.toLowerCase().trim() && 
-                existing.group_id === newGuest.group_id
+              const existingDuplicate = existingGuests.find(
+                (existing) =>
+                  existing.name.toLowerCase().trim() ===
+                    newGuest.name.toLowerCase().trim() &&
+                  existing.group_id === newGuest.group_id,
               );
-              
+
               if (existingDuplicate) {
                 duplicates.push({
-                  type: 'existing_guest',
+                  type: "existing_guest",
                   newGuest: newGuest,
                   existingGuest: existingDuplicate,
-                  groupTitle: existingDuplicate.guest_groups?.title || 'Unknown Group'
+                  groupTitle:
+                    existingDuplicate.guest_groups?.title || "Unknown Group",
+                  newGuestFrontendIndex: originalIndex,
                 });
               }
             }
           });
-          
+
           // If duplicates found and no explicit confirmation, return them for frontend handling
           if (duplicates.length > 0 && !eventData.allowDuplicates) {
-            console.log(`Found ${duplicates.length} potential duplicate guests`);
+            console.log(
+              `Found ${duplicates.length} potential duplicate guests among new guests only`,
+            );
             console.log("Duplicate details:", duplicates);
-            
+
             return NextResponse.json({
               success: false,
               duplicatesFound: true,
-              duplicates: duplicates.map(dup => ({
+              duplicates: duplicates.map((dup) => ({
                 type: dup.type,
                 guestName: dup.newGuest.name,
                 groupTitle: dup.groupTitle,
-                ...(dup.type === 'existing_guest' ? {
-                  existingGuestId: dup.existingGuest.id,
-                  existingGuestPOC: dup.existingGuest.point_of_contact
-                } : {
-                  firstGuestIndex: dup.firstGuestIndex,
-                  currentIndex: dup.currentIndex
-                })
+                ...(dup.type === "existing_guest"
+                  ? {
+                      existingGuestId: dup.existingGuest.id,
+                      existingGuestPOC: dup.existingGuest.point_of_contact,
+                      newGuestFrontendIndex: dup.newGuestFrontendIndex,
+                    }
+                  : {
+                      firstGuestIndex: dup.firstGuestIndex,
+                      currentIndex: dup.currentIndex,
+                    }),
               })),
-              message: "Duplicate guests detected. Please confirm if you want to proceed."
+              message:
+                "Duplicate guests detected among new guests. Please confirm if you want to proceed.",
             });
           }
-          
+
           // If duplicates are allowed or no duplicates found, proceed with creation
+          console.log(
+            "Proceeding with guest creation - no blocking duplicates found",
+          );
+
           const { data: createdGuests, error: guestError } = await supabase
             .from("guests")
             .insert(guestPayloads)
             .select();
-
           if (guestError) {
             console.error("❌ Guest creation error:", guestError);
             throw guestError;
           }
 
           console.log("✓ Guests created:", createdGuests.length);
-          
+
           // Step 8b: Update point of contact for groups based on guest data
           console.log("Step 8b: Updating point of contact for groups...");
-          
+
           // Create a mapping of group names to created group objects for easy lookup
           const groupNameMap = createdGroups.reduce((acc, group) => {
             acc[group.title] = group;
             return acc;
           }, {});
-          
+
           console.log(`✓ Guests created: ${createdGuests.length}`);
-          
+
           // Log POC status for each created guest
-          createdGuests.forEach(guest => {
-            console.log(`Guest "${guest.name}" -> POC: ${guest.point_of_contact} (public_id: ${guest.public_id})`);
+          createdGuests.forEach((guest) => {
+            console.log(
+              `Guest "${guest.name}" -> POC: ${guest.point_of_contact} (public_id: ${guest.public_id})`,
+            );
           });
 
           // Step 8c: Create RSVP records for sub-events (moved inside guest creation scope)
           console.log("Step 8c: Creating RSVP records for sub-events...");
-          
+
           // Get the created sub-events
-          const { data: createdSubEvents, error: subEventFetchError } = await supabase
-            .from("subevents")
-            .select("id, title")
-            .eq("event_id", createdEvent.id);
+          const { data: createdSubEvents, error: subEventFetchError } =
+            await supabase
+              .from("subevents")
+              .select("id, title")
+              .eq("event_id", createdEvent.id);
 
           if (subEventFetchError) {
             console.error("Error fetching sub-events:", subEventFetchError);
           } else if (createdSubEvents && createdSubEvents.length > 0) {
             const rsvpPayloads = [];
-            
+
             // Create RSVP records based on frontend subEventRSVPs data
-            console.log(`Processing ${eventData.guests?.length || 0} frontend guests for RSVPs...`);
-            
+            console.log(
+              `Processing ${eventData.guests?.length || 0} frontend guests for RSVPs...`,
+            );
+
             for (const frontendGuest of eventData.guests || []) {
-              if (frontendGuest.subEventRSVPs && Object.keys(frontendGuest.subEventRSVPs).length > 0) {
-                console.log(`Processing RSVPs for guest "${frontendGuest.name}" (${Object.keys(frontendGuest.subEventRSVPs).length} RSVPs)`);
-                
-                // Find the corresponding created guest from the database result by name and group
-                const createdGuest = createdGuests.find(cg => 
-                  cg.name === frontendGuest.name && 
-                  (frontendGuest.group ? groupMap[frontendGuest.group?.trim()] === cg.group_id : true)
+              if (
+                frontendGuest.subEventRSVPs &&
+                Object.keys(frontendGuest.subEventRSVPs).length > 0
+              ) {
+                console.log(
+                  `Processing RSVPs for guest "${frontendGuest.name}" (${Object.keys(frontendGuest.subEventRSVPs).length} RSVPs)`,
                 );
-                
+
+                // Find the corresponding created guest from the database result by name and group
+                const createdGuest = createdGuests.find(
+                  (cg) =>
+                    cg.name === frontendGuest.name &&
+                    (frontendGuest.group
+                      ? groupMap[frontendGuest.group?.trim()] === cg.group_id
+                      : true),
+                );
+
                 if (createdGuest) {
-                  console.log(`Found created guest: "${createdGuest.name}" (ID: ${createdGuest.id}, Group ID: ${createdGuest.group_id})`);
-                  
+                  console.log(
+                    `Found created guest: "${createdGuest.name}" (ID: ${createdGuest.id}, Group ID: ${createdGuest.group_id})`,
+                  );
+
                   // Process each sub-event RSVP
-                  Object.entries(frontendGuest.subEventRSVPs).forEach(([subEventRef, status]) => {
-                    if (status === "invited") {
-                      // Try to find matching sub-event by ID first, then by title
-                      let matchingSubEvent = createdSubEvents.find(se => se.id.toString() === subEventRef.toString());
-                      
-                      if (!matchingSubEvent) {
-                        // Try to match by title (for CSV imported events)
-                        const searchTitle = subEventRef.replace(/_/g, ' ').toLowerCase();
-                        matchingSubEvent = createdSubEvents.find(se => 
-                          se.title.toLowerCase().includes(searchTitle) || 
-                          searchTitle.includes(se.title.toLowerCase())
+                  Object.entries(frontendGuest.subEventRSVPs).forEach(
+                    ([subEventRef, status]) => {
+                      if (status === "invited") {
+                        // Try to find matching sub-event by ID first, then by title
+                        let matchingSubEvent = createdSubEvents.find(
+                          (se) => se.id.toString() === subEventRef.toString(),
                         );
+
+                        if (!matchingSubEvent) {
+                          // Try to match by title (for CSV imported events)
+                          const searchTitle = subEventRef
+                            .replace(/_/g, " ")
+                            .toLowerCase();
+                          matchingSubEvent = createdSubEvents.find(
+                            (se) =>
+                              se.title.toLowerCase().includes(searchTitle) ||
+                              searchTitle.includes(se.title.toLowerCase()),
+                          );
+                        }
+
+                        if (matchingSubEvent) {
+                          const rsvpRecord = {
+                            guest_id: createdGuest.id, // Use the actual database ID
+                            subevent_id: matchingSubEvent.id,
+                            status_id: 1, // 1 = pending status
+                          };
+                          rsvpPayloads.push(rsvpRecord);
+                          console.log(
+                            `RSVP: Guest "${createdGuest.name}" (ID: ${createdGuest.id}) invited to "${matchingSubEvent.title}" (ID: ${matchingSubEvent.id})`,
+                          );
+                        } else {
+                          console.warn(
+                            `No matching sub-event found for "${subEventRef}" for guest "${frontendGuest.name}"`,
+                          );
+                        }
                       }
-                      
-                      if (matchingSubEvent) {
-                        const rsvpRecord = {
-                          guest_id: createdGuest.id, // Use the actual database ID
-                          subevent_id: matchingSubEvent.id,
-                          status_id: 1 // 1 = pending status
-                        };
-                        rsvpPayloads.push(rsvpRecord);
-                        console.log(`RSVP: Guest "${createdGuest.name}" (ID: ${createdGuest.id}) invited to "${matchingSubEvent.title}" (ID: ${matchingSubEvent.id})`);
-                      } else {
-                        console.warn(`No matching sub-event found for "${subEventRef}" for guest "${frontendGuest.name}"`);
-                      }
-                    }
-                  });
+                    },
+                  );
                 } else {
-                  console.warn(`Could not find created guest for "${frontendGuest.name}" in group "${frontendGuest.group}"`);
-                  console.warn(`Available created guests:`, createdGuests.map(cg => `"${cg.name}" (Group ID: ${cg.group_id})`));
+                  console.warn(
+                    `Could not find created guest for "${frontendGuest.name}" in group "${frontendGuest.group}"`,
+                  );
+                  console.warn(
+                    `Available created guests:`,
+                    createdGuests.map(
+                      (cg) => `"${cg.name}" (Group ID: ${cg.group_id})`,
+                    ),
+                  );
                 }
               }
             }
-            
+
             // Deduplicate RSVP records to prevent constraint violations
             if (rsvpPayloads.length > 0) {
-              console.log(`Deduplicating ${rsvpPayloads.length} RSVP records...`);
-              
+              console.log(
+                `Deduplicating ${rsvpPayloads.length} RSVP records...`,
+              );
+
               // Create a Map to deduplicate by guest_id + subevent_id combination
               const rsvpMap = new Map();
               const duplicatesFound = [];
-              
+
               rsvpPayloads.forEach((rsvp, index) => {
                 const key = `${rsvp.guest_id}-${rsvp.subevent_id}`;
-                
+
                 if (rsvpMap.has(key)) {
                   duplicatesFound.push({
                     index,
                     key,
                     guest_id: rsvp.guest_id,
-                    subevent_id: rsvp.subevent_id
+                    subevent_id: rsvp.subevent_id,
                   });
                 } else {
                   rsvpMap.set(key, rsvp);
                 }
               });
-              
+
               const uniqueRsvpPayloads = Array.from(rsvpMap.values());
-              
-              console.log(`After deduplication: ${uniqueRsvpPayloads.length} unique RSVP records (removed ${rsvpPayloads.length - uniqueRsvpPayloads.length} duplicates)`);
-              
+
+              console.log(
+                `After deduplication: ${uniqueRsvpPayloads.length} unique RSVP records (removed ${rsvpPayloads.length - uniqueRsvpPayloads.length} duplicates)`,
+              );
+
               if (duplicatesFound.length > 0) {
-                console.warn("Duplicate RSVP records found and removed:", duplicatesFound);
+                console.warn(
+                  "Duplicate RSVP records found and removed:",
+                  duplicatesFound,
+                );
               }
-              
+
               if (uniqueRsvpPayloads.length > 0) {
-                console.log(`Creating ${uniqueRsvpPayloads.length} unique RSVP records...`);
-                
+                console.log(
+                  `Creating ${uniqueRsvpPayloads.length} unique RSVP records...`,
+                );
+
                 const { error: rsvpError } = await supabase
                   .from("rsvps")
                   .insert(uniqueRsvpPayloads);
-                  
+
                 if (rsvpError) {
                   console.error("Error creating RSVP records:", rsvpError);
-                  console.error("Sample RSVP payloads:", uniqueRsvpPayloads.slice(0, 5));
+                  console.error(
+                    "Sample RSVP payloads:",
+                    uniqueRsvpPayloads.slice(0, 5),
+                  );
                   // Don't fail the entire operation for RSVP errors
                 } else {
                   console.log("✓ RSVP records created successfully");
@@ -1057,22 +1273,26 @@ export async function POST(request) {
           } else {
             console.log("No sub-events found for RSVP creation");
           }
-          
         } else {
-          console.log("⚠️ No guests created - all guests filtered out due to missing group assignments");
+          console.log(
+            "⚠️ No guests created - all guests filtered out due to missing group assignments",
+          );
         }
       }
     }
 
     // Step 9: Handle landing page config (always create with defaults if not provided)
     console.log("Step 9: Handling landing page config...");
-    
+
     // For existing events, delete old landing page config first
     if (existingEvent && !existingEventError) {
       console.log("Deleting existing landing page config...");
-      await supabase.from("landing_page_configs").delete().eq("event_id", createdEvent.id);
+      await supabase
+        .from("landing_page_configs")
+        .delete()
+        .eq("event_id", createdEvent.id);
     }
-    
+
     const config = eventData.landingPageConfig || {};
     const rsvp = eventData.rsvpSettings || {};
 
@@ -1094,12 +1314,15 @@ export async function POST(request) {
         background_overlay: rsvp.backgroundOverlay || 20,
       },
       rsvp_config: config.rsvp_config || {
-        custom_questions: rsvp.customQuestions || ['dietary', 'message'],
+        custom_questions: rsvp.customQuestions || ["dietary", "message"],
       },
       status: action === "published" ? "published" : "draft",
     };
 
-    console.log("Landing config payload:", JSON.stringify(landingConfigPayload, null, 2));
+    console.log(
+      "Landing config payload:",
+      JSON.stringify(landingConfigPayload, null, 2),
+    );
 
     const { error: configError } = await supabase
       .from("landing_page_configs")
@@ -1108,7 +1331,10 @@ export async function POST(request) {
     if (configError) {
       console.error("❌ Landing config creation error:", configError);
       // Don't throw - this is optional but log detailed error
-      console.error("Full error details:", JSON.stringify(configError, null, 2));
+      console.error(
+        "Full error details:",
+        JSON.stringify(configError, null, 2),
+      );
       console.log("Continuing without landing page config...");
     } else {
       console.log("✓ Landing page config created successfully");
@@ -1123,21 +1349,24 @@ export async function POST(request) {
       id: createdEvent.id,
       eventId: createdEvent.id,
       action: action,
-      message: action === "published" ? "Event published successfully!" : "Draft saved successfully!",
+      message:
+        action === "published"
+          ? "Event published successfully!"
+          : "Draft saved successfully!",
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("=== EVENT CREATION FAILED ===");
     console.error("Error:", error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Failed to save event. Please try again.",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        timestamp: new Date().toISOString()
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -1173,8 +1402,8 @@ export async function DELETE(request) {
     }
 
     const url = new URL(request.url);
-    const eventId = url.searchParams.get('eventId');
-    console.log('DELETE request received with eventId:', eventId);
+    const eventId = url.searchParams.get("eventId");
+    console.log("DELETE request received with eventId:", eventId);
 
     if (!eventId) {
       return NextResponse.json(

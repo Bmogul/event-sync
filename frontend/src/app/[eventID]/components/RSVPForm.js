@@ -60,7 +60,8 @@ const RsvpForm = ({
   event,
   subEvents,
   landingConfig,
-  themeStyles
+  themeStyles,
+  toast
 }) => {
   // State for RSVP responses: { guestId: { subEventId: 'attending'|'not_attending' } }
   const [responses, setResponses] = useState({});
@@ -130,15 +131,19 @@ const RsvpForm = ({
   };
 
   const handleSubmit = () => {
-    // Validate that all required responses are given
+    // Validate that all required responses are given - only for guests invited to each sub-event
     const incompleteGuests = party.filter(guest => {
       return subEvents.some(subEvent => {
+        // Only validate if the guest is invited to this sub-event
+        const isInvited = guest.rsvps?.some(rsvp => rsvp.subevent_id === subEvent.id);
+        if (!isInvited) return false;
+        
         return !responses[guest.id]?.[subEvent.id] || responses[guest.id][subEvent.id] === 'pending';
       });
     });
 
     if (incompleteGuests.length > 0) {
-      alert('Please provide responses for all guests and events before submitting.');
+      toast.error('Please provide responses for all invited guests and events before submitting.');
       return;
     }
 
@@ -147,17 +152,17 @@ const RsvpForm = ({
       const config = landingConfig.rsvp_config;
       
       if (config.dietary_restrictions_required && !customQuestionResponses.dietary_restrictions?.trim()) {
-        alert('Please answer the dietary restrictions question.');
+        toast.error('Please answer the dietary restrictions question.');
         return;
       }
       
       if (config.song_requests_required && !customQuestionResponses.song_requests?.trim()) {
-        alert('Please answer the song requests question.');
+        toast.error('Please answer the song requests question.');
         return;
       }
       
       if (config.special_accommodations_required && !customQuestionResponses.special_accommodations?.trim()) {
-        alert('Please answer the special accommodations question.');
+        toast.error('Please answer the special accommodations question.');
         return;
       }
 
@@ -166,25 +171,36 @@ const RsvpForm = ({
         for (let i = 0; i < config.custom_questions.length; i++) {
           const question = config.custom_questions[i];
           if (question.required && !customQuestionResponses[`custom_${i}`]?.trim()) {
-            alert(`Please answer the required question: ${question.question}`);
+            toast.error(`Please answer the required question: ${question.question}`);
             return;
           }
         }
       }
     }
 
+    toast.info('Submitting your RSVP responses...');
     postResponse(responses, guestDetails, customQuestionResponses);
   };
 
   if (!subEvents || subEvents.length === 0) {
     return (
-      <div className={styles.formContainer}>
-        <div className={styles.form}>
-          <div className={styles.header}>
-            <h2>No Events Available</h2>
-            <button onClick={closeForm} className={styles.closeBtn}>×</button>
+      <div className={styles.modal}>
+        <div className={styles.closeBtnDiv}>
+          <button onClick={closeForm} className={styles.closeBtn}>×</button>
+        </div>
+        <div className={styles.formHeader}>
+          <h3>No Events Available</h3>
+          <div className={styles.headerInfo}>
+            <p>There are no events to RSVP for at this time.</p>
+            <p style={{ fontSize: '14px', opacity: '0.8' }}>
+              You may not be invited to any sub-events, or all invitations may have been completed.
+            </p>
           </div>
-          <p>There are no events to RSVP for at this time.</p>
+        </div>
+        <div className={styles.formSubmit}>
+          <button onClick={closeForm} className={styles.responseBtn}>
+            Close
+          </button>
         </div>
       </div>
     );
@@ -371,16 +387,31 @@ const RsvpForm = ({
               <h4 style={{ color: themeStyles.color }}>
                 Please respond for each guest:
               </h4>
-              {party.map((guest) => (
-                <GuestRSVPBlock
-                  key={guest.id}
-                  guest={guest}
-                  subEvent={currentSubEvent}
-                  responses={responses}
-                  onResponseChange={onResponseChange}
-                  themeStyles={themeStyles}
-                />
-              ))}
+              {(() => {
+                const invitedGuests = party.filter(guest => {
+                  // Only show guests who are invited to this specific sub-event
+                  return guest.rsvps?.some(rsvp => rsvp.subevent_id === currentSubEvent.id);
+                });
+
+                if (invitedGuests.length === 0) {
+                  return (
+                    <div className={styles.noGuestsMessage} style={{ color: themeStyles.color }}>
+                      <p>No guests are invited to this event.</p>
+                    </div>
+                  );
+                }
+
+                return invitedGuests.map((guest) => (
+                  <GuestRSVPBlock
+                    key={guest.id}
+                    guest={guest}
+                    subEvent={currentSubEvent}
+                    responses={responses}
+                    onResponseChange={onResponseChange}
+                    themeStyles={themeStyles}
+                  />
+                ));
+              })()}
             </div>
 
             {/* Custom questions from RSVP config */}

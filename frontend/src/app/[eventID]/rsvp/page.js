@@ -9,6 +9,74 @@ import RSVPForm from "../components/RSVPForm";
 
 import styles from "../styles/events.module.css";
 
+// EventCards component matching the preview design
+const EventCards = ({ subEvents }) => {
+  // Get images from sub-events that have them, or create default placeholder cards
+  console.log(subEvents)
+  const cardImages = subEvents
+    .map((subEvent) => subEvent.image_url)  // Changed from .image to .image_url
+    .filter(Boolean);
+
+  // If no images, create placeholder cards with event info
+  const cards =
+    cardImages.length > 0
+      ? subEvents.filter((subEvent) => subEvent.image_url)  // Changed from .image to .image_url
+      : subEvents.slice(0, 3); // Limit to 3 cards like original
+
+  const [cardOrder, setCardOrder] = useState([...cards].reverse());
+
+  useEffect(() => {
+    setCardOrder([...cards].reverse());
+  }, [subEvents]);
+
+  const handleCardClick = (clickedCard) => {
+    const newOrder = cardOrder.filter((card) => card !== clickedCard);
+    newOrder.push(clickedCard);
+    setCardOrder(newOrder);
+  };
+
+  if (cardOrder.length === 0) return null;
+
+  return (
+    <div className={styles.cardsDiv}>
+      <div className={styles.imageStack}>
+        {cardOrder.map((card, index) => (
+          <div
+            key={card.title || index}
+            className={styles.cardD}
+            onClick={() => handleCardClick(card)}
+            style={{
+              zIndex: index + 1,
+              top: `${index * 35}px`,
+              right: `${index * 10}px`,
+            }}
+          >
+            {card.image_url ? (  // Changed from card.image to card.image_url
+              <img
+                src={card.image_url}  // Changed from card.image to card.image_url
+                alt={card.title || `Sub-Event ${index + 1}`}
+                className={styles.cardView}
+              />
+            ) : (
+              <div className={styles.cardView}>
+                <div className={styles.placeholderCard}>
+                  <h3>{card.title || `Sub-Event ${index + 1}`}</h3>
+                  <p>
+                    {card.event_date && card.start_time
+                      ? `${new Date(card.event_date).toLocaleDateString()} at ${card.start_time}`
+                      : "Date & Time"}
+                  </p>
+                  <p>{card.venue_address || "Location"}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function RSVPPage() {
   const router = useRouter();
   const params = useParams();
@@ -50,7 +118,7 @@ export default function RSVPPage() {
         }
 
         const data = await response.json();
-        
+
         // Set the event, party, and landing config data
         setEvent(data.event);
         setParty(data.party || []);
@@ -61,9 +129,8 @@ export default function RSVPPage() {
           event: data.event?.title,
           partySize: data.party?.length,
           subEventsCount: data.subEvents?.length,
-          hasLandingConfig: !!data.event.landing_page_configs?.[0]
+          hasLandingConfig: !!data.event.landing_page_configs?.[0],
         });
-
       } catch (error) {
         console.error("Error fetching RSVP data:", error);
         toast.error(error.message || "Failed to load RSVP data");
@@ -87,15 +154,19 @@ export default function RSVPPage() {
     setShowForm(false);
   };
 
-  const postResponse = async (responses, guestDetails, customQuestionResponses) => {
+  const postResponse = async (
+    responses,
+    guestDetails,
+    customQuestionResponses,
+  ) => {
     try {
       setFormLoading(true);
-      
+
       // Format the party data with responses for the new API
-      const formattedParty = party.map(guest => ({
+      const formattedParty = party.map((guest) => ({
         id: guest.id,
         public_id: guest.public_id,
-        responses: responses[guest.id] || {}
+        responses: responses[guest.id] || {},
       }));
 
       const response = await fetch(`/api/${params.eventID}/rsvp`, {
@@ -103,26 +174,32 @@ export default function RSVPPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           party: formattedParty,
           responses: responses,
           guestDetails: guestDetails || {},
-          customQuestionResponses: customQuestionResponses || {}
+          customQuestionResponses: customQuestionResponses || {},
         }),
       });
 
       if (response.ok) {
         const result = await response.json();
-        toast.success("Thank you for your response!");
+        toast.success(
+          "🎉 Thank you! Your RSVP has been submitted successfully.",
+        );
         console.log("RSVP submitted successfully:", result);
       } else {
         const errorData = await response.json();
-        toast.error(errorData.error || "Error submitting response, please try again");
+        toast.error(
+          errorData.error || "❌ Error submitting response. Please try again.",
+        );
         throw new Error(errorData.error || "Failed to save data");
       }
     } catch (error) {
       console.error("RSVP submission error:", error);
-      toast.error("Failed to submit RSVP. Please try again.");
+      toast.error(
+        "❌ Failed to submit RSVP. Please check your connection and try again.",
+      );
     } finally {
       setFormLoading(false);
       closeForm();
@@ -154,20 +231,20 @@ export default function RSVPPage() {
   const getThemeStyles = () => {
     if (!landingConfig?.greeting_config) {
       return {
-        backgroundColor: '#faf5ff',
-        color: '#581c87',
-        primaryColor: '#7c3aed'
+        backgroundColor: "#faf5ff",
+        color: "#581c87",
+        primaryColor: "#7c3aed",
       };
     }
 
     const config = landingConfig.greeting_config;
     return {
-      backgroundColor: config.background_color || '#faf5ff',
-      color: config.text_color || '#581c87',
-      primaryColor: config.primary_color || '#7c3aed',
-      fontFamily: config.font_family || 'Inter',
+      backgroundColor: config.background_color || "#faf5ff",
+      color: config.text_color || "#581c87",
+      primaryColor: config.primary_color || "#7c3aed",
+      fontFamily: config.font_family || "Inter",
       backgroundImage: config.background_image,
-      backgroundOverlay: config.background_overlay || 20
+      backgroundOverlay: config.background_overlay || 20,
     };
   };
 
@@ -176,35 +253,37 @@ export default function RSVPPage() {
   // Return main page
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   return (
-    <div 
+    <div
       className={styles.page}
       style={{
         backgroundColor: themeStyles.backgroundColor,
         color: themeStyles.color,
         fontFamily: themeStyles.fontFamily,
-        backgroundImage: themeStyles.backgroundImage ? `url(${themeStyles.backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative'
+        backgroundImage: themeStyles.backgroundImage
+          ? `url(${themeStyles.backgroundImage})`
+          : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        position: "relative",
       }}
     >
       {/* Background overlay if background image is used */}
       {themeStyles.backgroundImage && (
-        <div 
+        <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
             backgroundColor: `rgba(0, 0, 0, ${themeStyles.backgroundOverlay / 100})`,
-            zIndex: 1
+            zIndex: 1,
           }}
         />
       )}
-      
+
       <audio ref={audioRef} src="/invite_track.mp3" />
-      
+
       {showForm && (
         <div className={styles.formContainer}>
           <RSVPForm
@@ -217,52 +296,36 @@ export default function RSVPPage() {
             subEvents={subEvents}
             landingConfig={landingConfig}
             themeStyles={themeStyles}
+            toast={toast}
           />
         </div>
       )}
-      
-      <div className={styles.main} style={{ position: 'relative', zIndex: 2 }}>
+
+      <div className={styles.main} style={{ position: "relative", zIndex: 2 }}>
         <div className={styles.header}>
           <h1 style={{ color: themeStyles.color }}>
-            {landingConfig?.title || event?.title || 'You\'re Invited!'}
+            {landingConfig?.title || event?.title || "You're Invited!"}
           </h1>
           {!guid ? (
             <label>Please use the link provided to view details</label>
           ) : !party || party.length === 0 ? (
-            <label>Group not found for this event</label>
+            <label>No invited guests found for this group</label>
           ) : !pageOpened ? (
             <label>
-              {landingConfig?.greeting_config?.subtitle || 'Click logo below to continue'}
+              {landingConfig?.greeting_config?.subtitle ||
+                "Click logo below to continue"}
             </label>
           ) : (
-            <div>
-              {/* Display guest names */}
-              {party && party.length > 0 && (
-                <div className={styles.guestNames} style={{ color: themeStyles.color, marginBottom: '16px' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '500' }}>
-                    {party.length === 1 ? (
-                      `Hello ${party[0].name}!`
-                    ) : party.length === 2 ? (
-                      `Hello ${party[0].name} and ${party[1].name}!`
-                    ) : (
-                      `Hello ${party.slice(0, -1).map(guest => guest.name).join(', ')}, and ${party[party.length - 1].name}!`
-                    )}
-                  </p>
-                  {party[0].group && (
-                    <p style={{ fontSize: '14px', opacity: '0.8' }}>
-                      Group: {party[0].group}
-                    </p>
-                  )}
-                </div>
-              )}
-              <label>Please RSVP below</label>
-            </div>
+            <label>Please RSVP below</label>
           )}
         </div>
 
         {/* Show greeting message if configured */}
         {landingConfig?.greeting_config?.message && pageOpened && (
-          <div className={styles.greetingMessage} style={{ color: themeStyles.color }}>
+          <div
+            className={styles.greetingMessage}
+            style={{ color: themeStyles.color }}
+          >
             {landingConfig.greeting_config.message}
           </div>
         )}
@@ -271,63 +334,75 @@ export default function RSVPPage() {
           party && party.length > 0 ? (
             pageOpened ? (
               <div className={styles.eventContainer}>
-                {/* Display event information and RSVP button */}
-                <div className={styles.eventInfo}>
-                  {event.description && (
-                    <p className={styles.eventDescription}>{event.description}</p>
-                  )}
-                  
-                  {/* Show sub-events */}
-                  {subEvents && subEvents.length > 0 && (
-                    <div className={styles.subEvents}>
-                      <h3>Event Details:</h3>
-                      {subEvents.map(subEvent => (
-                        <div key={subEvent.id} className={styles.subEvent}>
-                          <h4>{subEvent.title}</h4>
-                          {subEvent.event_date && (
-                            <p>Date: {new Date(subEvent.event_date).toLocaleDateString()}</p>
-                          )}
-                          {subEvent.start_time && (
-                            <p>Time: {subEvent.start_time}</p>
-                          )}
-                          {subEvent.venue_address && (
-                            <p>Location: {subEvent.venue_address}</p>
-                          )}
-                        </div>
-                      ))}
+                {/* Event Cards Section - matching preview */}
+                {subEvents && subEvents.length > 0 && (
+                  <EventCards subEvents={subEvents} />
+                )}
+
+                {/* Guest Invite Section - matching preview design */}
+                <div className={styles.inviteSection}>
+                  <div className={styles.inviteHeader}>
+                    <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
+                  </div>
+                  <div className={styles.guestList}>
+                    {party.map((guest, index) => (
+                      <div
+                        key={guest.id}
+                        className={styles.guestName}
+                        style={{ color: themeStyles.color }}
+                      >
+                        {guest.name}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Only show RSVP button if there are sub-events to RSVP to */}
+                  {subEvents && subEvents.length > 0 ? (
+                    <button
+                      className={styles.rsvpButton}
+                      onClick={openForm}
+                      style={{
+                        backgroundColor: themeStyles.primaryColor,
+                        color: "white",
+                      }}
+                    >
+                      RSVP Now
+                    </button>
+                  ) : (
+                    <div
+                      className={styles.noInvitesMessage}
+                      style={{ color: themeStyles.color }}
+                    >
+                      <p>No events to RSVP for at this time.</p>
+                      <p style={{ fontSize: "14px", opacity: "0.8" }}>
+                        Please check back later or contact the event organizer.
+                      </p>
                     </div>
                   )}
-
-                  <button 
-                    className={styles.rsvpButton} 
-                    onClick={openForm}
-                    style={{ 
-                      backgroundColor: themeStyles.primaryColor,
-                      color: 'white'
-                    }}
-                  >
-                    RSVP Now
-                  </button>
                 </div>
               </div>
             ) : (
               <div className={styles.logoContainer}>
                 <Image
-                  src={landingConfig?.logo || event.logo_url || '/default-logo.png'}
+                  src={
+                    landingConfig?.logo || event.logo_url || "/default-logo.png"
+                  }
                   className={styles.logoP}
                   alt="Click to continue"
                   onClick={openPage}
                   fill
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 />
               </div>
             )
           ) : (
             <div className={styles.logoContainer}>
               <Image
-                src={landingConfig?.logo || event.logo_url || '/default-logo.png'}
+                src={
+                  landingConfig?.logo || event.logo_url || "/default-logo.png"
+                }
                 className={styles.logo}
-                alt={event.title || 'Event Logo'}
+                alt={event.title || "Event Logo"}
                 fill
               />
             </div>
@@ -336,7 +411,17 @@ export default function RSVPPage() {
           <div>No event data available.</div>
         )}
       </div>
-      <ToastContainer />
+
+      <ToastContainer
+        position="top-center"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </div>
   );
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */

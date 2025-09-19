@@ -247,6 +247,7 @@ const CreateEvent = () => {
 
   // Handle duplicate guest detection
   const handleDuplicateDetection = (duplicates, callback) => {
+    console.log(duplicates)
     setDuplicateGuests(duplicates);
     setDuplicateCallback(() => callback);
     setShowDuplicateModal(true);

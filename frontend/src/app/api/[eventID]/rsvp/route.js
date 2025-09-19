@@ -90,14 +90,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ message: "No guests found in this group" }, { status: 404 });
     }
 
-    // Get sub-events
-    const { data: subEvents } = await supabase
-      .from("subevents")
-      .select("id, title, event_date, start_time, venue_address, capacity, details")
-      .eq("event_id", event.id)
-      .order("created_at");
-
-    // Get RSVPs
+    // Get RSVPs first to determine which sub-events guests are invited to
     const guestIds = guests.map(g => g.id);
     const { data: existingRsvps } = await supabase
       .from("rsvps")
@@ -109,37 +102,65 @@ export async function GET(request, { params }) {
         details,
         subevents (
           id,
-          title
+          title,
+          event_date,
+          start_time,
+          venue_address,
+          capacity,
+          details
         )
       `)
       .in("guest_id", guestIds);
 
-    // Transform guests data
-    const party = guests.map(guest => {
-      const guestRsvps = existingRsvps?.filter(r => r.guest_id === guest.id) || [];
-      const invites = {};
-      subEvents?.forEach(subEvent => {
-        const rsvp = guestRsvps.find(r => r.subevent_id === subEvent.id);
-        invites[subEvent.title] = rsvp ? rsvp.status_id : 1;
-      });
+    // Get unique sub-event IDs that guests are invited to
+    const invitedSubEventIds = [...new Set(existingRsvps?.map(r => r.subevent_id) || [])];
+    
+    // Get only sub-events that guests are invited to
+    const { data: subEvents } = invitedSubEventIds.length > 0 
+      ? await supabase
+          .from("subevents")
+          .select("id, title, event_date, start_time, venue_address, capacity, details, image_url")
+          .in("id", invitedSubEventIds)
+          .eq("event_id", event.id)
+          .order("created_at")
+      : { data: [] };
 
-      return {
-        id: guest.id,
-        public_id: guest.public_id,
-        name: guest.name,
-        email: guest.email,
-        phone: guest.phone,
-        tag: guest.tag,
-        point_of_contact: guest.point_of_contact,
-        group: group.title,
-        group_id: group.id,
-        gender: guest.guest_gender?.state,
-        ageGroup: guest.guest_age_group?.state,
-        invites,
-        rsvps: guestRsvps
-      };
-    });
+    // Transform guests data - only include guests who have at least one invitation
+    const party = guests
+      .map(guest => {
+        const guestRsvps = existingRsvps?.filter(r => r.guest_id === guest.id) || [];
+        const invites = {};
+        
+        // Only include invites for sub-events the guest is actually invited to
+        guestRsvps.forEach(rsvp => {
+          const subEvent = subEvents?.find(se => se.id === rsvp.subevent_id);
+          if (subEvent) {
+            invites[subEvent.title] = rsvp.status_id;
+          }
+        });
 
+        return {
+          id: guest.id,
+          public_id: guest.public_id,
+          name: guest.name,
+          email: guest.email,
+          phone: guest.phone,
+          tag: guest.tag,
+          point_of_contact: guest.point_of_contact,
+          group: group.title,
+          group_id: group.id,
+          gender: guest.guest_gender?.state,
+          ageGroup: guest.guest_age_group?.state,
+          invites,
+          rsvps: guestRsvps,
+          hasInvitations: guestRsvps.length > 0
+        };
+      })
+      .filter(guest => guest.hasInvitations); // Only include guests with at least one invitation
+
+    // Log the filtering results for debugging
+    console.log(`Group ${group.id} - Found ${guests.length} total guests, ${party.length} invited guests, ${existingRsvps?.length || 0} RSVPs, ${subEvents?.length || 0} invited sub-events`);
+    
     return NextResponse.json({
       party,
       event,
@@ -206,9 +227,23 @@ export async function POST(request, { params }) {
         });
       }
 
-      // RSVP responses
+      // RSVP responses - validate guest is invited to sub-event
       if (memberResponses && subEvents) {
+        // First, get existing RSVPs for this guest to validate they're invited
+        const { data: guestExistingRsvps } = await supabase
+          .from("rsvps")
+          .select("subevent_id")
+          .eq("guest_id", guestId);
+        
+        const invitedSubEventIds = guestExistingRsvps?.map(r => r.subevent_id) || [];
+        
         for (const subEvent of subEvents) {
+          // Only allow RSVP if guest is invited to this sub-event
+          if (!invitedSubEventIds.includes(subEvent.id)) {
+            console.log(`Guest ${guestId} not invited to sub-event ${subEvent.id}, skipping`);
+            continue;
+          }
+          
           const response = memberResponses[subEvent.title] || memberResponses[subEvent.id];
           if (response !== undefined) {
             let statusId;

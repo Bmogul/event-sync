@@ -65,51 +65,55 @@ const EmailPortal = ({
   ];
 
   // Transform guest list to match API response structure
-  const transformedGuestList = guestList?.map(guest => {
-    return {
-      // Core guest information
-      id: guest.id,
-      public_id: guest.public_id,
-      name: guest.name || "",
-      email: guest.email || "",
-      phone: guest.phone || "",
-      tag: guest.tag || "",
-      
-      // Group information
-      group: guest.group || "",
-      group_id: guest.group_id,
-      
-      // Lookup table data
-      gender: guest.gender || "",
-      ageGroup: guest.ageGroup || "",
-      
-      // Contact designation
-      isPointOfContact: guest.point_of_contact === true,
-      
-      // RSVP data organized by subevent
-      rsvpStatus: guest.rsvp_status || {},
-      total_rsvps: guest.total_rsvps || 0,
-      
-      // Email status (derived)
-      inviteStatus: guest.total_rsvps > 0 ? "Invited" : "Not Invited",
-      responseStatus: Object.keys(guest.rsvp_status || {}).length > 0 ? "Responded" : "Pending",
-      
-      // Legacy fields for email functionality  
-      GUID: guest.group_id,
-      UID: guest.id,
-      Name: guest.name || "",
-      Email: guest.email || "",
-      MainResponse: guest.total_rsvps > 0 ? "1" : "",
-      Sent: guest.total_rsvps > 0 ? "Yes" : "No",
-      FamilyOrder: 1
-    };
-  }) || [];
+  const transformedGuestList =
+    guestList?.map((guest) => {
+      return {
+        // Core guest information
+        id: guest.id,
+        public_id: guest.public_id,
+        name: guest.name || "",
+        email: guest.email || "",
+        phone: guest.phone || "",
+        tag: guest.tag || "",
+
+        // Group information
+        group: guest.group || "",
+        group_id: guest.group_id,
+
+        // Lookup table data
+        gender: guest.gender || "",
+        ageGroup: guest.ageGroup || "",
+
+        // Contact designation
+        isPointOfContact: guest.point_of_contact === true,
+
+        // RSVP data organized by subevent
+        rsvpStatus: guest.rsvp_status || {},
+        total_rsvps: guest.total_rsvps || 0,
+
+        // Email status (derived)
+        inviteStatus: guest.total_rsvps > 0 ? "Invited" : "Not Invited",
+        responseStatus:
+          Object.keys(guest.rsvp_status || {}).length > 0
+            ? "Responded"
+            : "Pending",
+
+        // Legacy fields for email functionality
+        GUID: guest.group_id,
+        UID: guest.id,
+        Name: guest.name || "",
+        Email: guest.email || "",
+        MainResponse: guest.total_rsvps > 0 ? "1" : "",
+        Sent: guest.total_rsvps > 0 ? "Yes" : "No",
+        FamilyOrder: 1,
+      };
+    }) || [];
 
   // Get all unique subevents from the guest data
   const getAllSubevents = () => {
     const subevents = new Set();
-    transformedGuestList.forEach(guest => {
-      Object.keys(guest.rsvpStatus || {}).forEach(subeventTitle => {
+    transformedGuestList.forEach((guest) => {
+      Object.keys(guest.rsvpStatus || {}).forEach((subeventTitle) => {
         subevents.add(subeventTitle);
       });
     });
@@ -121,45 +125,48 @@ const EmailPortal = ({
   // Filter guests based on search term and filters
   const getFilteredGuests = () => {
     let filtered = transformedGuestList;
-    
+
     // Apply search term filter
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(guest => 
-        guest.name.toLowerCase().includes(search) ||
-        guest.email.toLowerCase().includes(search) ||
-        (guest.phone && guest.phone.toLowerCase().includes(search)) ||
-        (guest.group && guest.group.toLowerCase().includes(search)) ||
-        (guest.tag && guest.tag.toLowerCase().includes(search))
+      filtered = filtered.filter(
+        (guest) =>
+          guest.name.toLowerCase().includes(search) ||
+          guest.email.toLowerCase().includes(search) ||
+          (guest.phone && guest.phone.toLowerCase().includes(search)) ||
+          (guest.group && guest.group.toLowerCase().includes(search)) ||
+          (guest.tag && guest.tag.toLowerCase().includes(search)),
       );
     }
-    
+
     // Apply additional filters
     if (filterBy !== "all" && filterValue) {
       switch (filterBy) {
         case "gender":
-          filtered = filtered.filter(guest => guest.gender === filterValue);
+          filtered = filtered.filter((guest) => guest.gender === filterValue);
           break;
         case "ageGroup":
-          filtered = filtered.filter(guest => guest.ageGroup === filterValue);
+          filtered = filtered.filter((guest) => guest.ageGroup === filterValue);
           break;
         case "group":
-          filtered = filtered.filter(guest => guest.group === filterValue);
+          filtered = filtered.filter((guest) => guest.group === filterValue);
           break;
         case "status":
           if (filterValue === "invited") {
-            filtered = filtered.filter(guest => guest.Sent === "Yes");
+            filtered = filtered.filter((guest) => guest.Sent === "Yes");
           } else if (filterValue === "responded") {
-            filtered = filtered.filter(guest => guest.MainResponse === "1");
+            filtered = filtered.filter((guest) => guest.MainResponse === "1");
           } else if (filterValue === "pending") {
-            filtered = filtered.filter(guest => guest.Sent === "Yes" && guest.MainResponse === "");
+            filtered = filtered.filter(
+              (guest) => guest.Sent === "Yes" && guest.MainResponse === "",
+            );
           }
           break;
         default:
           break;
       }
     }
-    
+
     return filtered;
   };
 
@@ -168,9 +175,15 @@ const EmailPortal = ({
   // Get unique filter options
   const getFilterOptions = () => {
     return {
-      genders: [...new Set(transformedGuestList.map(g => g.gender).filter(Boolean))],
-      ageGroups: [...new Set(transformedGuestList.map(g => g.ageGroup).filter(Boolean))],
-      groups: [...new Set(transformedGuestList.map(g => g.group).filter(Boolean))],
+      genders: [
+        ...new Set(transformedGuestList.map((g) => g.gender).filter(Boolean)),
+      ],
+      ageGroups: [
+        ...new Set(transformedGuestList.map((g) => g.ageGroup).filter(Boolean)),
+      ],
+      groups: [
+        ...new Set(transformedGuestList.map((g) => g.group).filter(Boolean)),
+      ],
     };
   };
 
@@ -183,11 +196,11 @@ const EmailPortal = ({
 
   // Handle row selection
   const handleRowSelection = (guest, isSelected) => {
-    setSelectedRows(prev => {
+    setSelectedRows((prev) => {
       if (isSelected) {
         return [...prev, guest];
       } else {
-        return prev.filter(g => g.id !== guest.id);
+        return prev.filter((g) => g.id !== guest.id);
       }
     });
   };
@@ -203,18 +216,18 @@ const EmailPortal = ({
 
   // Check if guest is selected
   const isGuestSelected = (guest) => {
-    return selectedRows.some(g => g.id === guest.id);
+    return selectedRows.some((g) => g.id === guest.id);
   };
 
   // Get CSS class for RSVP status
   const getStatusClass = (statusName) => {
     const statusMap = {
-      'pending': styles.statusPending,
-      'opened': styles.statusOpened,
-      'attending': styles.statusAttending,
-      'not_attending': styles.statusNotAttending,
-      'maybe': styles.statusMaybe,
-      'no_response': styles.statusNoResponse,
+      pending: styles.statusPending,
+      opened: styles.statusOpened,
+      attending: styles.statusAttending,
+      not_attending: styles.statusNotAttending,
+      maybe: styles.statusMaybe,
+      no_response: styles.statusNoResponse,
     };
     return statusMap[statusName] || styles.statusPending;
   };
@@ -330,71 +343,85 @@ const EmailPortal = ({
   };
 
   // Guest Management Helper Functions
-  
+
   // Get existing groups for dropdown
   const getExistingGroups = () => {
-    const groups = [...new Set(transformedGuestList.map(g => g.group).filter(Boolean))];
-    return groups.map(groupName => ({
+    const groups = [
+      ...new Set(transformedGuestList.map((g) => g.group).filter(Boolean)),
+    ];
+    return groups.map((groupName) => ({
       title: groupName,
-      size: transformedGuestList.filter(g => g.group === groupName).length
+      size: transformedGuestList.filter((g) => g.group === groupName).length,
     }));
   };
 
   // Check if a group already has a point of contact
   const groupHasPOC = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(guest => guest.group === groupTitle);
-    return groupGuests.some(guest => guest.isPointOfContact === true);
+    const groupGuests = transformedGuestList.filter(
+      (guest) => guest.group === groupTitle,
+    );
+    return groupGuests.some((guest) => guest.isPointOfContact === true);
   };
 
   // Get the current POC name for a group
   const getCurrentPOCName = (groupTitle) => {
-    const groupGuests = transformedGuestList.filter(guest => guest.group === groupTitle);
-    const pocGuest = groupGuests.find(guest => guest.isPointOfContact === true);
+    const groupGuests = transformedGuestList.filter(
+      (guest) => guest.group === groupTitle,
+    );
+    const pocGuest = groupGuests.find(
+      (guest) => guest.isPointOfContact === true,
+    );
     return pocGuest?.name || null;
   };
 
   // Handle group selection change
   const handleGroupSelectionChange = (selectedGroup) => {
-    setNewGuest(prev => ({
+    setNewGuest((prev) => ({
       ...prev,
       selectedGroup,
-      isPointOfContact: selectedGroup ? 
-        (editingGuest && selectedGroup === editingGuest.group ? prev.isPointOfContact : false) : 
-        true
+      isPointOfContact: selectedGroup
+        ? editingGuest && selectedGroup === editingGuest.group
+          ? prev.isPointOfContact
+          : false
+        : true,
     }));
   };
 
   // Handle POC checkbox change with confirmation
   const handlePOCChange = (checked) => {
-    if (checked && newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup)) {
+    if (
+      checked &&
+      newGuest.selectedGroup &&
+      groupHasPOC(newGuest.selectedGroup)
+    ) {
       if (editingGuest && newGuest.selectedGroup === editingGuest.group) {
-        setNewGuest(prev => ({
+        setNewGuest((prev) => ({
           ...prev,
-          isPointOfContact: checked
+          isPointOfContact: checked,
         }));
         return;
       }
-      
+
       const currentPOCName = getCurrentPOCName(newGuest.selectedGroup);
       setPocTransferData({
         fromName: currentPOCName,
         toName: newGuest.name,
-        groupName: newGuest.selectedGroup
+        groupName: newGuest.selectedGroup,
       });
       setShowPOCConfirmation(true);
     } else {
-      setNewGuest(prev => ({
+      setNewGuest((prev) => ({
         ...prev,
-        isPointOfContact: checked
+        isPointOfContact: checked,
       }));
     }
   };
 
   // Handle POC transfer confirmation
   const handlePOCTransferConfirm = () => {
-    setNewGuest(prev => ({
+    setNewGuest((prev) => ({
       ...prev,
-      isPointOfContact: true
+      isPointOfContact: true,
     }));
     setShowPOCConfirmation(false);
     setPocTransferData(null);
@@ -428,34 +455,41 @@ const EmailPortal = ({
 
     try {
       let response;
-      
+
       if (editingGuest) {
         // Update existing guest
-        response = await fetch(`/api/${params.eventID}/guests/${editingGuest.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
+        response = await fetch(
+          `/api/${params.eventID}/guests/${editingGuest.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              guest: guestPayload,
+            }),
           },
-          body: JSON.stringify({
-            guest: guestPayload
-          }),
-        });
+        );
       } else {
         // Create new guest
         response = await fetch(`/api/${params.eventID}/guests`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             guests: [guestPayload],
-            event: event
+            event: event,
           }),
         });
       }
 
       if (response.ok) {
-        toast(editingGuest ? "Guest updated successfully!" : "Guest added successfully!");
+        toast(
+          editingGuest
+            ? "Guest updated successfully!"
+            : "Guest added successfully!",
+        );
         await getGuestList(event); // Refresh guest list
         setShowGuestForm(false);
         setEditingGuest(null);
@@ -471,11 +505,20 @@ const EmailPortal = ({
           isPointOfContact: true,
         });
       } else {
-        throw new Error(editingGuest ? "Failed to update guest" : "Failed to add guest");
+        throw new Error(
+          editingGuest ? "Failed to update guest" : "Failed to add guest",
+        );
       }
     } catch (error) {
-      console.error(editingGuest ? "Error updating guest:" : "Error adding guest:", error);
-      toast(editingGuest ? "Failed to update guest. Please try again." : "Failed to add guest. Please try again.");
+      console.error(
+        editingGuest ? "Error updating guest:" : "Error adding guest:",
+        error,
+      );
+      toast(
+        editingGuest
+          ? "Failed to update guest. Please try again."
+          : "Failed to add guest. Please try again.",
+      );
     }
   };
 
@@ -505,7 +548,7 @@ const EmailPortal = ({
 
     try {
       const response = await fetch(`/api/${params.eventID}/guests/${guestId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
@@ -520,6 +563,33 @@ const EmailPortal = ({
     }
   };
 
+  // Handle copying RSVP link to clipboard
+  const handleCopyRSVPLink = async (guest) => {
+    const rsvpLink = `http://localhost:3000/${params.eventID}/rsvp?guestId=${guest.group_id}`;
+
+    try {
+      await navigator.clipboard.writeText(rsvpLink);
+      toast(`RSVP link copied for ${guest.name}`);
+    } catch (error) {
+      console.error("Failed to copy RSVP link:", error);
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement("textarea");
+      textArea.value = rsvpLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        toast(`RSVP link copied for ${guest.name}`);
+      } catch (fallbackError) {
+        console.error("Fallback copy failed:", fallbackError);
+        toast("Failed to copy RSVP link. Please copy manually.");
+        // Show the link in a prompt as final fallback
+        prompt("Copy this RSVP link:", rsvpLink);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   // Handle file upload
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -531,26 +601,36 @@ const EmailPortal = ({
     reader.onload = async (e) => {
       try {
         const text = e.target.result;
-        const lines = text.split('\n').filter(line => line.trim());
-        
+        const lines = text.split("\n").filter((line) => line.trim());
+
         if (lines.length < 2) {
           toast("CSV file must have at least a header row and one data row");
           return;
         }
 
         // Parse CSV and create guests
-        const headers = lines[0].split(',').map(h => h.trim());
-        const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
-        const emailIndex = headers.findIndex(h => h.toLowerCase().includes('email'));
-        const phoneIndex = headers.findIndex(h => h.toLowerCase().includes('phone'));
-        const genderIndex = headers.findIndex(h => h.toLowerCase().includes('gender'));
-        const tagIndex = headers.findIndex(h => h.toLowerCase().includes('tag'));
+        const headers = lines[0].split(",").map((h) => h.trim());
+        const nameIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes("name"),
+        );
+        const emailIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes("email"),
+        );
+        const phoneIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes("phone"),
+        );
+        const genderIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes("gender"),
+        );
+        const tagIndex = headers.findIndex((h) =>
+          h.toLowerCase().includes("tag"),
+        );
 
         const guestPayloads = [];
-        
+
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim());
-          
+          const values = lines[i].split(",").map((v) => v.trim());
+
           if (nameIndex !== -1 && values[nameIndex]) {
             const guest = {
               name: values[nameIndex],
@@ -568,13 +648,13 @@ const EmailPortal = ({
 
         if (guestPayloads.length > 0) {
           const response = await fetch(`/api/${params.eventID}/guests`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               guests: guestPayloads,
-              event: event
+              event: event,
             }),
           });
 
@@ -585,9 +665,8 @@ const EmailPortal = ({
             throw new Error("Failed to import guests");
           }
         }
-
       } catch (error) {
-        console.error('CSV parsing error:', error);
+        console.error("CSV parsing error:", error);
         toast("Error parsing CSV file. Please check the format and try again.");
       }
     };
@@ -599,8 +678,8 @@ const EmailPortal = ({
     <>
       {/* Quick Actions */}
       <div className={styles.actionButtons}>
-        <button 
-          className={styles.actionBtn} 
+        <button
+          className={styles.actionBtn}
           onClick={SendMail}
           title="Send invite to selected guests"
         >
@@ -612,8 +691,8 @@ const EmailPortal = ({
             </div>
           </div>
         </button>
-        <button 
-          className={styles.actionBtn} 
+        <button
+          className={styles.actionBtn}
           onClick={SendReminder}
           title="Send reminders to selected guests"
         >
@@ -625,8 +704,8 @@ const EmailPortal = ({
             </div>
           </div>
         </button>
-        <button 
-          className={styles.actionBtn} 
+        <button
+          className={styles.actionBtn}
           onClick={SendReminderAll}
           title="Send reminders to all non-responders"
         >
@@ -638,17 +717,15 @@ const EmailPortal = ({
             </div>
           </div>
         </button>
-        <button 
-          className={styles.actionBtn} 
+        <button
+          className={styles.actionBtn}
           onClick={SendUpdateAll}
           title="Send updates to all respondents"
         >
           <div className={styles.actionBtnIcon}>🔄</div>
           <div>
             <div>Send Update All</div>
-            <div className={styles.actionBtnSubtitle}>
-              Event updates
-            </div>
+            <div className={styles.actionBtnSubtitle}>Event updates</div>
           </div>
         </button>
       </div>
@@ -659,7 +736,7 @@ const EmailPortal = ({
           <h2 className={styles.sectionTitle}>Guest Management</h2>
           <div className={styles.sectionControls}>
             <div className={styles.addGuestActions}>
-              <button 
+              <button
                 className={styles.btnOutlineSmall}
                 onClick={() => {
                   setAddMode("individual");
@@ -669,7 +746,7 @@ const EmailPortal = ({
                 <span>👤</span>
                 Add Guest
               </button>
-              <button 
+              <button
                 className={styles.btnSecondarySmall}
                 onClick={() => {
                   setAddMode("group");
@@ -679,14 +756,17 @@ const EmailPortal = ({
                 <span>👥</span>
                 Create Group
               </button>
-              <label className={styles.btnPrimarySmall} style={{cursor: 'pointer'}}>
+              <label
+                className={styles.btnPrimarySmall}
+                style={{ cursor: "pointer" }}
+              >
                 <span>📁</span>
                 Import CSV
                 <input
                   type="file"
                   accept=".csv,.xlsx,.xls"
                   onChange={handleFileUpload}
-                  style={{display: 'none'}}
+                  style={{ display: "none" }}
                 />
               </label>
             </div>
@@ -696,10 +776,18 @@ const EmailPortal = ({
         {/* Bulk Actions */}
         {selectedRows.length > 0 && (
           <div className={styles.bulkActions}>
-            <span className={styles.bulkCount}>{selectedRows.length} guests selected</span>
-            <button className={styles.btnPrimarySmall} onClick={SendMail}>Send Invites</button>
-            <button className={styles.btnOutlineSmall} onClick={SendReminder}>Send Reminders</button>
-            <button className={styles.btnSecondarySmall}>Export Selected</button>
+            <span className={styles.bulkCount}>
+              {selectedRows.length} guests selected
+            </span>
+            <button className={styles.btnPrimarySmall} onClick={SendMail}>
+              Send Invites
+            </button>
+            <button className={styles.btnOutlineSmall} onClick={SendReminder}>
+              Send Reminders
+            </button>
+            <button className={styles.btnSecondarySmall}>
+              Export Selected
+            </button>
           </div>
         )}
 
@@ -746,7 +834,9 @@ const EmailPortal = ({
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
               >
-                <option value="">Select {filterBy === "status" ? "status" : filterBy}...</option>
+                <option value="">
+                  Select {filterBy === "status" ? "status" : filterBy}...
+                </option>
                 {filterBy === "status" && (
                   <>
                     <option value="invited">Invited</option>
@@ -754,21 +844,24 @@ const EmailPortal = ({
                     <option value="pending">Pending</option>
                   </>
                 )}
-                {filterBy === "gender" && 
-                  getFilterOptions().genders.map(gender => (
-                    <option key={gender} value={gender}>{gender}</option>
-                  ))
-                }
-                {filterBy === "ageGroup" && 
-                  getFilterOptions().ageGroups.map(ageGroup => (
-                    <option key={ageGroup} value={ageGroup}>{ageGroup}</option>
-                  ))
-                }
-                {filterBy === "group" && 
-                  getFilterOptions().groups.map(group => (
-                    <option key={group} value={group}>{group}</option>
-                  ))
-                }
+                {filterBy === "gender" &&
+                  getFilterOptions().genders.map((gender) => (
+                    <option key={gender} value={gender}>
+                      {gender}
+                    </option>
+                  ))}
+                {filterBy === "ageGroup" &&
+                  getFilterOptions().ageGroups.map((ageGroup) => (
+                    <option key={ageGroup} value={ageGroup}>
+                      {ageGroup}
+                    </option>
+                  ))}
+                {filterBy === "group" &&
+                  getFilterOptions().groups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
               </select>
             )}
 
@@ -790,7 +883,7 @@ const EmailPortal = ({
             <div className={styles.noResultsIcon}>🔍</div>
             <h4 className={styles.noResultsTitle}>No guests found</h4>
             <p className={styles.noResultsText}>
-              {searchTerm || filterBy !== "all" 
+              {searchTerm || filterBy !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "No guests have been added yet"}
             </p>
@@ -807,130 +900,160 @@ const EmailPortal = ({
           <div className={styles.tableContainer}>
             <div className={styles.tableScrollWrapper}>
               <table className={styles.guestTable}>
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.length === filteredGuests.length && filteredGuests.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                    />
-                  </th>
-                  <th>Actions</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Group</th>
-                  <th>Gender</th>
-                  <th>Age Group</th>
-                  <th>Tag</th>
-                  {subevents.map(subevent => (
-                    <th key={subevent}>{subevent}</th>
-                  ))}
-                  <th>Invite Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredGuests.map((guest) => {
-                  const isPointOfContact = guest.isPointOfContact === true;
-                  const isSelected = isGuestSelected(guest);
+                <thead>
+                  <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedRows.length === filteredGuests.length &&
+                          filteredGuests.length > 0
+                        }
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                      />
+                    </th>
+                    <th>Actions</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Group</th>
+                    <th>Gender</th>
+                    <th>Age Group</th>
+                    <th>Tag</th>
+                    {subevents.map((subevent) => (
+                      <th key={subevent}>{subevent}</th>
+                    ))}
+                    <th>Invite Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGuests.map((guest) => {
+                    const isPointOfContact = guest.isPointOfContact === true;
+                    const isSelected = isGuestSelected(guest);
 
-                  return (
-                    <tr
-                      key={guest.id}
-                      className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${isSelected ? styles.selectedRow : ""}`}
-                    >
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleRowSelection(guest, e.target.checked)}
-                        />
-                      </td>
-                      <td>
-                        <div className={styles.actionButtons}>
-                          <button
-                            type="button"
-                            className={`${styles.btnGhost} ${styles.btnIcon}`}
-                            onClick={() => handleEditGuest(guest)}
-                            title="Edit guest"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.btnDanger} ${styles.btnIcon}`}
-                            onClick={() => handleRemoveGuest(guest.id)}
-                            title="Remove guest"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.guestName}>
-                          {guest.name || "-"}
-                          {isPointOfContact && (
-                            <span className={styles.pocBadge}>POC</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.guestEmail}>{guest.email || "-"}</div>
-                      </td>
-                      <td>
-                        <div className={styles.guestPhone}>{guest.phone || "-"}</div>
-                      </td>
-                      <td>
-                        <div className={styles.groupInfo}>
-                          {guest.group ? (
-                            <>
-                              <div
-                                className={styles.groupColorDot}
-                                style={{
-                                  backgroundColor: "#7c3aed",
-                                }}
-                              />
-                              <span>{guest.group}</span>
-                            </>
-                          ) : "-"}
-                        </div>
-                      </td>
-                      <td>{guest.gender || "-"}</td>
-                      <td>{guest.ageGroup || "-"}</td>
-                      <td>{guest.tag || "-"}</td>
-                      {subevents.map(subevent => {
-                        const rsvp = guest.rsvpStatus[subevent];
-                        return (
-                          <td key={subevent}>
-                            {rsvp ? (
-                              <div className={styles.rsvpCell}>
-                                <span className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}>
-                                  {rsvp.status_name}
-                                </span>
-                                {rsvp.response && (
-                                  <div className={styles.responseCount}>+{rsvp.response}</div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className={`${styles.statusBadge} ${styles.statusNotInvited}`}>
-                                Not Invited
-                              </span>
+                    return (
+                      <tr
+                        key={guest.id}
+                        className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${isSelected ? styles.selectedRow : ""}`}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) =>
+                              handleRowSelection(guest, e.target.checked)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <div className={styles.actionButtons}>
+                            <button
+                              type="button"
+                              className={`${styles.btnGhost} ${styles.btnIcon}`}
+                              onClick={() => handleCopyRSVPLink(guest)}
+                              title="Copy RSVP link"
+                            >
+                              {" "}
+                              📋
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.btnGhost} ${styles.btnIcon}`}
+                              onClick={() => handleEditGuest(guest)}
+                              title="Edit guest"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.btnDanger} ${styles.btnIcon}`}
+                              onClick={() => handleRemoveGuest(guest.id)}
+                              title="Remove guest"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.guestName}>
+                            {guest.name || "-"}
+                            {isPointOfContact && (
+                              <span className={styles.pocBadge}>POC</span>
                             )}
-                          </td>
-                        );
-                      })}
-                      <td>
-                        <span className={`${styles.statusBadge} ${
-                          guest.inviteStatus === "Invited" ? styles.statusInvited : styles.statusNotInvited
-                        }`}>
-                          {guest.inviteStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.guestEmail}>
+                            {guest.email || "-"}
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.guestPhone}>
+                            {guest.phone || "-"}
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.groupInfo}>
+                            {guest.group ? (
+                              <>
+                                <div
+                                  className={styles.groupColorDot}
+                                  style={{
+                                    backgroundColor: "#7c3aed",
+                                  }}
+                                />
+                                <span>{guest.group}</span>
+                              </>
+                            ) : (
+                              "-"
+                            )}
+                          </div>
+                        </td>
+                        <td>{guest.gender || "-"}</td>
+                        <td>{guest.ageGroup || "-"}</td>
+                        <td>{guest.tag || "-"}</td>
+                        {subevents.map((subevent) => {
+                          const rsvp = guest.rsvpStatus[subevent];
+                          return (
+                            <td key={subevent}>
+                              {rsvp ? (
+                                <div className={styles.rsvpCell}>
+                                  <span
+                                    className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}
+                                  >
+                                    {rsvp.status_name}
+                                  </span>
+                                  {rsvp.response && (
+                                    <div className={styles.responseCount}>
+                                      +{rsvp.response}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span
+                                  className={`${styles.statusBadge} ${styles.statusNotInvited}`}
+                                >
+                                  Not Invited
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td>
+                          <span
+                            className={`${styles.statusBadge} ${
+                              guest.inviteStatus === "Invited"
+                                ? styles.statusInvited
+                                : styles.statusNotInvited
+                            }`}
+                          >
+                            {guest.inviteStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
           </div>
@@ -978,7 +1101,9 @@ const EmailPortal = ({
               {addMode === "individual" ? (
                 <>
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>Guest Information</h4>
+                    <h4 className={styles.formSectionTitle}>
+                      Guest Information
+                    </h4>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Full Name *</label>
@@ -1038,7 +1163,10 @@ const EmailPortal = ({
                           className={styles.formSelect}
                           value={newGuest.ageGroup}
                           onChange={(e) =>
-                            setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                            setNewGuest({
+                              ...newGuest,
+                              ageGroup: e.target.value,
+                            })
                           }
                         >
                           <option value="">Select age group</option>
@@ -1054,7 +1182,9 @@ const EmailPortal = ({
                         <select
                           className={styles.formSelect}
                           value={newGuest.selectedGroup}
-                          onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                          onChange={(e) =>
+                            handleGroupSelectionChange(e.target.value)
+                          }
                         >
                           <option value="">Create new individual group</option>
                           {getExistingGroups().map((group) => (
@@ -1088,18 +1218,26 @@ const EmailPortal = ({
                         onChange={(e) => handlePOCChange(e.target.checked)}
                       />
                       Mark as Point of Contact
-                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
-                        <span className={styles.pocWarning}> (Group already has a POC)</span>
-                      )}
+                      {newGuest.selectedGroup &&
+                        groupHasPOC(newGuest.selectedGroup) && (
+                          <span className={styles.pocWarning}>
+                            {" "}
+                            (Group already has a POC)
+                          </span>
+                        )}
                     </label>
                     <div className={styles.pointOfContactHelp}>
-                      Point of contact will receive important updates and can help coordinate with their group
-                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
-                        <div className={styles.pocWarningText}>
-                          This group already has a POC ({getCurrentPOCName(newGuest.selectedGroup)}). 
-                          Checking this box will transfer POC status to this guest.
-                        </div>
-                      )}
+                      Point of contact will receive important updates and can
+                      help coordinate with their group
+                      {newGuest.selectedGroup &&
+                        groupHasPOC(newGuest.selectedGroup) && (
+                          <div className={styles.pocWarningText}>
+                            This group already has a POC (
+                            {getCurrentPOCName(newGuest.selectedGroup)}).
+                            Checking this box will transfer POC status to this
+                            guest.
+                          </div>
+                        )}
                     </div>
                   </div>
                 </>
@@ -1158,7 +1296,7 @@ const EmailPortal = ({
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>Transfer Point of Contact</h3>
             </div>
-            
+
             <div className={styles.confirmationContent}>
               <div className={styles.confirmationIcon}>👥</div>
               <div className={styles.confirmationMessage}>
@@ -1169,7 +1307,8 @@ const EmailPortal = ({
                   <strong>{pocTransferData.groupName}</strong>.
                 </p>
                 <p className={styles.confirmationSubtext}>
-                  The previous point of contact will no longer receive important updates for this group.
+                  The previous point of contact will no longer receive important
+                  updates for this group.
                 </p>
               </div>
             </div>

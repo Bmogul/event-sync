@@ -171,24 +171,7 @@
   opacity: 0.8;
 }
 
-.rsvpButton {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--text-lg);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 20px;
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
-}
-
-.rsvpButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4);
-}
+/* Legacy RSVP Button styles removed - using modern version below */
 
 /* Greeting Message */
 .greetingMessage {
@@ -221,12 +204,17 @@
 @media (max-width: 1000px) {
   .eventContainer {
     flex-direction: column;
-    gap: 50px;
+    gap: 40px;
+    align-items: center;
   }
   
   .page {
     padding: 40px 20px;
     gap: 40px;
+  }
+
+  .cardsDiv {
+    margin-bottom: 20px;
   }
 }
 
@@ -315,4 +303,165 @@
 
 .cardD:hover {
   transform: scale(1.05) translateX(5px) translateY(-10px);
+}
+
+/* Placeholder Card Styling */
+.placeholderCard {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  min-height: 400px;
+}
+
+.placeholderCard h3 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: white;
+}
+
+.placeholderCard p {
+  font-size: 14px;
+  margin: 8px 0;
+  opacity: 0.9;
+  color: white;
+}
+
+/* Invite Section Styling - matching preview */
+.inviteSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 24px;
+  margin-top: 50px;
+  padding: 0 20px;
+}
+
+.inviteHeader h2 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+  font-family: var(--font-great-vibes);
+}
+
+.guestList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.guestName {
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rsvpButton {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+  min-width: 140px;
+}
+
+.rsvpButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.4);
+}
+
+.rsvpButton:active {
+  transform: translateY(0);
+}
+
+/* No Invites Message */
+.noInvitesMessage {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 16px;
+}
+
+.noInvitesMessage p {
+  margin: 8px 0;
+}
+
+/* Responsive Design for Invite Section */
+@media (max-width: 768px) {
+  .inviteSection {
+    margin-top: 30px;
+    padding: 0 16px;
+    gap: 20px;
+  }
+
+  .inviteHeader h2 {
+    font-size: 28px;
+  }
+
+  .guestName {
+    font-size: 18px;
+    padding: 6px 12px;
+  }
+
+  .rsvpButton {
+    padding: 14px 28px;
+    font-size: 16px;
+  }
+
+  .placeholderCard {
+    min-height: 300px;
+    padding: 16px;
+  }
+
+  .placeholderCard h3 {
+    font-size: 20px;
+  }
+
+  .placeholderCard p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .inviteHeader h2 {
+    font-size: 24px;
+  }
+
+  .guestName {
+    font-size: 16px;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .rsvpButton {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .placeholderCard {
+    min-height: 250px;
+    padding: 12px;
+  }
 }

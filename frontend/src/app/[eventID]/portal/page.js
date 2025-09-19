@@ -109,6 +109,10 @@ const Page = () => {
     }
   };
 
+  const handleCustomizeRSVP = ()=>{
+   //router.push(`/create-event?edit=${event.id}`) 
+  }
+
   // Show loading while authentication is being checked
   if (authLoading || loading) {
     return <Loading />;
@@ -160,7 +164,7 @@ const Page = () => {
               <button className={styles.btnPrimary}>✉️ Send Mail</button>
               <button className={styles.btnOutline}>📊 View Analytics</button>
               <button className={styles.btnOutline}>📱 Share Event</button>
-              <button className={styles.btnOutline}>🎨 Customize RSVP</button>
+              <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
             </div>
           </div>
 

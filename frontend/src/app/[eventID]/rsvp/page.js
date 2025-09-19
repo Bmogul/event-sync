@@ -28,7 +28,7 @@ const EventCards = ({ subEvents }) => {
 
   useEffect(() => {
     setCardOrder([...cards].reverse());
-  }, [subEvents]);
+  }, [subEvents, cards]);
 
   const handleCardClick = (clickedCard) => {
     const newOrder = cardOrder.filter((card) => card !== clickedCard);
@@ -53,9 +53,11 @@ const EventCards = ({ subEvents }) => {
             }}
           >
             {card.image_url ? ( // Changed from card.image to card.image_url
-              <img
+              <Image
                 src={card.image_url} // Changed from card.image to card.image_url
                 alt={card.title || `Sub-Event ${index + 1}`}
+                width={300}
+                height={200}
                 className={styles.cardView}
               />
             ) : (

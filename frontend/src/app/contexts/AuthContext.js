@@ -6,15 +6,7 @@ import { createClient } from '../utils/supabase/client'
 const AuthContext = createContext()
 
 export const AuthProvider = ({ children, value: testValue }) => {
-  // If testValue is provided (for testing), use it directly
-  if (testValue) {
-    return (
-      <AuthContext.Provider value={testValue}>
-        {children}
-      </AuthContext.Provider>
-    )
-  }
-
+  // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - BEFORE ANY CONDITIONAL LOGIC
   const [user, setUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -29,6 +21,19 @@ export const AuthProvider = ({ children, value: testValue }) => {
   const profileFetchRef = useRef(null)
   const retryTimeoutRef = useRef(null)
   const mountedRef = useRef(true)
+
+  // Create fallback profile from user metadata
+  const createFallbackProfile = useCallback((user) => {
+    return {
+      id: null,
+      supa_id: user.id,
+      first_name: user.user_metadata?.first_name || '',
+      last_name: user.user_metadata?.last_name || '',
+      email: user.email,
+      created_at: new Date().toISOString(),
+      settings: {}
+    }
+  }, [])
 
   // Function to fetch user profile with retry logic and timeout
   const fetchUserProfile = useCallback(async (userId, retryCount = 0) => {
@@ -136,20 +141,48 @@ export const AuthProvider = ({ children, value: testValue }) => {
     
     return profileFetchRef.current.promise
   }, [supabase])
-  
-  // Create fallback profile from user metadata
-  const createFallbackProfile = useCallback((user) => {
-    return {
-      id: null,
-      supa_id: user.id,
-      first_name: user.user_metadata?.first_name || '',
-      last_name: user.user_metadata?.last_name || '',
-      email: user.email,
-      created_at: new Date().toISOString(),
-      settings: {}
-    }
-  }, [])
 
+  // Authentication functions
+  const signOut = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Error signing out:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase.auth])
+
+  const signInWithProvider = useCallback(async (provider, options = {}) => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          ...options
+        }
+      })
+
+      if (error) {
+        throw error
+      }
+
+      return { data, error: null }
+    } catch (error) {
+      console.error(`${provider} sign in error:`, error)
+      setLoading(false)
+      return { data: null, error }
+    }
+  }, [supabase.auth])
+
+  // Auth state effect
   useEffect(() => {
     mountedRef.current = true
     
@@ -246,45 +279,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
     }
   }, [supabase.auth, fetchUserProfile, createFallbackProfile])
 
-  const signOut = async () => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('Error signing out:', error)
-        throw error
-      }
-    } catch (error) {
-      console.error('Sign out error:', error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signInWithProvider = async (provider, options = {}) => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          ...options
-        }
-      })
-
-      if (error) {
-        throw error
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      console.error(`${provider} sign in error:`, error)
-      setLoading(false)
-      return { data: null, error }
-    }
-  }
-
+  // Context value
   const value = useMemo(() => ({
     user,
     userProfile,
@@ -298,6 +293,15 @@ export const AuthProvider = ({ children, value: testValue }) => {
     fetchUserProfile,
     retryProfileFetch: user ? () => fetchUserProfile(user.id) : null
   }), [user, userProfile, session, loading, profileLoading, profileError, signOut, signInWithProvider, supabase, fetchUserProfile])
+
+  // If testValue is provided (for testing), use it directly
+  if (testValue) {
+    return (
+      <AuthContext.Provider value={testValue}>
+        {children}
+      </AuthContext.Provider>
+    )
+  }
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import Image from "next/image";
 import styles from "./RSVPCustomization.module.css";
 import { uploadImage, validateImageFile, createPreviewUrl, revokePreviewUrl, formatFileSize } from "../../../utils/imageUpload";
 
@@ -20,7 +21,7 @@ const EventCards = ({ subEvents }) => {
 
   useEffect(() => {
     setCardOrder([...cards].reverse());
-  }, [subEvents]);
+  }, [subEvents, cards]);
 
   const handleCardClick = (clickedCard) => {
     const newOrder = cardOrder.filter((card) => card !== clickedCard);
@@ -45,9 +46,11 @@ const EventCards = ({ subEvents }) => {
             }}
           >
             {card.image ? (
-              <img
+              <Image
                 src={card.image}
                 alt={card.title || `Sub-Event ${index + 1}`}
+                width={300}
+                height={200}
                 className={styles.cardView}
               />
             ) : (
@@ -184,9 +187,11 @@ const FullscreenPreview = ({
                 /* Landing Page View - Fullscreen */
                 <div className={styles.fullscreenLandingContainer}>
                   {rsvpSettings.logo ? (
-                    <img
+                    <Image
                       src={rsvpSettings.logo}
                       alt="Event Logo"
+                      width={200}
+                      height={100}
                       className={styles.fullscreenLogoImage}
                       onClick={() => setPreviewView("greeting")}
                     />
@@ -1020,9 +1025,11 @@ const RSVPCustomization = ({
               <label className={styles.formLabel}>Event Logo</label>
               {rsvpSettings.logo ? (
                 <div className={styles.imagePreview}>
-                  <img
+                  <Image
                     src={rsvpSettings.logo}
                     alt="Event Logo"
+                    width={200}
+                    height={100}
                     className={styles.previewImage}
                   />
                   {rsvpSettings.logoUploading && (
@@ -1180,9 +1187,11 @@ const RSVPCustomization = ({
 
                     {subEvent.image ? (
                       <div className={styles.imagePreview}>
-                        <img
+                        <Image
                           src={subEvent.image}
                           alt={subEvent.title || `Sub-Event ${index + 1}`}
+                          width={200}
+                          height={120}
                           className={styles.previewImage}
                         />
                         {subEvent.imageUploading && (
@@ -1383,9 +1392,11 @@ const RSVPCustomization = ({
 
                     <div className={styles.logoContainer}>
                       {rsvpSettings.logo ? (
-                        <img
+                        <Image
                           src={rsvpSettings.logo}
                           alt="Event Logo"
+                          width={150}
+                          height={75}
                           className={styles.logoImage}
                           onClick={proceedToGreeting}
                         />

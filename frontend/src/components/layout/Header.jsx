@@ -3,6 +3,7 @@
 import styles from './Header.module.css'
 import {useEffect, useState} from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Container from "./Container"
 import Button from "../ui/Button"
@@ -101,15 +102,19 @@ const Header = () => {
                   >
                     <div className={styles.profileAvatar}>
                       {userProfile?.settings?.avatar_url ? (
-                        <img 
+                        <Image 
                           src={userProfile.settings.avatar_url} 
                           alt={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || user.email}
+                          width={40}
+                          height={40}
                           className={styles.avatarImage}
                         />
                       ) : (
-                        <img 
+                        <Image 
                           src="/avatar-placeholder.svg" 
                           alt="Default avatar"
+                          width={40}
+                          height={40}
                           className={styles.avatarImage}
                         />
                       )}
@@ -249,15 +254,19 @@ const Header = () => {
                     <div className={styles.mobileUserInfo}>
                       <div className={styles.mobileProfileAvatar}>
                         {userProfile?.settings?.avatar_url ? (
-                          <img 
+                          <Image 
                             src={userProfile.settings.avatar_url} 
                             alt={`${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || user.email}
+                            width={30}
+                            height={30}
                             className={styles.mobileAvatarImage}
                           />
                         ) : (
-                          <img 
+                          <Image 
                             src="/avatar-placeholder.svg" 
                             alt="Default avatar"
+                            width={30}
+                            height={30}
                             className={styles.mobileAvatarImage}
                           />
                         )}

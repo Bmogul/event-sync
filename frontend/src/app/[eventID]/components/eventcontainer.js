@@ -58,7 +58,7 @@ const Cards = ({ event, party }) => {
   useEffect(() => {
     console.log(cardImages.reverse())
     setCardOrder(cardImages.reverse());
-  }, [event]);
+  }, [event, cardImages]);
 
   const handleCardClick = (clickedCard) => {
     const newOrder = cardOrder.filter((card) => card !== clickedCard);
@@ -76,9 +76,11 @@ const Cards = ({ event, party }) => {
             onClick={() => handleCardClick(item)}
             style={{ zIndex: index + 1, top: `${index * 35}px`, right: `${index * 10}px` }}
           >
-            <img
+            <Image
               src={item}
               alt={`Card ${index}`}
+              width={300}
+              height={200}
               className={`${styles.cardView} card-img-top`}
             />
           </div>

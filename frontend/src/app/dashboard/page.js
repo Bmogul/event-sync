@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import styles from "./Dashboard.module.css";
@@ -29,7 +30,7 @@ const DashboardContent = () => {
   }, [user, loading, router]);
 
   // Fetch user's events from database
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -103,10 +104,10 @@ const DashboardContent = () => {
     } finally {
       setEventsLoading(false);
     }
-  };
+  }, [user, userProfile?.id, supabase]);
 
   // Fetch collaborations from database
-  const fetchCollaborations = async () => {
+  const fetchCollaborations = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -156,7 +157,7 @@ const DashboardContent = () => {
     } finally {
       setCollaborationsLoading(false);
     }
-  };
+  }, [user, userProfile?.id, supabase]);
 
   // Fetch data when component mounts and user is available
   useEffect(() => {
@@ -166,7 +167,7 @@ const DashboardContent = () => {
       fetchEvents();
       fetchCollaborations();
     }
-  }, [user, userProfile?.id]); // Re-fetch when profile ID becomes available
+  }, [user, userProfile?.id, fetchEvents, fetchCollaborations]); // Re-fetch when profile ID becomes available
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -398,9 +399,12 @@ const DashboardContent = () => {
           <div className={styles.userHeader}>
             <div className={styles.userInfo}>
               <div className={styles.userAvatar}>
-                <img src={avatarUrl} alt={displayName} onError={(e) => {
-                  e.target.src = "/avatar-placeholder.svg";
-                }} />
+                <Image 
+                  src={avatarUrl || "/avatar-placeholder.svg"} 
+                  alt={displayName} 
+                  width={40}
+                  height={40}
+                />
               </div>
               <div className={styles.userDetails}>
                 <h1 className={styles.userName}>Welcome back, {displayName}!</h1>

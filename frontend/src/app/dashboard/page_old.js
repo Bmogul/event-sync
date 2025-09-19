@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -93,7 +94,7 @@ const DashboardContent = () => {
 
   useEffect(()=>{
     console.log(user)
-  },[])
+  },[user])
 
   return (
     <div className={styles.dashboard}>
@@ -136,9 +137,12 @@ const DashboardContent = () => {
           <div className={styles.userHeader}>
             <div className={styles.userInfo}>
               <div className={styles.userAvatar}>
-                <img src={user.avatar} alt={user.name} onError={(e) => {
-                  e.target.src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%237c3aed'/><text x='30' y='35' text-anchor='middle' fill='white' font-size='24' font-family='Inter'>👤</text></svg>";
-                }} />
+                <Image 
+                  src={user.avatar || "/avatar-placeholder.svg"} 
+                  alt={user.name} 
+                  width={60}
+                  height={60}
+                />
               </div>
               <div className={styles.userDetails}>
                 <h1 className={styles.userName}>Welcome back, {user.name}!</h1>

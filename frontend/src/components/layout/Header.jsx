@@ -90,7 +90,7 @@ const Header = () => {
           </ul>
 
           <div className={styles.navButtons}>
-            {user ? (
+            {user && session ? (
               <div className={styles.userProfile}>
                 <Button variant="primary" onClick={handleCreateEvent}>Create Event</Button>
                 <div className={styles.profileContainer}>
@@ -115,7 +115,9 @@ const Header = () => {
                       )}
                     </div>
                     <span className={styles.profileName}>
-                      {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || user.email : user.email}
+                      {userProfile?.first_name || userProfile?.last_name 
+                        ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() 
+                        : user.email}
                     </span>
                     <svg 
                       className={`${styles.chevron} ${isProfileDropdownOpen ? styles.chevronRotated : ''}`}
@@ -139,7 +141,9 @@ const Header = () => {
                       <div className={styles.dropdownHeader}>
                         <div className={styles.userInfo}>
                           <p className={styles.userName}>
-                            {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'User' : 'User'}
+                            {userProfile?.first_name || userProfile?.last_name 
+                              ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() 
+                              : 'User'}
                           </p>
                           <p className={styles.userEmail}>{user.email}</p>
                         </div>
@@ -240,7 +244,7 @@ const Header = () => {
               </ul>
 
               <div className={styles.mobileNavButtons}>
-                {user ? (
+                {user && session ? (
                   <>
                     <div className={styles.mobileUserInfo}>
                       <div className={styles.mobileProfileAvatar}>
@@ -260,7 +264,9 @@ const Header = () => {
                       </div>
                       <div className={styles.mobileUserDetails}>
                         <p className={styles.mobileUserName}>
-                          {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'User' : 'User'}
+                          {userProfile?.first_name || userProfile?.last_name 
+                            ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() 
+                            : 'User'}
                         </p>
                         <p className={styles.mobileUserEmail}>{user.email}</p>
                       </div>

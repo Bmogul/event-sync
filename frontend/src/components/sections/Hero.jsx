@@ -3,6 +3,7 @@ import styles from "./Hero.module.css";
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import Container from "../layout/Container";
 import Button from "../ui/Button";
@@ -40,6 +41,16 @@ const Hero = () => {
               Manage <span className={styles.highlight}>multi-day</span> event
               RSVPs with <span className={styles.highlight}>ease</span>
             </h1>
+            
+            <div className={styles.logoContainer}>
+              <Image 
+                src="/logo.svg" 
+                alt="Event-Sync Logo" 
+                width={200} 
+                height={80}
+                className={styles.heroLogo}
+              />
+            </div>
             <p className={styles.heroSubtitle}>
               Simple RSVP and guest management for weddings, reunions, and
               celebrations

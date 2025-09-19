@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -213,7 +214,15 @@ const Page = () => {
           />
         </div>
       </main>
-      <ToastContainer />
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        draggable
+        theme="colored"
+      />
     </div>
   );
 };

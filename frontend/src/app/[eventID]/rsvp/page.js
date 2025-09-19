@@ -3,6 +3,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Loading from "../components/loading";
 import RSVPForm from "../components/RSVPForm";
@@ -12,15 +13,15 @@ import styles from "../styles/events.module.css";
 // EventCards component matching the preview design
 const EventCards = ({ subEvents }) => {
   // Get images from sub-events that have them, or create default placeholder cards
-  console.log(subEvents)
+  console.log(subEvents);
   const cardImages = subEvents
-    .map((subEvent) => subEvent.image_url)  // Changed from .image to .image_url
+    .map((subEvent) => subEvent.image_url) // Changed from .image to .image_url
     .filter(Boolean);
 
   // If no images, create placeholder cards with event info
   const cards =
     cardImages.length > 0
-      ? subEvents.filter((subEvent) => subEvent.image_url)  // Changed from .image to .image_url
+      ? subEvents.filter((subEvent) => subEvent.image_url) // Changed from .image to .image_url
       : subEvents.slice(0, 3); // Limit to 3 cards like original
 
   const [cardOrder, setCardOrder] = useState([...cards].reverse());
@@ -51,9 +52,9 @@ const EventCards = ({ subEvents }) => {
               right: `${index * 10}px`,
             }}
           >
-            {card.image_url ? (  // Changed from card.image to card.image_url
+            {card.image_url ? ( // Changed from card.image to card.image_url
               <img
-                src={card.image_url}  // Changed from card.image to card.image_url
+                src={card.image_url} // Changed from card.image to card.image_url
                 alt={card.title || `Sub-Event ${index + 1}`}
                 className={styles.cardView}
               />
@@ -93,6 +94,7 @@ export default function RSVPPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [pageOpened, setPageOpened] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   // Get event data based on eventID and guest ID
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -212,8 +214,21 @@ export default function RSVPPage() {
   const openPage = () => {
     setPageOpened(true);
     //start music
-    if (audioRef.current) {
+    if (audioRef.current && !isMuted) {
       audioRef.current.play();
+    }
+  };
+
+  // Toggle mute functionality
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      if (!isMuted) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } else if (pageOpened) {
+        audioRef.current.play();
+      }
     }
   };
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
@@ -283,6 +298,33 @@ export default function RSVPPage() {
       )}
 
       <audio ref={audioRef} src="/invite_track.mp3" />
+
+      {/* Mute button */}
+      <button
+        onClick={toggleMute}
+        style={{
+          position: "fixed",
+          top: "20px",
+          right: "20px",
+          zIndex: 1000,
+          backgroundColor: isMuted ? "#ef4444" : themeStyles.primaryColor,
+          color: "white",
+          border: "none",
+          borderRadius: "50%",
+          width: "50px",
+          height: "50px",
+          fontSize: "20px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+          transition: "all 0.3s ease",
+        }}
+        title={isMuted ? "Unmute sound" : "Mute sound"}
+      >
+        {isMuted ? "🔇" : "🔊"}
+      </button>
 
       {showForm && (
         <div className={styles.formContainer}>
@@ -390,8 +432,9 @@ export default function RSVPPage() {
                   className={styles.logoP}
                   alt="Click to continue"
                   onClick={openPage}
-                  fill
                   style={{ cursor: "pointer" }}
+                  width={400}
+                  height={400}
                 />
               </div>
             )
@@ -403,7 +446,8 @@ export default function RSVPPage() {
                 }
                 className={styles.logo}
                 alt={event.title || "Event Logo"}
-                fill
+                width={400}
+                height={400}
               />
             </div>
           )
@@ -414,11 +458,10 @@ export default function RSVPPage() {
 
       <ToastContainer
         position="top-center"
-        autoClose={4000}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick
-        pauseOnHover
         draggable
         theme="colored"
       />

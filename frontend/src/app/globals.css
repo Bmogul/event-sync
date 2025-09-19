@@ -173,3 +173,51 @@ body.auth-page {
 .Toastify__close-button:hover {
   opacity: 1;
 }
+
+/* Global Mobile Responsiveness Improvements */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px; /* Slightly smaller base font size for mobile */
+  }
+  
+  * {
+    /* Prevent horizontal scrolling and improve touch targets */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure images and media are responsive */
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Improve button and interactive element sizing for mobile */
+  button, input, select, textarea {
+    min-height: 44px; /* Apple's recommended minimum touch target */
+  }
+  
+  /* Prevent text from being too small on mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px; /* Even smaller for very small screens */
+  }
+  
+  /* Ensure proper spacing on very small screens */
+  .container, [class*="container"] {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+  
+  /* Reduce vertical spacing slightly on small screens */
+  section {
+    padding-top: var(--spacing-3xl);
+    padding-bottom: var(--spacing-3xl);
+  }
+}

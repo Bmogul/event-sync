@@ -47,6 +47,19 @@
   background-clip: text;
 }
 
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-md);
+}
+
+.heroLogo {
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
 .heroSubtitle {
   font-size: var(--text-2xl);
   color: var(--color-gray-600);
@@ -234,6 +247,16 @@
     height: 80px;
     font-size: var(--text-3xl);
   }
+
+  .logoContainer {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-sm);
+  }
+
+  .heroLogo {
+    width: 150px;
+    height: 60px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -274,5 +297,15 @@
 
   .heroStatLabel {
     font-size: var(--text-xs);
+  }
+
+  .logoContainer {
+    margin: var(--spacing-sm) 0;
+    padding: var(--spacing-xs);
+  }
+
+  .heroLogo {
+    width: 120px;
+    height: 48px;
   }
 }

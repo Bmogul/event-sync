@@ -8,7 +8,7 @@ import styles from "./Dashboard.module.css";
 
 const DashboardContent = () => {
   const router = useRouter();
-  const { user, userProfile, session, loading, signOut, supabase } = useAuth();
+  const { user, userProfile, session, loading, profileLoading, profileError, signOut, supabase, retryProfileFetch } = useAuth();
   
   const [activeSection, setActiveSection] = useState("events");
   const [events, setEvents] = useState([]);
@@ -30,14 +30,14 @@ const DashboardContent = () => {
 
   // Fetch user's events from database
   const fetchEvents = async () => {
-    if (!user || !userProfile) return;
+    if (!user) return;
     
     try {
       setEventsLoading(true);
       setEventsError(null);
 
       // If userProfile doesn't have a database ID, we can't fetch events
-      if (!userProfile.id) {
+      if (!userProfile?.id) {
         console.log('UserProfile has no database ID, cannot fetch events');
         setEvents([]);
         return;
@@ -107,14 +107,14 @@ const DashboardContent = () => {
 
   // Fetch collaborations from database
   const fetchCollaborations = async () => {
-    if (!user || !userProfile) return;
+    if (!user) return;
     
     try {
       setCollaborationsLoading(true);
       setCollaborationsError(null);
 
       // If userProfile doesn't have a database ID, we can't fetch collaborations
-      if (!userProfile.id) {
+      if (!userProfile?.id) {
         console.log('UserProfile has no database ID, cannot fetch collaborations');
         setCollaborations([]);
         return;
@@ -160,11 +160,13 @@ const DashboardContent = () => {
 
   // Fetch data when component mounts and user is available
   useEffect(() => {
-    if (user && userProfile) {
+    if (user) {
+      // Fetch events and collaborations immediately if we have a user
+      // Even if userProfile is still loading, these functions handle that gracefully
       fetchEvents();
       fetchCollaborations();
     }
-  }, [user, userProfile]);
+  }, [user, userProfile?.id]); // Re-fetch when profile ID becomes available
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -348,7 +350,7 @@ const DashboardContent = () => {
   }
 
   // Don't render if not authenticated
-  if (!user || !userProfile) {
+  if (!user) {
     return null;
   }
 
@@ -403,6 +405,16 @@ const DashboardContent = () => {
               <div className={styles.userDetails}>
                 <h1 className={styles.userName}>Welcome back, {displayName}!</h1>
                 <p className={styles.userEmail}>{user.email}</p>
+                {profileError && (
+                  <div className={styles.profileError}>
+                    <p>Profile could not be loaded. <button onClick={retryProfileFetch} className={styles.retryBtn}>Retry</button></p>
+                  </div>
+                )}
+                {profileLoading && (
+                  <div className={styles.profileLoading}>
+                    <p>Loading profile...</p>
+                  </div>
+                )}
               </div>
             </div>
             <div className={styles.userActions}>

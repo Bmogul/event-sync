@@ -1,0 +1,266 @@
+.collaboratorCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  position: relative;
+  gap: 24px;
+}
+
+.collaboratorCard:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.collaboratorCard.updating {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.collaboratorInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.userDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.youLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #3b82f6;
+  background-color: #dbeafe;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.ownerLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b5cf6;
+  background-color: #ede9fe;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.userEmail {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+  word-break: break-word;
+}
+
+.metadata {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badges {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.roleBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.roleOwner {
+  background-color: #ede9fe;
+  color: #8b5cf6;
+}
+
+.roleAdmin {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.roleEditor {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.roleViewer {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.roleDefault {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.statusBadge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.statusAccepted {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.statusInvited {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.statusRejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.statusDefault {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.removeButton {
+  color: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+.removeButton:hover {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+.roleSelector {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  margin-top: 8px;
+  padding: 16px;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .collaboratorCard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .collaboratorInfo {
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .userName {
+    font-size: 15px;
+  }
+
+  .userEmail {
+    font-size: 13px;
+  }
+
+  .badges {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .roleSelector {
+    position: relative;
+    margin-top: 16px;
+    padding: 12px;
+  }
+}

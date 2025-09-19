@@ -8,10 +8,12 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 
 import { useAuth } from "../../contexts/AuthContext";
+import useEventPermissions from "../../hooks/useEventPermissions";
 
 import Loading from "../components/loading";
 import Email from "../components/emailPortal";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
+import ManageTeam from "../components/ManageTeam";
 
 import styles from "../styles/portal.module.css";
 
@@ -23,9 +25,25 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState("email"); // "email" or "template-editor"
+  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
 
   const { session, supabase, user, userProfile, loading: authLoading } = useAuth(); // get supabase client and session from context
+
+  // Get user permissions for this event
+  const {
+    userRole,
+    loading: permissionsLoading,
+    hasPermission,
+    canSendEmails,
+    canEditTemplates,
+    canViewAnalytics,
+    canDeleteEvent,
+    canEditEvent,
+    isOwner,
+    isAdmin,
+    error: permissionsError
+  } = useEventPermissions(event?.eventID);
+
 
   // GuestList functions
   const getGuestList = useCallback(async (event) => {
@@ -117,8 +135,10 @@ const Page = () => {
    //router.push(`/create-event?edit=${event.id}`) 
   }
 
-  // Show loading while authentication is being checked
-  if (authLoading || loading) {
+
+
+  // Show loading while authentication and permissions are being checked
+  if (authLoading || loading || permissionsLoading) {
     return <Loading />;
   }
 
@@ -138,10 +158,19 @@ const Page = () => {
                 Event-Sync
               </a>
               <span className={styles.breadcrumb}>/ Event Portal</span>
+              {userRole && (
+                <span className={styles.userRoleBadge}>
+                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                </span>
+              )}
             </div>
             <div className={styles.navActions}>
-              <button className={styles.btnSecondary}>Export Data</button>
-              <button className={styles.btnOutline}>Event Settings</button>
+              {canViewAnalytics && (
+                <button className={styles.btnSecondary}>Export Data</button>
+              )}
+              {canEditEvent && (
+                <button className={styles.btnOutline}>Event Settings</button>
+              )}
               <button
                 className={styles.btnPrimary}
                 onClick={() => window.open(`/${params.eventID}/rsvp`, "_blank")}
@@ -181,20 +210,40 @@ const Page = () => {
                 Event Management Portal • Guest Communication & Analytics
               </p>
               <div className={styles.eventActions}>
-              <button 
-                className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
-                onClick={() => setCurrentView("email")}
-              >
-                ✉️ Send Mail
-              </button>
-              <button className={styles.btnOutline}>📊 View Analytics</button>
-              <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
-              <button 
-                className={currentView === "template-editor" ? styles.btnPrimary : styles.btnOutline}
-                onClick={() => setCurrentView("template-editor")}
-              >
-                🎨 Edit Templates
-              </button>
+                {canSendEmails && (
+                  <button 
+                    className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
+                    onClick={() => setCurrentView("email")}
+                  >
+                    ✉️ Send Mail
+                  </button>
+                )}
+                
+                {canViewAnalytics && (
+                  <button className={styles.btnOutline}>📊 View Analytics</button>
+                )}
+                
+                {canEditEvent && (
+                  <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
+                )}
+                
+                {canEditTemplates && (
+                  <button 
+                    className={currentView === "template-editor" ? styles.btnPrimary : styles.btnOutline}
+                    onClick={() => setCurrentView("template-editor")}
+                  >
+                    🎨 Edit Templates
+                  </button>
+                )}
+                
+                {(isOwner || isAdmin) && (
+                  <button 
+                    className={currentView === "manage-team" ? styles.btnPrimary : styles.btnOutline}
+                    onClick={() => setCurrentView("manage-team")}
+                  >
+                    👥 Manage Team
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -243,6 +292,13 @@ const Page = () => {
               getGuestList={getGuestList}
               updateGuestList={updateGuestList}
               setCurrentView={setCurrentView}
+              permissions={{
+                canSendEmails,
+                canEditTemplates,
+                canViewAnalytics,
+                hasPermission,
+                userRole
+              }}
             />
           ) : currentView === "template-editor" ? (
             <EmailTemplateEditor
@@ -251,6 +307,15 @@ const Page = () => {
               params={params}
               session={session}
               setCurrentView={setCurrentView}
+              permissions={{
+                canEditTemplates,
+                hasPermission,
+                userRole
+              }}
+            />
+          ) : currentView === "manage-team" ? (
+            <ManageTeam
+              eventPublicId={event?.eventID}
             />
           ) : null}
         </div>

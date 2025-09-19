@@ -42,15 +42,6 @@ const Hero = () => {
               RSVPs with <span className={styles.highlight}>ease</span>
             </h1>
             
-            <div className={styles.logoContainer}>
-              <Image 
-                src="/logo.svg" 
-                alt="Event-Sync Logo" 
-                width={200} 
-                height={80}
-                className={styles.heroLogo}
-              />
-            </div>
             <p className={styles.heroSubtitle}>
               Simple RSVP and guest management for weddings, reunions, and
               celebrations

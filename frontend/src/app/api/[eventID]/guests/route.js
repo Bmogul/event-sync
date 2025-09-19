@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
 
 // POST - Create new guests
 export async function POST(request, { params }) {
@@ -12,6 +14,7 @@ export async function POST(request, { params }) {
     const { eventID } = params;
     const body = await request.json();
     const { guests, event } = body;
+    const supabase = getSupabaseClient();
 
     if (!guests || !Array.isArray(guests) || guests.length === 0) {
       return NextResponse.json(

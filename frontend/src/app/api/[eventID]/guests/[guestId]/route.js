@@ -1,15 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
 
 // DELETE - Remove a guest
 export async function DELETE(request, { params }) {
   try {
     const { eventID, guestId } = params;
+    const supabase = getSupabaseClient();
 
     console.log(`Deleting guest ${guestId} from event ${eventID}`);
 
@@ -112,6 +115,7 @@ export async function PUT(request, { params }) {
     const { eventID, guestId } = params;
     const body = await request.json();
     const { guest } = body;
+    const supabase = getSupabaseClient();
 
     console.log(`Updating guest ${guestId} in event ${eventID}`);
 

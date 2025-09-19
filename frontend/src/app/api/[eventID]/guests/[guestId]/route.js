@@ -14,7 +14,42 @@ export async function DELETE(request, { params }) {
     const { eventID, guestId } = params;
     const supabase = getSupabaseClient();
 
-    console.log(`Deleting guest ${guestId} from event ${eventID}`);
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    console.log(`Deleting guest ${guestId} from event ${eventID} by user ${userProfile.id}`);
 
     // Get guest info before deletion to handle group cleanup
     const { data: guestToDelete, error: fetchError } = await supabase
@@ -37,10 +72,39 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    // Get event details and verify access
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
     // Verify the guest belongs to the correct event
-    if (guestToDelete.guest_groups.event_id !== parseInt(eventID)) {
+    if (guestToDelete.guest_groups.event_id !== eventData.id) {
       return NextResponse.json(
         { error: 'Guest does not belong to this event' },
+        { status: 403 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
         { status: 403 }
       );
     }
@@ -117,7 +181,71 @@ export async function PUT(request, { params }) {
     const { guest } = body;
     const supabase = getSupabaseClient();
 
-    console.log(`Updating guest ${guestId} in event ${eventID}`);
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    // Get event details and verify access
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
+        { status: 403 }
+      );
+    }
+
+    console.log(`Updating guest ${guestId} in event ${eventID} by user ${userProfile.id}`);
 
     // Fetch lookup tables for gender, age group, and guest type
     const { data: genderLookup, error: genderError } = await supabase

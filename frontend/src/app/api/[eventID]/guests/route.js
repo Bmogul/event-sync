@@ -16,6 +16,70 @@ export async function POST(request, { params }) {
     const { guests, event } = body;
     const supabase = getSupabaseClient();
 
+    // Authentication check - extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "Missing authorization token" },
+        { status: 401 }
+      );
+    }
+
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    // Get event details and verify it exists
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("id, public_id, title")
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !eventData) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check access permissions using event_managers table
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", eventData.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied - you are not a manager of this event" },
+        { status: 403 }
+      );
+    }
+
     if (!guests || !Array.isArray(guests) || guests.length === 0) {
       return NextResponse.json(
         { error: 'No guests provided' },
@@ -23,7 +87,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`Creating ${guests.length} guests for event ${eventID}`);
+    console.log(`Creating ${guests.length} guests for event ${eventID} by user ${userProfile.id}`);
 
     // Fetch lookup tables for gender, age group, and guest type
     const { data: genderLookup, error: genderError } = await supabase
@@ -124,7 +188,7 @@ export async function POST(request, { params }) {
       if (!groupsToCreate.has(groupTitle)) {
         groupsToCreate.set(groupTitle, {
           title: groupTitle,
-          event_id: parseInt(eventID),
+          event_id: eventData.id, // Use verified event ID
           size_limit: -1,
           status_id: 1, // draft status
           details: {

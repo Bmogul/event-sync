@@ -125,10 +125,9 @@ const DashboardContent = () => {
         .from('event_managers')
         .select(`
           *,
-          event:events(title, public_id),
+          event:events(title, public_id, created_by, users!events_created_by_fkey(first_name, last_name)),
           role:event_manage_roles(role_name),
-          status:event_manage_state_lookup(state),
-          owner_user:users!events_created_by_fkey(first_name, last_name)
+          status:event_manage_state_lookup(state)
         `)
         .eq('user_id', userProfile.id)
         .neq('role_id', 1); // Exclude owner role
@@ -142,7 +141,7 @@ const DashboardContent = () => {
         id: `${collab.user_id}_${collab.event_id}`,
         eventTitle: collab.event?.title || 'Unknown Event',
         eventId: collab.event?.public_id,
-        ownerName: `${collab.owner_user?.first_name || ''} ${collab.owner_user?.last_name || ''}`.trim() || 'Unknown',
+        ownerName: `${collab.event?.users?.first_name || ''} ${collab.event?.users?.last_name || ''}`.trim() || 'Unknown',
         role: collab.role?.role_name || 'collaborator',
         status: collab.status?.state || 'pending',
         invitedDate: collab.invited_at,

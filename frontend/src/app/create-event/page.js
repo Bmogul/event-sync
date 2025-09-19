@@ -9,6 +9,7 @@ import ProgressSteps from "./components/ProgressSteps";
 import EventDetailsForm from "./components/sections/EventDetailsForm";
 import GuestListSection from "./components/sections/GuestListSection";
 import RSVPCustomization from "./components/sections/RSVPCustomization";
+import EmailTemplateCreator from "./components/sections/EmailTemplateCreator";
 import LaunchSection from "./components/sections/LaunchSection";
 
 const CreateEventContent = () => {
@@ -39,6 +40,7 @@ const CreateEventContent = () => {
         "Organize your guests into groups and select which sub-events each person is invited to attend.",
     },
     { title: "Customize RSVP Page", subtitle: "Design your RSVP page to match your event's style and gather the information you need." },
+    { title: "Email Templates", subtitle: "Create and customize email templates for invitations, reminders, and updates." },
     {
       title: isEditMode ? "Update & Launch" : "Ready to Launch",
       subtitle: isEditMode ?
@@ -53,6 +55,7 @@ const CreateEventContent = () => {
     public_id: crypto.randomUUID(),
     title: "",
     description: "",
+    logo_url: "",
     location: "",
     startDate: "",
     endDate: "",
@@ -230,7 +233,7 @@ const CreateEventContent = () => {
   }, [hasUnsavedImages, eventData]);
 
   const nextStep = () => {
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -595,6 +598,16 @@ const CreateEventContent = () => {
                   )}
 
                   {currentStep === 5 && (
+                    <EmailTemplateCreator
+                      eventData={eventData}
+                      updateEventData={updateEventData}
+                      onNext={nextStep}
+                      onPrevious={previousStep}
+                      isLoading={isLoading}
+                    />
+                  )}
+
+                  {currentStep === 6 && (
                     <LaunchSection
                       eventData={eventData}
                       onPublish={publishEvent}

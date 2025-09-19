@@ -285,7 +285,7 @@ const EventDetailsForm = ({
             className={`${styles.btn} ${styles.btnPrimary}`}
             disabled={isLoading}
           >
-            {isLoading ? 'Saving...' : 'Continue to Guest List →'}
+            {isLoading ? 'Saving...' : 'Continue to Sub-Events →'}
           </button>
         </div>
       </form>
@@ -327,6 +327,21 @@ const EventDetailsForm = ({
             rows="4"
           />
           {errors.description && <div className={styles.errorText}>{errors.description}</div>}
+        </div>
+
+        <div className={styles.formGroupFull}>
+          <label className={styles.formLabel}>Event Logo URL</label>
+          <input
+            type="url"
+            className={`${styles.formInput} ${errors.logo_url ? styles.error : ''}`}
+            value={eventData.logo_url || ''}
+            onChange={(e) => handleInputChange('logo_url', e.target.value)}
+            placeholder="https://example.com/your-logo.png"
+          />
+          <div className={styles.formHelp}>
+            Optional: Add a logo URL that will appear in your email invitations and RSVP page
+          </div>
+          {errors.logo_url && <div className={styles.errorText}>{errors.logo_url}</div>}
         </div>
 
         <div className={styles.formGroup}>
@@ -444,7 +459,7 @@ const EventDetailsForm = ({
           className={`${styles.btn} ${styles.btnPrimary}`}
           disabled={isLoading}
         >
-          {isLoading ? 'Saving...' : 'Continue to Sub-Events →'}
+          {isLoading ? 'Saving...' : 'Continue to Guest List →'}
         </button>
       </div>
     </form>

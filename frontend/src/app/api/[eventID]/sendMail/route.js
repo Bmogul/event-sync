@@ -1,124 +1,255 @@
 import { NextResponse } from "next/server";
 import sgMail from "@sendgrid/mail";
 import Handlebars from "handlebars";
-
-import { authEvent } from "../../../lib/helpers";
-import { getGoogleSheets, getAuthClient } from "../../../lib/google-sheets";
+import { createClient } from "../../../utils/supabase/server";
 import { reminderTemplate, inviteTemplate } from "./templates.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const sender = "sender@event-sync.com";
 
 // Compile templates
 const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
 const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
 
-export const POST = async (req) => {
-  const { password, event, guestList } = await req.json();
-  const eventLogo = event.logo;
-  const sheetID = event.sheetID;
-  const sheets = await getGoogleSheets();
-
-  if (!password || !event || !guestList || guestList.length === 0) {
-    console.log("INVALID DATA FORMAT");
-    return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
-  }
-
+export const POST = async (req, { params }) => {
+  const { eventID } = params;
+  
   try {
-    if (!(await authEvent(sheets, sheetID, password))) {
-      return NextResponse.json({ validated: false }, { status: 200 });
+    const supabase = createClient();
+    const body = await req.json();
+    const { guestList, emailType = 'invitation', templateId } = body;
+
+    // Get auth token from request headers
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { validated: false, message: "No auth token" },
+        { status: 401 }
+      );
     }
 
-    // Get existing data from sheet once at the start
-    const mainSheet = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetID,
-      range: "Main",
-    });
-    const allValues = mainSheet.data.values || [];
+    // Get the current user from Supabase
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-    // Function to update a single row in the sheet
-    const updateSheetRow = async (guest, rowNumber) => {
-      const cellRange = `Main!M${rowNumber}:N${rowNumber}`;
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: sheetID,
-        range: cellRange,
-        valueInputOption: "RAW",
-        resource: {
-          values: [[guest.Sent]],
-        },
-      });
+    if (userError || !user) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json(
+        { validated: false, message: "Invalid user profile" },
+        { status: 401 }
+      );
+    }
+
+    // Fetch event with details
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select(`
+        id,
+        public_id,
+        title,
+        description,
+        start_date,
+        end_date,
+        details,
+        logo_url,
+        status_id
+      `)
+      .eq("public_id", eventID)
+      .single();
+
+    if (eventError || !event) {
+      console.error("Event fetch error:", eventError);
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Check access permissions
+    const { data: managers, error: managerError } = await supabase
+      .from("event_managers")
+      .select("*")
+      .eq("event_id", event.id)
+      .eq("user_id", userProfile.id)
+      .limit(1);
+
+    if (managerError || !managers || managers.length === 0) {
+      return NextResponse.json(
+        { validated: false, message: "Access denied" },
+        { status: 403 }
+      );
+    }
+
+    if (!guestList || guestList.length === 0) {
+      return NextResponse.json({ error: "No guests provided" }, { status: 400 });
+    }
+
+    // Fetch email template from database if templateId is provided
+    let databaseTemplate = null;
+    if (templateId) {
+      console.log("Fetching email template with ID:", templateId);
+      const { data: template, error: templateError } = await supabase
+        .from("email_templates")
+        .select(`
+          *,
+          email_template_categories(name),
+          email_template_status(name)
+        `)
+        .eq("id", templateId)
+        .eq("event_id", event.id)
+        .single();
+
+      if (templateError) {
+        console.error("Template fetch error:", templateError);
+        return NextResponse.json({ 
+          error: "Email template not found" 
+        }, { status: 404 });
+      }
+
+      if (!template) {
+        return NextResponse.json({ 
+          error: "Email template not found for this event" 
+        }, { status: 404 });
+      }
+
+      databaseTemplate = template;
+      console.log("✓ Email template fetched:", template.name);
+    }
+
+    // Extract email content from event.details JSONB (fallback for when no template is selected)
+    const eventDetails = event.details || {};
+    const emailConfig = eventDetails.emailConfig || {};
+    
+    const defaultSender = {
+      email: "sender@event-sync.com",
+      name: eventDetails.organizerName || eventDetails.senderName || "Event Organizer"
     };
 
-    // Function to find row number for a guest
-    const findRowNumber = (guest, allValues) => {
-      const rowIndex = allValues.findIndex(
-        (row) =>
-          row[0]?.toString() === guest.GUID?.toString() &&
-          row[1]?.toString() === guest.UID?.toString(),
-      );
-      return rowIndex !== -1 ? rowIndex + 1 : null;
+    // Build email content - prioritize database template, then fall back to event details/config
+    const emailContent = {
+      greeting: databaseTemplate?.greeting || emailConfig.greeting || eventDetails.greeting || "Dear Guest,",
+      body: databaseTemplate?.body || emailConfig.body || eventDetails.body || eventDetails.email_message || "You are invited to our special event.",
+      signoff: databaseTemplate?.signoff || emailConfig.signoff || eventDetails.signoff || "Best regards,",
+      subjectLine: databaseTemplate?.subject_line || emailConfig.subjectLine || eventDetails.subjectLine || `Invitation: ${event.title}`,
+      senderName: databaseTemplate?.sender_name || emailConfig.senderName || eventDetails.senderName || defaultSender.name,
+      // Add template colors for the base template
+      primary_color: databaseTemplate?.primary_color || "#ffffff",
+      secondary_color: databaseTemplate?.secondary_color || "#e1c0b7", 
+      text_color: databaseTemplate?.font_color || "#333333"
     };
 
     const updatedGuestList = [];
+    const emailResults = {
+      successful: [],
+      failed: []
+    };
 
-    // Process each guest sequentially
+    // Process each guest
     for (const guest of guestList) {
       try {
-        if (!guest.Email) {
+        if (!guest.email) {
           updatedGuestList.push(guest);
+          emailResults.failed.push({
+            guest: guest,
+            error: "No email address"
+          });
           continue;
         }
 
-        const reminder = guest.Sent === "Yes";
-        const rsvpLink = `${process.env.HOST}/${event.eventID}/rsvp?guid=${guest.GUID}`;
+        // Generate RSVP link using guest public_id
+        const rsvpLink = `${process.env.HOST || 'http://localhost:3000'}/${eventID}/rsvp?guestId=${guest.group_id}`;
+        
         const templateData = {
-          rsvpLink: rsvpLink || "google.com",
-          clientMessage: event.email_message,
-          eventName: event.eventTitle,
-          logoLink: eventLogo,
+          rsvpLink: rsvpLink,
+          eventName: event.title,
+          logoLink: event.logo_url,
+          greeting: emailContent.greeting,
+          body: emailContent.body,
+          signoff: emailContent.signoff,
+          senderName: emailContent.senderName,
+          guestName: guest.name || 'Guest',
+          eventDate: event.start_date ? new Date(event.start_date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+          }) : 'Date TBD',
+          eventDescription: event.description || '',
+          // Add template colors for the base template styling
+          primary_color: emailContent.primary_color,
+          secondary_color: emailContent.secondary_color,
+          text_color: emailContent.text_color
         };
 
         const msg = {
-          to: guest.Email,
+          to: guest.email,
           from: {
-            email: sender,
-            name: "Huzefa and Fatema Mogul",
+            email: defaultSender.email,
+            name: emailContent.senderName
           },
-          subject: !reminder
-            ? "Sakina's Shadi Invitation"
-            : "Important reminder inside",
-          html: compiledInviteTemplate(templateData),
+          subject: emailContent.subjectLine,
+          html: compiledInviteTemplate(templateData)
         };
 
         // Send email
         await sgMail.send(msg);
-        console.log("Email sent to: ", guest.Email, "\nReminder: ", reminder);
+        console.log("Email sent to:", guest.email);
 
-        // Update guest status
-        const updatedGuest = { ...guest, Sent: "Yes" };
-        updatedGuestList.push(updatedGuest);
+        emailResults.successful.push({
+          guest: guest,
+          email: guest.email
+        });
 
-        // Find and update the corresponding row in the sheet
-        const rowNumber = findRowNumber(guest, allValues);
-        if (rowNumber) {
-          await updateSheetRow(updatedGuest, rowNumber);
-          console.log(`Sheet updated for guest: ${guest.Email}`);
-        } else {
-          console.warn(`Could not find row for guest: ${guest.Email}`);
-        }
+        // Add guest to updated list (we'll handle status updates in database later)
+        updatedGuestList.push({
+          ...guest,
+          emailSent: true,
+          lastEmailSent: new Date().toISOString()
+        });
+
       } catch (error) {
-        console.error(`Error processing guest ${guest.Email}:`, error, error.response.body,'\nsdsd\n');
-        // Add the guest to the list without updating their status
+        console.error(`Error sending email to ${guest.email}:`, error);
+        
+        emailResults.failed.push({
+          guest: guest,
+          error: error.message
+        });
+
+        // Add guest to updated list without email status update
         updatedGuestList.push(guest);
       }
     }
 
-    return NextResponse.json(
-      { validated: true, guestList: updatedGuestList },
-      { status: 200 },
-    );
+    return NextResponse.json({
+      validated: true,
+      success: true,
+      results: {
+        total: guestList.length,
+        successful: emailResults.successful.length,
+        failed: emailResults.failed.length,
+        details: emailResults
+      },
+      guestList: updatedGuestList
+    }, { status: 200 });
+
   } catch (error) {
-    console.error("Error processing guest list:", error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    console.error("SendMail API error:", error);
+    return NextResponse.json(
+      { 
+        validated: false, 
+        error: "Internal server error", 
+        message: error.message 
+      }, 
+      { status: 500 }
+    );
   }
 };

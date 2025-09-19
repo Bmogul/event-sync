@@ -1588,7 +1588,7 @@ const RSVPCustomization = ({
           className={`${styles.btn} ${styles.btnPrimary}`}
           disabled={isLoading}
         >
-          {isLoading ? "Saving..." : "Continue to Launch →"}
+          {isLoading ? "Saving..." : "Continue to Email Templates →"}
         </button>
       </div>
     </form>

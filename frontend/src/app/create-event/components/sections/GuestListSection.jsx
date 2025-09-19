@@ -1990,7 +1990,7 @@ const GuestListSection = ({
           onClick={handleSubmit}
           disabled={isLoading}
         >
-          {isLoading ? "Saving..." : "Continue to Launch →"}
+          {isLoading ? "Saving..." : "Continue to RSVP Page →"}
         </button>
       </div>
 

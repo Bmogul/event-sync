@@ -5,11 +5,13 @@ import { useRouter, useParams } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
+import Image from "next/image";
 
 import { useAuth } from "../../contexts/AuthContext";
 
 import Loading from "../components/loading";
 import Email from "../components/emailPortal";
+import EmailTemplateEditor from "../components/EmailTemplateEditor";
 
 import styles from "../styles/portal.module.css";
 
@@ -21,6 +23,7 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState("email"); // "email" or "template-editor"
 
   const { session, supabase, user, userProfile, loading: authLoading } = useAuth(); // get supabase client and session from context
 
@@ -155,17 +158,44 @@ const Page = () => {
         <div className={styles.container}>
           {/* Event Header */}
           <div className={styles.eventHeader}>
-            <h1 className={styles.eventTitle}>
-              {event?.eventTitle || "Event Management"}
-            </h1>
-            <p className={styles.eventSubtitle}>
-              Event Management Portal • Guest Communication & Analytics
-            </p>
-            <div className={styles.eventActions}>
-              <button className={styles.btnPrimary}>✉️ Send Mail</button>
+            {event?.logo && (
+              <div className={styles.eventLogo}>
+                <Image
+                  src={event.logo}
+                  alt={`${event?.eventTitle || "Event"} Logo`}
+                  width={120}
+                  height={120}
+                  style={{
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  }}
+                />
+              </div>
+            )}
+            <div className={styles.eventInfo}>
+              <h1 className={styles.eventTitle}>
+                {event?.eventTitle || "Event Management"}
+              </h1>
+              <p className={styles.eventSubtitle}>
+                Event Management Portal • Guest Communication & Analytics
+              </p>
+              <div className={styles.eventActions}>
+              <button 
+                className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
+                onClick={() => setCurrentView("email")}
+              >
+                ✉️ Send Mail
+              </button>
               <button className={styles.btnOutline}>📊 View Analytics</button>
-              <button className={styles.btnOutline}>📱 Share Event</button>
               <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
+              <button 
+                className={currentView === "template-editor" ? styles.btnPrimary : styles.btnOutline}
+                onClick={() => setCurrentView("template-editor")}
+              >
+                🎨 Edit Templates
+              </button>
+              </div>
             </div>
           </div>
 
@@ -202,16 +232,27 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Email Portal Component */}
-          <Email
-            toast={toast}
-            event={event}
-            params={params}
-            guestList={guestList}
-            password={password}
-            getGuestList={getGuestList}
-            updateGuestList={updateGuestList}
-          />
+          {/* Conditional Component Rendering */}
+          {currentView === "email" ? (
+            <Email
+              toast={toast}
+              event={event}
+              params={params}
+              guestList={guestList}
+              session={session}
+              getGuestList={getGuestList}
+              updateGuestList={updateGuestList}
+              setCurrentView={setCurrentView}
+            />
+          ) : currentView === "template-editor" ? (
+            <EmailTemplateEditor
+              toast={toast}
+              event={event}
+              params={params}
+              session={session}
+              setCurrentView={setCurrentView}
+            />
+          ) : null}
         </div>
       </main>
       <ToastContainer

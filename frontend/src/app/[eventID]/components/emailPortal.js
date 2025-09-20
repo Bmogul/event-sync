@@ -46,16 +46,14 @@ const EmailPortal = ({
     "#ea580c",
   ];
 
-
   // Handle guest type change
   const handleGuestTypeChange = (guestType) => {
-    setNewGuest(prev => ({
+    setNewGuest((prev) => ({
       ...prev,
       guestType,
-      guestLimit: guestType === "multiple" ? 1 : null // Set default limit for multiple type
+      guestLimit: guestType === "multiple" ? 1 : null, // Set default limit for multiple type
     }));
   };
-
 
   // Fetch available email templates for this event
   useEffect(() => {
@@ -149,11 +147,16 @@ const EmailPortal = ({
   const subevents = getAllSubevents();
 
   // Enhanced sorting function
-  const sortGuests = (guests, primarySort, direction, secondarySort = "name") => {
+  const sortGuests = (
+    guests,
+    primarySort,
+    direction,
+    secondarySort = "name",
+  ) => {
     return [...guests].sort((a, b) => {
       let primaryA = a[primarySort] || "";
       let primaryB = b[primarySort] || "";
-      
+
       // Handle special cases for sorting
       if (primarySort === "group") {
         primaryA = a.group || `${a.name} (Individual)`;
@@ -162,7 +165,7 @@ const EmailPortal = ({
         primaryA = a.total_rsvps > 0 ? "Invited" : "Not Invited";
         primaryB = b.total_rsvps > 0 ? "Invited" : "Not Invited";
       }
-      
+
       // Primary sort comparison
       let comparison = 0;
       if (primaryA < primaryB) {
@@ -170,7 +173,7 @@ const EmailPortal = ({
       } else if (primaryA > primaryB) {
         comparison = 1;
       }
-      
+
       // If primary values are equal, use secondary sort
       if (comparison === 0 && secondarySort) {
         const secondaryA = a[secondarySort] || "";
@@ -181,7 +184,7 @@ const EmailPortal = ({
           comparison = 1;
         }
       }
-      
+
       return direction === "desc" ? -comparison : comparison;
     });
   };
@@ -233,8 +236,8 @@ const EmailPortal = ({
 
     // Apply advanced multi-select filters
     if (groupFilters.length > 0) {
-      filtered = filtered.filter((guest) => 
-        groupFilters.includes(guest.group || `${guest.name} (Individual)`)
+      filtered = filtered.filter((guest) =>
+        groupFilters.includes(guest.group || `${guest.name} (Individual)`),
       );
     }
 
@@ -242,28 +245,33 @@ const EmailPortal = ({
       filtered = filtered.filter((guest) => {
         const isInvited = guest.total_rsvps > 0;
         const hasResponded = Object.keys(guest.rsvpStatus || {}).length > 0;
-        
-        return statusFilters.some(status => {
+
+        return statusFilters.some((status) => {
           switch (status) {
-            case "invited": return isInvited;
-            case "not_invited": return !isInvited;
-            case "responded": return hasResponded;
-            case "pending": return isInvited && !hasResponded;
-            default: return false;
+            case "invited":
+              return isInvited;
+            case "not_invited":
+              return !isInvited;
+            case "responded":
+              return hasResponded;
+            case "pending":
+              return isInvited && !hasResponded;
+            default:
+              return false;
           }
         });
       });
     }
 
     if (genderFilters.length > 0) {
-      filtered = filtered.filter((guest) => 
-        genderFilters.includes(guest.gender)
+      filtered = filtered.filter((guest) =>
+        genderFilters.includes(guest.gender),
       );
     }
 
     if (ageGroupFilters.length > 0) {
-      filtered = filtered.filter((guest) => 
-        ageGroupFilters.includes(guest.ageGroup)
+      filtered = filtered.filter((guest) =>
+        ageGroupFilters.includes(guest.ageGroup),
       );
     }
 
@@ -304,18 +312,18 @@ const EmailPortal = ({
   // Handle multi-select filter changes
   const handleMultiSelectFilter = (filterType, value, checked) => {
     const setFilter = {
-      'group': setGroupFilters,
-      'status': setStatusFilters,
-      'gender': setGenderFilters,
-      'ageGroup': setAgeGroupFilters
+      group: setGroupFilters,
+      status: setStatusFilters,
+      gender: setGenderFilters,
+      ageGroup: setAgeGroupFilters,
     }[filterType];
 
     if (setFilter) {
-      setFilter(prev => {
+      setFilter((prev) => {
         if (checked) {
           return [...prev, value];
         } else {
-          return prev.filter(item => item !== value);
+          return prev.filter((item) => item !== value);
         }
       });
     }
@@ -329,8 +337,12 @@ const EmailPortal = ({
 
   // Check if any advanced filters are active
   const hasAdvancedFilters = () => {
-    return groupFilters.length > 0 || statusFilters.length > 0 || 
-           genderFilters.length > 0 || ageGroupFilters.length > 0;
+    return (
+      groupFilters.length > 0 ||
+      statusFilters.length > 0 ||
+      genderFilters.length > 0 ||
+      ageGroupFilters.length > 0
+    );
   };
 
   // Handle column header clicks for sorting
@@ -348,7 +360,7 @@ const EmailPortal = ({
   // Group guests by their group name
   const groupGuestsByGroup = (guests) => {
     const grouped = {};
-    guests.forEach(guest => {
+    guests.forEach((guest) => {
       const groupName = guest.group || `${guest.name} (Individual)`;
       if (!grouped[groupName]) {
         grouped[groupName] = {
@@ -356,13 +368,14 @@ const EmailPortal = ({
           members: [],
           totalMembers: 0,
           invitedCount: 0,
-          respondedCount: 0
+          respondedCount: 0,
         };
       }
       grouped[groupName].members.push(guest);
       grouped[groupName].totalMembers++;
       if (guest.total_rsvps > 0) grouped[groupName].invitedCount++;
-      if (Object.keys(guest.rsvpStatus || {}).length > 0) grouped[groupName].respondedCount++;
+      if (Object.keys(guest.rsvpStatus || {}).length > 0)
+        grouped[groupName].respondedCount++;
     });
     return grouped;
   };
@@ -380,24 +393,25 @@ const EmailPortal = ({
 
   // Select/deselect entire group
   const handleGroupSelection = (groupName, isSelected) => {
-    const groupGuests = filteredGuests.filter(guest => 
-      (guest.group || `${guest.name} (Individual)`) === groupName
+    const groupGuests = filteredGuests.filter(
+      (guest) => (guest.group || `${guest.name} (Individual)`) === groupName,
     );
-    
-    setSelectedRows(prev => {
+
+    setSelectedRows((prev) => {
       if (isSelected) {
         // Add all group members to selection
         const newSelected = [...prev];
-        groupGuests.forEach(guest => {
-          if (!newSelected.some(g => g.id === guest.id)) {
+        groupGuests.forEach((guest) => {
+          if (!newSelected.some((g) => g.id === guest.id)) {
             newSelected.push(guest);
           }
         });
         return newSelected;
       } else {
         // Remove all group members from selection
-        return prev.filter(guest => 
-          !groupGuests.some(groupGuest => groupGuest.id === guest.id)
+        return prev.filter(
+          (guest) =>
+            !groupGuests.some((groupGuest) => groupGuest.id === guest.id),
         );
       }
     });
@@ -405,26 +419,31 @@ const EmailPortal = ({
 
   // Check if entire group is selected
   const isGroupSelected = (groupName) => {
-    const groupGuests = filteredGuests.filter(guest => 
-      (guest.group || `${guest.name} (Individual)`) === groupName
+    const groupGuests = filteredGuests.filter(
+      (guest) => (guest.group || `${guest.name} (Individual)`) === groupName,
     );
     if (groupGuests.length === 0) return false;
-    return groupGuests.every(guest => 
-      selectedRows.some(selected => selected.id === guest.id)
+    return groupGuests.every((guest) =>
+      selectedRows.some((selected) => selected.id === guest.id),
     );
   };
 
   // Get group statistics
   const getGroupStats = (groupName) => {
-    const groupGuests = transformedGuestList.filter(guest => 
-      (guest.group || `${guest.name} (Individual)`) === groupName
+    const groupGuests = transformedGuestList.filter(
+      (guest) => (guest.group || `${guest.name} (Individual)`) === groupName,
     );
-    
+
     return {
       total: groupGuests.length,
-      invited: groupGuests.filter(g => g.total_rsvps > 0).length,
-      responded: groupGuests.filter(g => Object.keys(g.rsvpStatus || {}).length > 0).length,
-      pending: groupGuests.filter(g => g.total_rsvps > 0 && Object.keys(g.rsvpStatus || {}).length === 0).length
+      invited: groupGuests.filter((g) => g.total_rsvps > 0).length,
+      responded: groupGuests.filter(
+        (g) => Object.keys(g.rsvpStatus || {}).length > 0,
+      ).length,
+      pending: groupGuests.filter(
+        (g) =>
+          g.total_rsvps > 0 && Object.keys(g.rsvpStatus || {}).length === 0,
+      ).length,
     };
   };
 
@@ -436,13 +455,9 @@ const EmailPortal = ({
     return (
       <tr
         key={guest.id}
-        className={`${
-          isPointOfContact ? styles.pointOfContactRow : ''
-        } ${
-          isSelected ? styles.selectedRow : ''
-        } ${
-          isGroupMember ? styles.groupMemberRow : ''
-        }`}
+        className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${
+          isSelected ? styles.selectedRow : ""
+        } ${isGroupMember ? styles.groupMemberRow : ""}`}
       >
         <td>
           <input
@@ -500,20 +515,14 @@ const EmailPortal = ({
         <td>
           <div className={styles.guestName}>
             {guest.name || "-"}
-            {isPointOfContact && (
-              <span className={styles.pocBadge}>POC</span>
-            )}
+            {isPointOfContact && <span className={styles.pocBadge}>POC</span>}
           </div>
         </td>
         <td>
-          <div className={styles.guestEmail}>
-            {guest.email || "-"}
-          </div>
+          <div className={styles.guestEmail}>{guest.email || "-"}</div>
         </td>
         <td>
-          <div className={styles.guestPhone}>
-            {guest.phone || "-"}
-          </div>
+          <div className={styles.guestPhone}>{guest.phone || "-"}</div>
         </td>
         <td>
           <div className={styles.groupInfo}>
@@ -522,7 +531,10 @@ const EmailPortal = ({
                 <div
                   className={styles.groupColorDot}
                   style={{
-                    backgroundColor: groupColors[Math.abs(guest.group.charCodeAt(0)) % groupColors.length],
+                    backgroundColor:
+                      groupColors[
+                        Math.abs(guest.group.charCodeAt(0)) % groupColors.length
+                      ],
                   }}
                 />
                 <span>{guest.group}</span>
@@ -547,9 +559,7 @@ const EmailPortal = ({
                     {rsvp.status_name}
                   </span>
                   {rsvp.response && (
-                    <div className={styles.responseCount}>
-                      +{rsvp.response}
-                    </div>
+                    <div className={styles.responseCount}>+{rsvp.response}</div>
                   )}
                 </div>
               ) : (
@@ -579,7 +589,7 @@ const EmailPortal = ({
 
   // Render grouped table content
   const renderGroupedTable = () => {
-    if (sortBy !== 'group') {
+    if (sortBy !== "group") {
       // Render flat table when not sorted by group
       return filteredGuests.map((guest) => renderGuestRow(guest));
     }
@@ -588,7 +598,7 @@ const EmailPortal = ({
     const grouped = groupGuestsByGroup(filteredGuests);
     const groupNames = Object.keys(grouped).sort();
 
-    return groupNames.map(groupName => {
+    return groupNames.map((groupName) => {
       const groupData = grouped[groupName];
       const isCollapsed = collapsedGroups.has(groupName);
       const groupStats = getGroupStats(groupName);
@@ -598,45 +608,65 @@ const EmailPortal = ({
         <React.Fragment key={groupName}>
           {/* Group Header Row */}
           <tr className={styles.groupHeaderRow}>
-            <td colSpan={subevents.length + 10} className={styles.groupHeaderCell}>
+            <td
+              colSpan={subevents.length + 10}
+              className={styles.groupHeaderCell}
+            >
               <div className={styles.groupHeader}>
                 <div className={styles.groupInfo}>
                   <button
                     className={styles.groupToggle}
                     onClick={() => toggleGroupCollapse(groupName)}
-                    title={isCollapsed ? 'Expand group' : 'Collapse group'}
+                    title={isCollapsed ? "Expand group" : "Collapse group"}
                   >
-                    {isCollapsed ? '▶️' : '▼️'}
+                    {isCollapsed ? "▶️" : "▼️"}
                   </button>
-                  
+
                   <input
                     type="checkbox"
                     checked={isGroupFullySelected}
-                    onChange={(e) => handleGroupSelection(groupName, e.target.checked)}
+                    onChange={(e) =>
+                      handleGroupSelection(groupName, e.target.checked)
+                    }
                     title="Select/deselect entire group"
                   />
-                  
+
                   <div
                     className={styles.groupColorDot}
-                    style={{ backgroundColor: groupColors[Math.abs(groupName.charCodeAt(0)) % groupColors.length] }}
+                    style={{
+                      backgroundColor:
+                        groupColors[
+                          Math.abs(groupName.charCodeAt(0)) % groupColors.length
+                        ],
+                    }}
                   />
-                  
+
                   <strong className={styles.groupName}>{groupName}</strong>
-                  
+
                   <div className={styles.groupStats}>
-                    <span className={styles.groupStatBadge}>👥 {groupStats.total}</span>
-                    <span className={styles.groupStatBadge}>📧 {groupStats.invited}</span>
-                    <span className={styles.groupStatBadge}>✅ {groupStats.responded}</span>
-                    <span className={styles.groupStatBadge}>⏳ {groupStats.pending}</span>
+                    <span className={styles.groupStatBadge}>
+                      👥 {groupStats.total}
+                    </span>
+                    <span className={styles.groupStatBadge}>
+                      📧 {groupStats.invited}
+                    </span>
+                    <span className={styles.groupStatBadge}>
+                      ✅ {groupStats.responded}
+                    </span>
+                    <span className={styles.groupStatBadge}>
+                      ⏳ {groupStats.pending}
+                    </span>
                   </div>
                 </div>
-                
+
                 <div className={styles.groupActions}>
                   <button
                     className={styles.btnGhost}
                     onClick={() => {
-                      const groupGuests = filteredGuests.filter(guest => 
-                        (guest.group || `${guest.name} (Individual)`) === groupName
+                      const groupGuests = filteredGuests.filter(
+                        (guest) =>
+                          (guest.group || `${guest.name} (Individual)`) ===
+                          groupName,
                       );
                       setSelectedRows(groupGuests);
                     }}
@@ -648,9 +678,10 @@ const EmailPortal = ({
               </div>
             </td>
           </tr>
-          
+
           {/* Group Members */}
-          {!isCollapsed && groupData.members.map((guest) => renderGuestRow(guest, true))}
+          {!isCollapsed &&
+            groupData.members.map((guest) => renderGuestRow(guest, true))}
         </React.Fragment>
       );
     });
@@ -678,7 +709,9 @@ const EmailPortal = ({
 
   // Handle select all POCs
   const handleSelectAllPOCs = () => {
-    const pocGuests = filteredGuests.filter(guest => guest.isPointOfContact === true);
+    const pocGuests = filteredGuests.filter(
+      (guest) => guest.isPointOfContact === true,
+    );
     setSelectedRows(pocGuests);
     toast(`Selected ${pocGuests.length} Point of Contact guests`);
   };
@@ -826,11 +859,6 @@ const EmailPortal = ({
     }
   };
 
-
-
-
-
-
   // Handle removing a guest
   const handleRemoveGuest = async (guestId) => {
     if (!window.confirm("Are you sure you want to remove this guest?")) {
@@ -886,19 +914,28 @@ const EmailPortal = ({
 
   const handleShareWhatsApp = (guest) => {
     try {
-      // Build the RSVP link — adjust to match your routing / query param names
-      const base = process.env.NEXT_PUBLIC_APP_URL || ""; // optional: set NEXT_PUBLIC_APP_URL
-      const eventId = params?.eventID || ""; // uses the same params from your component
-      const guestId = guest?.public_id || guest?.id || "";
-      const rsvpLink = `${base}/event/${eventId}/rsvp?guestId=${encodeURIComponent(guestId)}`;
+      console.log("WHATSAPP, ", guest);
 
-      // Message that will be prefilled in WhatsApp
+      // Build the RSVP link — adjust to match your routing / query param names
+      const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
+
+      // Prefilled message
       const message = `Hi ${guest?.name || ""}! Please RSVP: ${rsvpLink}`;
 
-      // Use wa.me which works on both mobile and desktop (redirects to WhatsApp Web on desktop)
-      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      // Clean and encode the phone number (remove non-digits, keep country code if included)
+      const phoneNumber = encodeURIComponent(
+        guest.phone?.replace(/\D/g, "") || "",
+      );
 
-      // Open in new tab/window
+      // Construct WhatsApp URL
+      // If phone number exists → direct message that number
+      // Otherwise → fallback to just text share
+      const url = phoneNumber
+        ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+      console.log("WHATSAPP URL:", url);
+
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("Error opening WhatsApp share:", err);
@@ -1050,7 +1087,7 @@ const EmailPortal = ({
       {/* Guest List Section */}
       <div className={styles.guestSection}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Guest Management</h2>
+          <h2 className={styles.sectionTitle}>Send Email</h2>
           <div className={styles.sectionControls}>
             <div className={styles.addGuestActions}>
               {/*              <button
@@ -1223,11 +1260,11 @@ const EmailPortal = ({
             )}
 
             <button
-              className={`${styles.btnSecondarySmall} ${showAdvancedFilters ? styles.active : ''}`}
+              className={`${styles.btnSecondarySmall} ${showAdvancedFilters ? styles.active : ""}`}
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               title="Toggle advanced filters"
             >
-              🔧 Advanced Filters {showAdvancedFilters ? '▼' : '▶'}
+              🔧 Advanced Filters {showAdvancedFilters ? "▼" : "▶"}
             </button>
           </div>
 
@@ -1235,7 +1272,7 @@ const EmailPortal = ({
           {showAdvancedFilters && (
             <div className={styles.advancedFiltersPanel}>
               <h4 className={styles.advancedFiltersTitle}>Advanced Filters</h4>
-              
+
               <div className={styles.advancedFiltersGrid}>
                 {/* Group Filters */}
                 <div className={styles.filterGroup}>
@@ -1246,7 +1283,13 @@ const EmailPortal = ({
                         <input
                           type="checkbox"
                           checked={groupFilters.includes(group)}
-                          onChange={(e) => handleMultiSelectFilter('group', group, e.target.checked)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "group",
+                              group,
+                              e.target.checked,
+                            )
+                          }
                         />
                         <span>{group}</span>
                       </label>
@@ -1259,16 +1302,25 @@ const EmailPortal = ({
                   <label className={styles.filterGroupLabel}>Status:</label>
                   <div className={styles.checkboxGrid}>
                     {[
-                      { value: 'invited', label: 'Invited' },
-                      { value: 'not_invited', label: 'Not Invited' },
-                      { value: 'responded', label: 'Responded' },
-                      { value: 'pending', label: 'Pending Response' }
+                      { value: "invited", label: "Invited" },
+                      { value: "not_invited", label: "Not Invited" },
+                      { value: "responded", label: "Responded" },
+                      { value: "pending", label: "Pending Response" },
                     ].map((status) => (
-                      <label key={status.value} className={styles.checkboxLabel}>
+                      <label
+                        key={status.value}
+                        className={styles.checkboxLabel}
+                      >
                         <input
                           type="checkbox"
                           checked={statusFilters.includes(status.value)}
-                          onChange={(e) => handleMultiSelectFilter('status', status.value, e.target.checked)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "status",
+                              status.value,
+                              e.target.checked,
+                            )
+                          }
                         />
                         <span>{status.label}</span>
                       </label>
@@ -1285,7 +1337,13 @@ const EmailPortal = ({
                         <input
                           type="checkbox"
                           checked={genderFilters.includes(gender)}
-                          onChange={(e) => handleMultiSelectFilter('gender', gender, e.target.checked)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "gender",
+                              gender,
+                              e.target.checked,
+                            )
+                          }
                         />
                         <span>{gender}</span>
                       </label>
@@ -1302,7 +1360,13 @@ const EmailPortal = ({
                         <input
                           type="checkbox"
                           checked={ageGroupFilters.includes(ageGroup)}
-                          onChange={(e) => handleMultiSelectFilter('ageGroup', ageGroup, e.target.checked)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "ageGroup",
+                              ageGroup,
+                              e.target.checked,
+                            )
+                          }
                         />
                         <span>{ageGroup}</span>
                       </label>
@@ -1313,18 +1377,23 @@ const EmailPortal = ({
 
               {/* Quick Actions */}
               <div className={styles.filterQuickActions}>
-                <button 
+                <button
                   className={styles.btnOutlineSmall}
                   onClick={() => {
                     setGroupFilters(getFilterOptions().groups);
-                    setStatusFilters(['invited', 'not_invited', 'responded', 'pending']);
+                    setStatusFilters([
+                      "invited",
+                      "not_invited",
+                      "responded",
+                      "pending",
+                    ]);
                     setGenderFilters(getFilterOptions().genders);
                     setAgeGroupFilters(getFilterOptions().ageGroups);
                   }}
                 >
                   Select All
                 </button>
-                <button 
+                <button
                   className={styles.btnOutlineSmall}
                   onClick={() => {
                     setGroupFilters([]);
@@ -1344,29 +1413,50 @@ const EmailPortal = ({
         <div className={styles.sortControls}>
           <div className={styles.sortInfo}>
             <span>Showing {filteredGuests.length} guests</span>
-            <span>• Sorted by: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)} ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})</span>
-            {secondarySortBy && <span>• Then by: {secondarySortBy.charAt(0).toUpperCase() + secondarySortBy.slice(1)}</span>}
+            <span>
+              • Sorted by: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)} (
+              {sortDirection === "asc" ? "A-Z" : "Z-A"})
+            </span>
+            {secondarySortBy && (
+              <span>
+                • Then by:{" "}
+                {secondarySortBy.charAt(0).toUpperCase() +
+                  secondarySortBy.slice(1)}
+              </span>
+            )}
           </div>
           <div className={styles.sortPresets}>
-            <button 
-              className={`${styles.btnOutlineSmall} ${sortBy === 'group' && secondarySortBy === 'name' ? styles.active : ''}`}
-              onClick={() => { setSortBy('group'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "group" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("group");
+                setSecondarySortBy("name");
+                setSortDirection("asc");
+              }}
             >
               📁 Group → Name
             </button>
-            <button 
-              className={`${styles.btnOutlineSmall} ${sortBy === 'inviteStatus' && secondarySortBy === 'name' ? styles.active : ''}`}
-              onClick={() => { setSortBy('inviteStatus'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "inviteStatus" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("inviteStatus");
+                setSecondarySortBy("name");
+                setSortDirection("asc");
+              }}
             >
               📧 Status → Name
             </button>
-            <button 
-              className={`${styles.btnOutlineSmall} ${sortBy === 'ageGroup' && secondarySortBy === 'name' ? styles.active : ''}`}
-              onClick={() => { setSortBy('ageGroup'); setSecondarySortBy('name'); setSortDirection('asc'); }}
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "ageGroup" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("ageGroup");
+                setSecondarySortBy("name");
+                setSortDirection("asc");
+              }}
             >
               👥 Age → Name
             </button>
-            <button 
+            <button
               className={styles.btnPrimarySmall}
               onClick={handleSelectAllPOCs}
               title="Select all Point of Contact guests"
@@ -1412,49 +1502,49 @@ const EmailPortal = ({
                       />
                     </th>
                     <th>Actions</th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("name")}
                       title="Click to sort by name"
                     >
                       Name {getSortIndicator("name")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("email")}
                       title="Click to sort by email"
                     >
                       Email {getSortIndicator("email")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("phone")}
                       title="Click to sort by phone"
                     >
                       Phone {getSortIndicator("phone")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("group")}
                       title="Click to sort by group"
                     >
                       Group {getSortIndicator("group")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("gender")}
                       title="Click to sort by gender"
                     >
                       Gender {getSortIndicator("gender")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("ageGroup")}
                       title="Click to sort by age group"
                     >
                       Age Group {getSortIndicator("ageGroup")}
                     </th>
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("tag")}
                       title="Click to sort by tag"
@@ -1464,7 +1554,7 @@ const EmailPortal = ({
                     {subevents.map((subevent) => (
                       <th key={subevent}>{subevent}</th>
                     ))}
-                    <th 
+                    <th
                       className={styles.sortableHeader}
                       onClick={() => handleSort("inviteStatus")}
                       title="Click to sort by invite status"
@@ -1473,9 +1563,7 @@ const EmailPortal = ({
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {renderGroupedTable()}
-                </tbody>
+                <tbody>{renderGroupedTable()}</tbody>
               </table>
             </div>
           </div>
@@ -1526,7 +1614,9 @@ const EmailPortal = ({
                 <>
                   {/* Guest Information Section */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>Guest Information</h4>
+                    <h4 className={styles.formSectionTitle}>
+                      Guest Information
+                    </h4>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Name *</label>
@@ -1585,7 +1675,10 @@ const EmailPortal = ({
                           className={styles.formSelect}
                           value={newGuest.ageGroup}
                           onChange={(e) =>
-                            setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                            setNewGuest({
+                              ...newGuest,
+                              ageGroup: e.target.value,
+                            })
                           }
                         >
                           <option value="">Select age group</option>
@@ -1613,7 +1706,9 @@ const EmailPortal = ({
                         <select
                           className={styles.formSelect}
                           value={newGuest.selectedGroup}
-                          onChange={(e) => handleGroupSelectionChange(e.target.value)}
+                          onChange={(e) =>
+                            handleGroupSelectionChange(e.target.value)
+                          }
                         >
                           <option value="">Create new individual group</option>
                           {getExistingGroups().map((group) => (
@@ -1628,7 +1723,9 @@ const EmailPortal = ({
                         <select
                           className={styles.formSelect}
                           value={newGuest.guestType}
-                          onChange={(e) => handleGuestTypeChange(e.target.value)}
+                          onChange={(e) =>
+                            handleGuestTypeChange(e.target.value)
+                          }
                         >
                           {guestTypes.map((type) => (
                             <option key={type.value} value={type.value}>
@@ -1637,25 +1734,35 @@ const EmailPortal = ({
                           ))}
                         </select>
                         <div className={styles.fieldHelp}>
-                          {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                          {
+                            guestTypes.find(
+                              (t) => t.value === newGuest.guestType,
+                            )?.description
+                          }
                         </div>
                       </div>
                       {newGuest.guestType === "multiple" && (
                         <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Guest Limit *</label>
+                          <label className={styles.formLabel}>
+                            Guest Limit *
+                          </label>
                           <input
                             type="number"
                             className={styles.formInput}
                             value={newGuest.guestLimit || ""}
                             onChange={(e) =>
-                              setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                              setNewGuest({
+                                ...newGuest,
+                                guestLimit: parseInt(e.target.value) || null,
+                              })
                             }
                             placeholder="Enter maximum number of guests"
                             min="0"
                             required
                           />
                           <div className={styles.fieldHelp}>
-                            Maximum number of guests this person can bring (including themselves)
+                            Maximum number of guests this person can bring
+                            (including themselves)
                           </div>
                         </div>
                       )}
@@ -1673,28 +1780,42 @@ const EmailPortal = ({
                       <span>Point of Contact</span>
                     </label>
                     <div className={styles.fieldHelp}>
-                      Point of contact will receive important updates and can help coordinate with their group
-                      {newGuest.selectedGroup && groupHasPOC(newGuest.selectedGroup) && (
-                        <div className={styles.pocWarningText}>
-                          This group already has a POC ({getCurrentPOCName(newGuest.selectedGroup)}).
-                          Checking this box will transfer POC status to this guest.
-                        </div>
-                      )}
+                      Point of contact will receive important updates and can
+                      help coordinate with their group
+                      {newGuest.selectedGroup &&
+                        groupHasPOC(newGuest.selectedGroup) && (
+                          <div className={styles.pocWarningText}>
+                            This group already has a POC (
+                            {getCurrentPOCName(newGuest.selectedGroup)}).
+                            Checking this box will transfer POC status to this
+                            guest.
+                          </div>
+                        )}
                     </div>
                   </div>
 
                   {/* Sub-Event Selection */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                    <h4 className={styles.formSectionTitle}>
+                      Sub-Event Invitations
+                    </h4>
                     {loadingSubEvents ? (
-                      <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                      <div className={styles.loadingIndicator}>
+                        Loading sub-events...
+                      </div>
                     ) : (
                       <div className={styles.subEventGrid}>
                         {subEvents.map((subEvent) => (
-                          <label key={subEvent.id} className={styles.checkboxOption}>
+                          <label
+                            key={subEvent.id}
+                            className={styles.checkboxOption}
+                          >
                             <input
                               type="checkbox"
-                              checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                              checked={
+                                newGuest.subEventRSVPs[subEvent.id] ===
+                                "invited"
+                              }
                               onChange={(e) => {
                                 const updated = { ...newGuest.subEventRSVPs };
                                 if (e.target.checked) {
@@ -1702,7 +1823,10 @@ const EmailPortal = ({
                                 } else {
                                   delete updated[subEvent.id];
                                 }
-                                setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                                setNewGuest({
+                                  ...newGuest,
+                                  subEventRSVPs: updated,
+                                });
                               }}
                             />
                             <span>{subEvent.name}</span>
@@ -1716,7 +1840,9 @@ const EmailPortal = ({
                 <>
                   {/* Group Name Section */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>Group Information</h4>
+                    <h4 className={styles.formSectionTitle}>
+                      Group Information
+                    </h4>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Group Name *</label>
@@ -1736,8 +1862,10 @@ const EmailPortal = ({
 
                   {/* Member Addition Form */}
                   <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>Add Group Members</h4>
-                    
+                    <h4 className={styles.formSectionTitle}>
+                      Add Group Members
+                    </h4>
+
                     <div className={styles.memberForm}>
                       <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
@@ -1759,7 +1887,10 @@ const EmailPortal = ({
                             className={styles.formInput}
                             value={newGuest.email}
                             onChange={(e) =>
-                              setNewGuest({ ...newGuest, email: e.target.value })
+                              setNewGuest({
+                                ...newGuest,
+                                email: e.target.value,
+                              })
                             }
                             placeholder="member@example.com"
                           />
@@ -1771,7 +1902,10 @@ const EmailPortal = ({
                             className={styles.formInput}
                             value={newGuest.phone}
                             onChange={(e) =>
-                              setNewGuest({ ...newGuest, phone: e.target.value })
+                              setNewGuest({
+                                ...newGuest,
+                                phone: e.target.value,
+                              })
                             }
                             placeholder="+1 (555) 123-4567"
                           />
@@ -1782,7 +1916,10 @@ const EmailPortal = ({
                             className={styles.formSelect}
                             value={newGuest.gender}
                             onChange={(e) =>
-                              setNewGuest({ ...newGuest, gender: e.target.value })
+                              setNewGuest({
+                                ...newGuest,
+                                gender: e.target.value,
+                              })
                             }
                           >
                             <option value="">Select gender</option>
@@ -1797,7 +1934,10 @@ const EmailPortal = ({
                             className={styles.formSelect}
                             value={newGuest.ageGroup}
                             onChange={(e) =>
-                              setNewGuest({ ...newGuest, ageGroup: e.target.value })
+                              setNewGuest({
+                                ...newGuest,
+                                ageGroup: e.target.value,
+                              })
                             }
                           >
                             <option value="">Select age group</option>
@@ -1825,7 +1965,9 @@ const EmailPortal = ({
                           <select
                             className={styles.formSelect}
                             value={newGuest.guestType}
-                            onChange={(e) => handleGuestTypeChange(e.target.value)}
+                            onChange={(e) =>
+                              handleGuestTypeChange(e.target.value)
+                            }
                           >
                             {guestTypes.map((type) => (
                               <option key={type.value} value={type.value}>
@@ -1834,25 +1976,35 @@ const EmailPortal = ({
                             ))}
                           </select>
                           <div className={styles.fieldHelp}>
-                            {guestTypes.find(t => t.value === newGuest.guestType)?.description}
+                            {
+                              guestTypes.find(
+                                (t) => t.value === newGuest.guestType,
+                              )?.description
+                            }
                           </div>
                         </div>
                         {newGuest.guestType === "multiple" && (
                           <div className={styles.formGroup}>
-                            <label className={styles.formLabel}>Guest Limit *</label>
+                            <label className={styles.formLabel}>
+                              Guest Limit *
+                            </label>
                             <input
                               type="number"
                               className={styles.formInput}
                               value={newGuest.guestLimit || ""}
                               onChange={(e) =>
-                                setNewGuest({ ...newGuest, guestLimit: parseInt(e.target.value) || null })
+                                setNewGuest({
+                                  ...newGuest,
+                                  guestLimit: parseInt(e.target.value) || null,
+                                })
                               }
                               placeholder="Enter maximum number of guests"
                               min="0"
                               required
                             />
                             <div className={styles.fieldHelp}>
-                              Maximum number of guests this person can bring (including themselves)
+                              Maximum number of guests this person can bring
+                              (including themselves)
                             </div>
                           </div>
                         )}
@@ -1865,33 +2017,51 @@ const EmailPortal = ({
                               type="checkbox"
                               checked={newGuest.isPointOfContact}
                               onChange={(e) =>
-                                setNewGuest({ ...newGuest, isPointOfContact: e.target.checked })
+                                setNewGuest({
+                                  ...newGuest,
+                                  isPointOfContact: e.target.checked,
+                                })
                               }
                             />
                             <span>Point of Contact</span>
                           </label>
                         </div>
-                        
+
                         {/* Sub-Event Selection for Group */}
                         <div className={styles.formSectionGroup}>
-                          <h4 className={styles.formSectionTitle}>Sub-Event Invitations</h4>
+                          <h4 className={styles.formSectionTitle}>
+                            Sub-Event Invitations
+                          </h4>
                           {loadingSubEvents ? (
-                            <div className={styles.loadingIndicator}>Loading sub-events...</div>
+                            <div className={styles.loadingIndicator}>
+                              Loading sub-events...
+                            </div>
                           ) : (
                             <div className={styles.subEventGrid}>
                               {subEvents.map((subEvent) => (
-                                <label key={subEvent.id} className={styles.checkboxOption}>
+                                <label
+                                  key={subEvent.id}
+                                  className={styles.checkboxOption}
+                                >
                                   <input
                                     type="checkbox"
-                                    checked={newGuest.subEventRSVPs[subEvent.id] === "invited"}
+                                    checked={
+                                      newGuest.subEventRSVPs[subEvent.id] ===
+                                      "invited"
+                                    }
                                     onChange={(e) => {
-                                      const updated = { ...newGuest.subEventRSVPs };
+                                      const updated = {
+                                        ...newGuest.subEventRSVPs,
+                                      };
                                       if (e.target.checked) {
                                         updated[subEvent.id] = "invited";
                                       } else {
                                         delete updated[subEvent.id];
                                       }
-                                      setNewGuest({ ...newGuest, subEventRSVPs: updated });
+                                      setNewGuest({
+                                        ...newGuest,
+                                        subEventRSVPs: updated,
+                                      });
                                     }}
                                   />
                                   <span>{subEvent.name}</span>
@@ -1900,13 +2070,15 @@ const EmailPortal = ({
                             </div>
                           )}
                         </div>
-                        
+
                         <button
                           type="button"
                           className={styles.btnSecondary}
                           onClick={handleAddMemberToGroup}
                         >
-                          {editingMemberIndex >= 0 ? "Update Member" : "Add to Group"}
+                          {editingMemberIndex >= 0
+                            ? "Update Member"
+                            : "Add to Group"}
                         </button>
                       </div>
                     </div>
@@ -1927,14 +2099,19 @@ const EmailPortal = ({
                                 )}
                               </div>
                               <div className={styles.memberDetails}>
-                                {member.email} • {member.phone || "No phone"} • 
-                                {member.gender || "No gender"} • 
-                                {member.ageGroup ? 
-                                  ageGroups.find(group => group.value === member.ageGroup)?.label || member.ageGroup 
+                                {member.email} • {member.phone || "No phone"} •
+                                {member.gender || "No gender"} •
+                                {member.ageGroup
+                                  ? ageGroups.find(
+                                      (group) =>
+                                        group.value === member.ageGroup,
+                                    )?.label || member.ageGroup
                                   : "No age group"}
                               </div>
                               {member.tag && (
-                                <div className={styles.memberTag}>{member.tag}</div>
+                                <div className={styles.memberTag}>
+                                  {member.tag}
+                                </div>
                               )}
                             </div>
                             <div className={styles.memberActions}>
@@ -1997,15 +2174,15 @@ const EmailPortal = ({
                   }
                 }}
                 disabled={
-                  addMode === "group" 
+                  addMode === "group"
                     ? !newGroup.name.trim() || tempGroupMembers.length === 0
                     : !newGuest.name.trim()
                 }
               >
-                {editingGuest 
-                  ? "Save Changes" 
-                  : addMode === "group" 
-                    ? "Create Group" 
+                {editingGuest
+                  ? "Save Changes"
+                  : addMode === "group"
+                    ? "Create Group"
                     : "Add Guest"}
               </button>
             </div>

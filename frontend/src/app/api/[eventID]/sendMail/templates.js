@@ -9,6 +9,9 @@ export const inviteTemplate = `
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!--<![endif]-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
   </head>
   <body
     style="
@@ -38,7 +41,8 @@ export const inviteTemplate = `
       <!-- Logo Section -->
       {{#if logoLink}}
       <tr>
-        <td style="text-align: center; padding: 40px 40px 20px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <td style="text-align: center; padding: 40px 40px 20px 40px; background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+;">
           <img
             src="{{logoLink}}"
             alt="{{eventName}} Logo"
@@ -66,6 +70,7 @@ export const inviteTemplate = `
           <div style="position: relative; z-index: 2;">
             <h1 
               style="
+                font-family: '"Dancing Script", cursive';
                 font-size: 32px;
                 font-weight: 700;
                 color: {{text_color}};
@@ -76,51 +81,7 @@ export const inviteTemplate = `
             >
               {{eventName}}
             </h1>
-            {{#if eventDate}}
-            <div 
-              style="
-                display: inline-block;
-                background: rgba(255, 255, 255, 0.2);
-                padding: 12px 24px;
-                border-radius: 50px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                margin-bottom: 16px;
-              "
-            >
-              <p 
-                style="
-                  font-size: 18px;
-                  font-weight: 600;
-                  color: {{text_color}};
-                  margin: 0;
-                  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-                "
-              >
-                📅 {{eventDate}}
-              </p>
-            </div>
-            {{/if}}
-            {{#if eventDescription}}
-            <p 
-              style="
-                font-size: 18px;
-                color: {{text_color}};
-                margin: 20px 0 0 0;
-                max-width: 500px;
-                margin-left: auto;
-                margin-right: auto;
-                opacity: 0.95;
-                line-height: 1.7;
-              "
-            >
-              {{eventDescription}}
-            </p>
-            {{/if}}
           </div>
-          <!-- Decorative elements -->
-          <div style="position: absolute; top: 20px; left: 20px; width: 60px; height: 60px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; opacity: 0.6;"></div>
-          <div style="position: absolute; bottom: 30px; right: 30px; width: 40px; height: 40px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; opacity: 0.4;"></div>
         </td>
       </tr>
       

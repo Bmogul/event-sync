@@ -1,3 +1,14 @@
+/*
+ * GuestListSection.jsx - Guest Management Component
+ * 
+ * FIXED: Group ID collision bug in individual guest creation
+ * - Changed Date.now() group IDs to generateSafeGroupId() using negative numbers
+ * - Added comprehensive group validation with findGroupByTitle() helper
+ * - Implemented data normalization with normalizeGroup() and normalizeGuest()
+ * - Enhanced debugging with detailed console logging for group operations
+ * - Improved error handling for missing groups during guest operations
+ */
+
 import { useState } from "react";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
@@ -426,7 +437,7 @@ const GuestListSection = ({
       return;
     }
 
-    const groupId = Date.now();
+    const groupId = generateSafeGroupId();
     const groupColor =
       groupColors[(eventData.guestGroups?.length || 0) % groupColors.length];
 
@@ -503,8 +514,94 @@ const GuestListSection = ({
     );
   };
 
+  // Helper function to generate safe group IDs that won't conflict with database IDs
+  const generateSafeGroupId = () => {
+    // Use negative numbers for temporary groups to avoid conflicts with positive database IDs
+    // Add random component to avoid collisions during the same session
+    return -(Date.now() + Math.floor(Math.random() * 1000));
+  };
+
+  // Helper function to find group by title with better matching logic
+  const findGroupByTitle = (groups, title) => {
+    if (!groups || !title) return null;
+    return groups.find(group => group.title === title);
+  };
+
+  // Helper function to validate group existence and log debug info
+  const validateGroupOperation = (operation, groupTitle, groupId, groups) => {
+    console.log(`[Group Debug] ${operation}:`, {
+      groupTitle,
+      groupId,
+      existingGroups: groups?.map(g => ({ id: g.id, title: g.title })) || []
+    });
+    
+    if (groupTitle && groups) {
+      const existingGroup = findGroupByTitle(groups, groupTitle);
+      if (existingGroup) {
+        console.log(`[Group Debug] Found existing group:`, existingGroup);
+        return existingGroup;
+      }
+    }
+    
+    return null;
+  };
+
+  // Helper function to normalize group data structure
+  const normalizeGroup = (group) => {
+    if (!group) return null;
+    
+    return {
+      id: group.id,
+      event_id: group.event_id || null,
+      title: group.title || group.name || "", // Support both title and name
+      name: group.title || group.name || "", // Ensure both exist for compatibility
+      size: Math.max(group.size || 0, 0),
+      invite_sent_at: group.invite_sent_at || null,
+      invite_sent_by: group.invite_sent_by || null,
+      status: group.status || "draft",
+      details: {
+        color: group.details?.color || "#7c3aed",
+        description: group.details?.description || "Group",
+        ...group.details
+      }
+    };
+  };
+
+  // Helper function to normalize guest data structure
+  const normalizeGuest = (guest) => {
+    if (!guest) return null;
+    
+    return {
+      id: guest.id,
+      public_id: guest.public_id || crypto.randomUUID(),
+      order: guest.order || 1,
+      name: guest.name || "",
+      email: guest.email || "",
+      phone: guest.phone || "",
+      gender: guest.gender || "",
+      ageGroup: guest.ageGroup || "",
+      tag: guest.tag || "",
+      group: guest.group || "",
+      group_id: guest.group_id,
+      rsvpStatus: guest.rsvpStatus || "pending",
+      plusOne: guest.plusOne || false,
+      subEventRSVPs: guest.subEventRSVPs || {},
+      invitedAt: guest.invitedAt || null,
+      respondedAt: guest.respondedAt || null,
+      isPointOfContact: Boolean(guest.isPointOfContact),
+      guestType: guest.guestType || "single",
+      guestLimit: guest.guestLimit
+    };
+  };
+
   // Handle adding a new individual guest
   const handleAddIndividualGuest = () => {
+    console.log(`[Group Debug] ===== ADDING INDIVIDUAL GUEST =====`);
+    console.log(`[Group Debug] Guest name: "${newGuest.name}"`);
+    console.log(`[Group Debug] Selected group: "${newGuest.selectedGroup || 'None (will create individual)'}"`);
+    console.log(`[Group Debug] Current groups:`, eventData.guestGroups?.map(g => ({ id: g.id, title: g.title })) || []);
+    console.log(`[Group Debug] Current guests:`, eventData.guests?.length || 0);
+
     if (!newGuest.name.trim()) {
       toast.error("Guest name is required", { position: "top-center" });
       return;
@@ -533,35 +630,49 @@ const GuestListSection = ({
     if (newGuest.selectedGroup) {
       // Adding to existing group
       groupTitle = newGuest.selectedGroup;
-      const existingGroup = updatedGroups.find((g) => g.title === groupTitle);
+      const existingGroup = validateGroupOperation("Adding to existing group", groupTitle, null, updatedGroups);
       if (existingGroup) {
         existingGroup.size += 1;
         groupId = existingGroup.id;
+        console.log(`[Group Debug] Updated existing group size:`, existingGroup);
+      } else {
+        console.error(`[Group Debug] Selected group "${groupTitle}" not found!`);
+        toast.error(`Selected group "${groupTitle}" not found`, { position: "top-center" });
+        return;
       }
     } else {
       // Creating new individual group
       groupTitle = `${newGuest.name} (Individual)`;
-      groupId = Date.now();
+      groupId = generateSafeGroupId();
 
-      const individualGroup = {
-        id: groupId,
-        event_id: eventData.id || null,
-        title: groupTitle,
-        size: 1,
-        invite_sent_at: null,
-        invite_sent_by: null,
-        status: "draft",
-        details: {
-          color: groupColors[updatedGroups.length % groupColors.length],
-          description: "Individual guest",
-        },
-      };
-      updatedGroups.push(individualGroup);
+      // Check if a group with this title already exists (shouldn't happen for individual groups, but safety check)
+      const existingGroup = findGroupByTitle(updatedGroups, groupTitle);
+      if (existingGroup) {
+        console.warn(`[Group Debug] Individual group "${groupTitle}" already exists, using existing group`);
+        existingGroup.size += 1;
+        groupId = existingGroup.id;
+      } else {
+        const individualGroup = normalizeGroup({
+          id: groupId,
+          event_id: eventData.id || null,
+          title: groupTitle,
+          size: 1,
+          invite_sent_at: null,
+          invite_sent_by: null,
+          status: "draft",
+          details: {
+            color: groupColors[updatedGroups.length % groupColors.length],
+            description: "Individual guest",
+          },
+        });
+        updatedGroups.push(individualGroup);
+        console.log(`[Group Debug] Created new individual group:`, individualGroup);
+      }
     }
 
     const guestId = Date.now() + Math.random();
     const guestPublicId = crypto.randomUUID();
-    const guest = {
+    const guest = normalizeGuest({
       id: guestId,
       public_id: guestPublicId,
       order:
@@ -582,7 +693,7 @@ const GuestListSection = ({
       isPointOfContact: newGuest.isPointOfContact || false, // Store POC as boolean on guest
       guestType: newGuest.guestType || "single",
       guestLimit: newGuest.guestLimit || null,
-    };
+    });
 
     // If this guest is being set as POC, remove POC status from other guests in the group
     if (newGuest.isPointOfContact) {
@@ -601,6 +712,10 @@ const GuestListSection = ({
       // Update the event data with the POC transfer
       updateEventData({ guests: updatedGuestsWithPOCTransfer });
     }
+
+    console.log(`[Group Debug] Final guest created:`, guest);
+    console.log(`[Group Debug] Final groups after addition:`, updatedGroups.map(g => ({ id: g.id, title: g.title, size: g.size })));
+    console.log(`[Group Debug] ===== INDIVIDUAL GUEST ADDITION COMPLETE =====`);
 
     updateEventData({
       guests: [...(eventData.guests || []), guest],
@@ -635,31 +750,44 @@ const GuestListSection = ({
   // Handle removing a guest
   const handleRemoveGuest = (guestId) => {
     const guest = eventData.guests?.find((g) => g.id === guestId);
-    if (!guest) return;
+    if (!guest) {
+      console.error(`[Group Debug] Guest with ID ${guestId} not found for removal`);
+      return;
+    }
+
+    console.log(`[Group Debug] Removing guest "${guest.name}" from group "${guest.group}"`);
 
     let updatedGuests = eventData.guests.filter((g) => g.id !== guestId);
     let updatedGroups = [...(eventData.guestGroups || [])];
 
-    const group = updatedGroups.find((g) => g.title === guest.group);
+    const group = findGroupByTitle(updatedGroups, guest.group);
     if (group) {
-      group.size = (group.size || 1) - 1;
+      const originalSize = group.size;
+      group.size = Math.max((group.size || 1) - 1, 0);
+      
+      console.log(`[Group Debug] Updated group "${group.title}" size from ${originalSize} to ${group.size}`);
 
       if (group.size <= 0) {
         updatedGroups = updatedGroups.filter((g) => g.id !== group.id);
+        console.log(`[Group Debug] Removed empty group "${group.title}"`);
       } else if (guest.isPointOfContact) {
         // If the removed guest was the POC, assign POC to the first remaining member
         const remainingGroupMembers = updatedGuests.filter(
           (g) => g.group === group.title,
         );
         if (remainingGroupMembers.length > 0) {
+          const newPOC = remainingGroupMembers[0];
           updatedGuests = updatedGuests.map((g) => {
-            if (g.id === remainingGroupMembers[0].id) {
+            if (g.id === newPOC.id) {
               return { ...g, isPointOfContact: true };
             }
             return g;
           });
+          console.log(`[Group Debug] Transferred POC from "${guest.name}" to "${newPOC.name}" in group "${group.title}"`);
         }
       }
+    } else {
+      console.warn(`[Group Debug] Group "${guest.group}" not found during guest removal`);
     }
 
     updateEventData({
@@ -675,12 +803,20 @@ const GuestListSection = ({
 
   // Handle editing a guest
   const handleEditGuest = (guest) => {
-    console.log(guest);
+    console.log(`[Group Debug] Editing guest:`, guest);
     setEditingGuest(guest);
     setAddMode("individual"); // Always edit as individual for simplicity
 
+    // Validate that the guest's group still exists
+    const guestGroup = findGroupByTitle(eventData.guestGroups, guest.group);
+    if (!guestGroup && guest.group) {
+      console.warn(`[Group Debug] Guest's group "${guest.group}" no longer exists`);
+    }
+
     // Check if this guest is the point of contact for their group
     const isCurrentPOC = guest.isPointOfContact === true;
+
+    console.log(`[Group Debug] Guest "${guest.name}" is POC: ${isCurrentPOC} in group "${guest.group}"`);
 
     setNewGuest({
       name: guest.name,
@@ -721,10 +857,15 @@ const GuestListSection = ({
 
     // Handle group changes
     if (oldGroup !== newGroupTitle) {
+      console.log(`[Group Debug] Moving guest from "${oldGroup}" to "${newGroupTitle}"`);
+      
       // Remove from old group
-      const oldGroupObj = updatedGroups.find((g) => g.title === oldGroup);
+      const oldGroupObj = findGroupByTitle(updatedGroups, oldGroup);
       if (oldGroupObj) {
-        oldGroupObj.size -= 1;
+        const originalSize = oldGroupObj.size;
+        oldGroupObj.size = Math.max(oldGroupObj.size - 1, 0);
+        console.log(`[Group Debug] Reduced old group "${oldGroup}" size from ${originalSize} to ${oldGroupObj.size}`);
+        
         // If this was the POC and group still has members, assign POC to someone else
         if (editingGuest.isPointOfContact) {
           const remainingMembers =
@@ -742,39 +883,56 @@ const GuestListSection = ({
               },
             );
             updateEventData({ guests: updatedGuestsForPOCTransfer });
+            console.log(`[Group Debug] Transferred POC in old group "${oldGroup}" to "${remainingMembers[0].name}"`);
           }
         }
         // Remove group if no members left
         if (oldGroupObj.size <= 0) {
           updatedGroups = updatedGroups.filter((g) => g.id !== oldGroupObj.id);
+          console.log(`[Group Debug] Removed empty old group "${oldGroup}"`);
         }
+      } else {
+        console.warn(`[Group Debug] Old group "${oldGroup}" not found during guest edit`);
       }
 
       // Add to new group or create new group
       if (newGuest.selectedGroup) {
         // Adding to existing group
-        const existingGroup = updatedGroups.find(
-          (g) => g.title === newGroupTitle,
-        );
+        const existingGroup = validateGroupOperation("Moving to existing group", newGroupTitle, null, updatedGroups);
         if (existingGroup) {
           existingGroup.size += 1;
+          console.log(`[Group Debug] Added guest to existing group:`, existingGroup);
+        } else {
+          console.error(`[Group Debug] Target group "${newGroupTitle}" not found during edit!`);
+          toast.error(`Target group "${newGroupTitle}" not found`, { position: "top-center" });
+          return;
         }
       } else {
         // Create new individual group
-        const newGroup = {
-          id: Date.now(),
-          event_id: eventData.id || null,
-          title: newGroupTitle,
-          size: 1,
-          invite_sent_at: null,
-          invite_sent_by: null,
-          status: "draft",
-          details: {
-            color: groupColors[updatedGroups.length % groupColors.length],
-            description: "Individual guest",
-          },
-        };
-        updatedGroups.push(newGroup);
+        const groupId = generateSafeGroupId();
+        
+        // Check if individual group already exists
+        const existingIndividualGroup = findGroupByTitle(updatedGroups, newGroupTitle);
+        if (existingIndividualGroup) {
+          console.warn(`[Group Debug] Individual group "${newGroupTitle}" already exists during edit, using existing`);
+          existingIndividualGroup.size += 1;
+        } else {
+          const newGroup = normalizeGroup({
+            id: groupId,
+            event_id: eventData.id || null,
+            title: newGroupTitle,
+            size: 1,
+            invite_sent_at: null,
+            invite_sent_by: null,
+            status: "draft",
+            details: {
+              color: groupColors[updatedGroups.length % groupColors.length],
+              description: "Individual guest",
+            },
+          });
+          updatedGroups.push(newGroup);
+          console.log(`[Group Debug] Created new individual group during edit:`, newGroup);
+        }
       }
     }
 
@@ -784,7 +942,7 @@ const GuestListSection = ({
     let updatedGuests =
       eventData.guests?.map((guest) => {
         if (guest.id === editingGuest.id) {
-          return {
+          return normalizeGuest({
             ...guest,
             name: newGuest.name,
             email: newGuest.email,
@@ -797,7 +955,7 @@ const GuestListSection = ({
             isPointOfContact: newGuest.isPointOfContact || false, // Include POC status in update
             guestType: newGuest.guestType || "single",
             guestLimit: newGuest.guestLimit || null,
-          };
+          });
         }
         return guest;
       }) || [];
@@ -1074,7 +1232,7 @@ const GuestListSection = ({
 
       const processedGuests = [];
       const guestGroups = new Map();
-      let groupId = Date.now();
+      let groupIdCounter = 0; // Counter for sequential group IDs in CSV processing
 
       dataRows.forEach((row, index) => {
         if (!row || row.length === 0) return;
@@ -1178,7 +1336,7 @@ const GuestListSection = ({
         if (guid) {
           if (!guestGroups.has(guid)) {
             guestGroups.set(guid, {
-              id: groupId++,
+              id: generateSafeGroupId() - groupIdCounter++, // Use safe ID generation for CSV groups
               title: "",
               members: [],
               color: groupColors[guestGroups.size % groupColors.length],
@@ -1247,7 +1405,7 @@ const GuestListSection = ({
         });
 
         const individualGroups = individualGuests.map((guest, index) => ({
-          id: Date.now() + 10000 + index,
+          id: generateSafeGroupId() - index, // Ensure unique IDs for each individual group
           event_id: eventData.id || null,
           title: guest.group,
           size: 1,

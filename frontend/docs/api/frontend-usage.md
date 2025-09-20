@@ -5,12 +5,13 @@ This document provides a comprehensive mapping of how each API endpoint is used 
 ## Table of Contents
 
 1. [Core Event Management](#core-event-management)
-2. [Guest Management](#guest-management) 
-3. [RSVP System](#rsvp-system)
-4. [Email Communication](#email-communication)
-5. [Image Management](#image-management)
-6. [Authentication](#authentication)
-7. [Usage Patterns](#usage-patterns)
+2. [Change Tracking Integration](#change-tracking-integration)
+3. [Guest Management](#guest-management) 
+4. [RSVP System](#rsvp-system)
+5. [Email Communication](#email-communication)
+6. [Image Management](#image-management)
+7. [Authentication](#authentication)
+8. [Usage Patterns](#usage-patterns)
 
 ## Core Event Management
 
@@ -30,36 +31,56 @@ This document provides a comprehensive mapping of how each API endpoint is used 
 const response = await fetch(`/api/events?public_id=${encodeURIComponent(publicId)}`);
 ```
 
-#### Draft Saving (POST)
+#### Draft Saving (POST/PATCH - Adaptive)
 ```javascript
-// Auto-save draft during event creation
-// File: src/app/create-event/page.js:213
+// Auto-save draft with incremental updates when editing
+// File: src/app/create-event/page.js:402-459
+const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
+const shouldUseIncremental = changes && isEditMode;
+
 const response = await fetch('/api/events', {
-  method: 'POST',
+  method: shouldUseIncremental ? 'PATCH' : 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({
+  body: JSON.stringify(shouldUseIncremental ? {
+    ...changes.changes,
+    public_id: eventData.public_id,
+    status: 'draft',
+    isPartialUpdate: true,
+    conflictToken: changes.metadata.conflictToken
+  } : {
     ...eventData,
-    status: 'draft'
+    status: 'draft',
+    isPartialUpdate: false
   })
 });
 ```
 
-#### Event Publishing (POST)
+#### Event Publishing (POST/PATCH - Adaptive)
 ```javascript
-// Publishing completed event
-// File: src/app/create-event/page.js:248
+// Publishing completed event with incremental updates when editing
+// File: src/app/create-event/page.js:461-536
+const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
+const shouldUseIncremental = changes && isEditMode;
+
 const response = await fetch('/api/events', {
-  method: 'POST',
+  method: shouldUseIncremental ? 'PATCH' : 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({
+  body: JSON.stringify(shouldUseIncremental ? {
+    ...changes.changes,
+    public_id: eventData.public_id,
+    status: 'published',
+    isPartialUpdate: true,
+    conflictToken: changes.metadata.conflictToken
+  } : {
     ...eventData,
-    status: 'published'
+    status: 'published',
+    isPartialUpdate: false
   })
 });
 ```
@@ -103,6 +124,87 @@ const response = await fetch(`/api/events/${eventID}`, {
   }
 });
 ```
+
+## Change Tracking Integration
+
+### `useChangeTracking` Hook Usage
+
+**Frontend Files:**
+- `src/app/create-event/hooks/useChangeTracking.js` - Main change tracking implementation
+- `src/app/create-event/page.js` - Integration with event creation/editing flow
+
+**Usage Patterns:**
+
+#### Hook Initialization
+```javascript
+// Setting up change tracking in main create-event component
+// File: src/app/create-event/page.js:119-120
+const changeTracking = useChangeTracking();
+const [useIncrementalUpdates, setUseIncrementalUpdates] = useState(true);
+```
+
+#### Data Synchronization
+```javascript
+// Keeping change tracking synchronized with event data updates
+// File: src/app/create-event/page.js:134-147
+const updateEventData = (updates) => {
+  setEventData((prev) => {
+    const newData = { ...prev, ...updates };
+    // Handle deep merging for nested objects
+    if (updates.rsvpSettings) {
+      newData.rsvpSettings = {
+        ...prev.rsvpSettings,
+        ...updates.rsvpSettings,
+      };
+    }
+    return newData;
+  });
+  
+  // Update change tracking
+  if (changeTracking.currentData) {
+    changeTracking.updateData(updates);
+  }
+};
+```
+
+#### Event Loading Integration
+```javascript
+// Initialize change tracking when event data is loaded for editing
+// File: src/app/create-event/page.js:171-173
+setEventData(result.event);
+// Initialize change tracking with loaded data
+changeTracking.initializeTracking(result.event);
+```
+
+#### Performance Monitoring
+```javascript
+// Monitor payload size reduction during development
+// File: src/app/create-event/page.js:407-409 (in saveDraft)
+if (shouldUseIncremental) {
+  const payloadComparison = changeTracking.getPayloadSizeComparison();
+  console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
+}
+```
+
+#### Success Feedback with Metrics
+```javascript
+// Show success message with performance metrics
+// File: src/app/create-event/page.js:470-477 (in saveDraft)
+if (shouldUseIncremental) {
+  changeTracking.markAsSaved();
+  toast.success(`Draft saved! (${changeTracking.getPayloadSizeComparison().reduction}% smaller payload)`, {
+    position: "top-center",
+    autoClose: 2000,
+  });
+}
+```
+
+**Key Features:**
+- **Automatic Fallback**: Falls back to full updates if incremental updates fail
+- **Performance Monitoring**: Tracks payload size reduction in real-time
+- **State Synchronization**: Keeps change tracking aligned with component state
+- **User Feedback**: Shows payload reduction percentages to users
+- **Edit Mode Detection**: Only uses incremental updates when editing existing events
 
 ## Guest Management
 

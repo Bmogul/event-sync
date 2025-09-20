@@ -180,7 +180,6 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
         templatesToSave[0].status = "active";
       }
 
-
       // Save templates by updating the event
       const response = await fetch("/api/events", {
         method: "POST",
@@ -228,8 +227,8 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
   const getPreviewContent = () => {
     if (!currentTemplate.body) return "";
 
-    const eventName = event?.title || "Your Event";
-    const eventDate = event?.start_date
+    const eventName = event?.eventTitle || "Your Event";
+    const eventDate = event?.startDate
       ? new Date(event.start_date).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -308,7 +307,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                     textAlign: "center",
                     padding: "40px 40px 20px 40px",
                     background:
-                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      "linear-gradient(135deg, #ffffff 0%, #ffffff 100%)",
                   }}
                 >
                   <img
@@ -334,6 +333,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                 }}
               >
                 <div style={{ position: "relative", zIndex: 2 }}>
+
                   <h1
                     style={{
                       fontSize: "32px",
@@ -342,49 +342,11 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                       margin: "0 0 16px 0",
                       letterSpacing: "-0.5px",
                       textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+
                     }}
                   >
                     {templateData.eventName}
                   </h1>
-                  {templateData.eventDate && (
-                    <div
-                      style={{
-                        display: "inline-block",
-                        background: "rgba(255, 255, 255, 0.2)",
-                        padding: "12px 24px",
-                        borderRadius: "50px",
-                        backdropFilter: "blur(10px)",
-                        border: "1px solid rgba(255, 255, 255, 0.3)",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "600",
-                          color: currentTemplate.text_color || "#333333",
-                          margin: "0",
-                          textShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
-                        }}
-                      >
-                        📅 {templateData.eventDate}
-                      </p>
-                    </div>
-                  )}
-                  {templateData.eventDescription && (
-                    <p
-                      style={{
-                        fontSize: "18px",
-                        color: currentTemplate.text_color || "#333333",
-                        margin: "20px auto 0 auto",
-                        maxWidth: "500px",
-                        opacity: "0.95",
-                        lineHeight: "1.7",
-                      }}
-                    >
-                      {templateData.eventDescription}
-                    </p>
-                  )}
                 </div>
                 {/* Decorative elements */}
                 <div

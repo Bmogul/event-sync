@@ -183,7 +183,7 @@ interface GetEventRequest {
 }
 ```
 
-#### POST /api/events Request
+#### POST /api/events Request (Full Update)
 ```typescript
 interface CreateEventRequest {
   headers: AuthHeaders;
@@ -209,11 +209,104 @@ interface CreateEventRequest {
     rsvpSettings?: RSVPSettings;
     emailTemplates?: EmailTemplate[];
     allowDuplicates?: boolean;
+    isPartialUpdate?: false; // Backward compatibility flag
   };
 }
 ```
 
-#### Event Response
+#### PATCH /api/events Request (Incremental Update)
+```typescript
+interface IncrementalEventUpdateRequest {
+  headers: AuthHeaders;
+  body: {
+    public_id: string; // Required for identifying event to update
+    status: "draft" | "published";
+    isPartialUpdate: true;
+    conflictToken?: string; // For conflict detection
+    
+    // Only include sections with changes
+    mainEvent?: Partial<{
+      title: string;
+      description: string;
+      location: string;
+      startDate: string;
+      endDate: string;
+      logo_url: string;
+      maxGuests: number;
+      eventType: string;
+      isPrivate: boolean;
+      requireRSVP: boolean;
+      allowPlusOnes: boolean;
+      rsvpDeadline: string;
+      timezone: string;
+    }>;
+    
+    subEvents?: {
+      added?: Array<Omit<SubEvent, 'id'>>;
+      modified?: Record<string, Partial<SubEvent>>;
+      removed?: number[];
+    };
+    
+    guestGroups?: {
+      added?: Array<Omit<GuestGroup, 'id'>>;
+      modified?: Record<string, Partial<GuestGroup>>;
+      removed?: number[];
+    };
+    
+    guests?: {
+      added?: Array<Omit<Guest, 'id' | 'public_id'>>;
+      modified?: Record<string, Partial<Guest>>; // Keyed by public_id
+      removed?: string[]; // Array of public_ids
+    };
+    
+    rsvpSettings?: Partial<RSVPSettings>;
+    
+    emailTemplates?: {
+      added?: Array<Omit<EmailTemplate, 'id'>>;
+      modified?: Record<string, Partial<EmailTemplate>>;
+      removed?: number[];
+    };
+  };
+}
+```
+
+#### Change Tracking Metadata
+```typescript
+interface ChangeTrackingMetadata {
+  lastSaved: string; // ISO 8601 timestamp
+  conflictToken: string; // Hash for conflict detection
+  timestamp: string; // Current operation timestamp
+}
+
+interface ChangeTrackingResponse {
+  changes: IncrementalEventUpdateRequest['body'];
+  metadata: ChangeTrackingMetadata;
+}
+```
+
+#### Conflict Detection Response
+```typescript
+interface ConflictDetectionResponse {
+  success: false;
+  conflictDetected: true;
+  serverVersion: string; // Server's conflict token
+  clientVersion: string; // Client's conflict token
+  lastModified: string; // When server version was last updated
+  conflictingFields: string[]; // Array of field paths that conflict
+  message: string;
+  resolution?: {
+    autoMerge: boolean; // Whether conflicts can be auto-merged
+    suggestions: Array<{
+      field: string;
+      serverValue: any;
+      clientValue: any;
+      recommendation: "keep_server" | "keep_client" | "manual_merge";
+    }>;
+  };
+}
+```
+
+#### Event Response (GET)
 ```typescript
 interface EventResponse extends BaseResponse {
   event: Event & {
@@ -223,6 +316,19 @@ interface EventResponse extends BaseResponse {
     rsvpSettings: RSVPSettings;
     emailTemplates: EmailTemplate[];
   };
+}
+```
+
+#### Event Update Response (POST/PATCH)
+```typescript
+interface EventUpdateResponse extends BaseResponse {
+  id: number;
+  eventId: number;
+  action: "draft" | "published";
+  updateType?: "full" | "incremental"; // Only present for PATCH requests
+  message: string;
+  timestamp: string;
+  payloadReduction?: number; // Percentage reduction for incremental updates
 }
 ```
 

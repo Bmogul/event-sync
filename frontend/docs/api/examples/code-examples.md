@@ -6,12 +6,13 @@ This document provides practical code examples for integrating with Event Sync A
 
 1. [Setup and Authentication](#setup-and-authentication)
 2. [Event Management Examples](#event-management-examples)
-3. [Guest Management Examples](#guest-management-examples)
-4. [RSVP System Examples](#rsvp-system-examples)
-5. [Email Communication Examples](#email-communication-examples)
-6. [Image Upload Examples](#image-upload-examples)
-7. [Error Handling Patterns](#error-handling-patterns)
-8. [React Integration Examples](#react-integration-examples)
+3. [Change Tracking and Incremental Updates](#change-tracking-and-incremental-updates)
+4. [Guest Management Examples](#guest-management-examples)
+5. [RSVP System Examples](#rsvp-system-examples)
+6. [Email Communication Examples](#email-communication-examples)
+7. [Image Upload Examples](#image-upload-examples)
+8. [Error Handling Patterns](#error-handling-patterns)
+9. [React Integration Examples](#react-integration-examples)
 
 ## Setup and Authentication
 
@@ -220,6 +221,217 @@ async function createEventWithDuplicateHandling(eventData) {
     
     throw error;
   }
+}
+```
+
+## Change Tracking and Incremental Updates
+
+### Setting Up Change Tracking
+
+```javascript
+import { useChangeTracking } from '../hooks/useChangeTracking';
+
+function EventEditor({ initialEventData }) {
+  const [eventData, setEventData] = useState(initialEventData);
+  const changeTracking = useChangeTracking();
+  
+  // Initialize change tracking when event data loads
+  useEffect(() => {
+    if (initialEventData) {
+      changeTracking.initializeTracking(initialEventData);
+      setEventData(initialEventData);
+    }
+  }, [initialEventData]);
+  
+  // Update both local state and change tracking
+  const updateEventData = (updates) => {
+    setEventData(prev => ({ ...prev, ...updates }));
+    changeTracking.updateData(updates);
+  };
+  
+  return (
+    <div>
+      {/* Your event editing UI */}
+      <EventForm eventData={eventData} onUpdate={updateEventData} />
+      
+      {/* Show unsaved changes indicator */}
+      {changeTracking.hasUnsavedChanges() && (
+        <div className="unsaved-changes">
+          Unsaved changes detected
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Incremental Update (Recommended for Edits)
+
+```javascript
+async function saveIncrementalChanges(eventData, changeTracking) {
+  const changes = changeTracking.getChanges();
+  
+  if (!changes) {
+    console.log('No changes to save');
+    return;
+  }
+  
+  // Get payload size comparison for monitoring
+  const { reduction, fullSize, incrementalSize } = changeTracking.getPayloadSizeComparison();
+  console.log(`Incremental update: ${reduction}% smaller (${fullSize} → ${incrementalSize} chars)`);
+  
+  try {
+    const response = await authenticatedRequest('/api/events', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        ...changes.changes,
+        public_id: eventData.public_id,
+        status: 'draft',
+        isPartialUpdate: true,
+        conflictToken: changes.metadata.conflictToken
+      })
+    });
+    
+    const result = await handleApiResponse(response);
+    
+    // Mark changes as saved
+    changeTracking.markAsSaved();
+    
+    console.log(`✅ Incremental save successful (${reduction}% payload reduction)`);
+    return result;
+    
+  } catch (error) {
+    console.error('Incremental update failed:', error);
+    
+    // Fallback to full update
+    console.log('Falling back to full update...');
+    return saveFullEvent(eventData);
+  }
+}
+```
+
+### Full Update with Fallback Support
+
+```javascript
+async function saveFullEvent(eventData) {
+  console.log('Performing full event update');
+  
+  const response = await authenticatedRequest('/api/events', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...eventData,
+      status: 'draft',
+      isPartialUpdate: false
+    })
+  });
+  
+  return handleApiResponse(response);
+}
+```
+
+### Smart Save Function (Chooses Best Method)
+
+```javascript
+async function smartSaveEvent(eventData, changeTracking, isEditMode = false) {
+  // Use incremental updates for edits, full updates for new events
+  if (isEditMode && changeTracking.hasUnsavedChanges()) {
+    try {
+      return await saveIncrementalChanges(eventData, changeTracking);
+    } catch (error) {
+      console.warn('Incremental update failed, using full update as fallback');
+      return await saveFullEvent(eventData);
+    }
+  } else {
+    return await saveFullEvent(eventData);
+  }
+}
+```
+
+### Monitoring Payload Size Reduction
+
+```javascript
+function PayloadSizeMonitor({ changeTracking }) {
+  const [metrics, setMetrics] = useState(null);
+  
+  useEffect(() => {
+    if (changeTracking.hasUnsavedChanges()) {
+      const comparison = changeTracking.getPayloadSizeComparison();
+      setMetrics(comparison);
+    } else {
+      setMetrics(null);
+    }
+  }, [changeTracking]);
+  
+  if (!metrics || !metrics.hasChanges) {
+    return null;
+  }
+  
+  return (
+    <div className="payload-metrics">
+      <span>Incremental update ready:</span>
+      <span className="size-reduction">
+        {metrics.reduction}% smaller payload
+      </span>
+      <span className="size-details">
+        ({metrics.fullSize} → {metrics.incrementalSize} chars)
+      </span>
+    </div>
+  );
+}
+```
+
+### Change Detection Examples
+
+```javascript
+// Example: Only save main event changes
+const changes = changeTracking.getChanges();
+if (changes && changes.changes.mainEvent) {
+  console.log('Main event fields changed:', Object.keys(changes.changes.mainEvent));
+}
+
+// Example: Check specific change types
+if (changes?.changes.subEvents) {
+  const { added, modified, removed } = changes.changes.subEvents;
+  console.log(`Sub-events: +${added.length} ~${Object.keys(modified).length} -${removed.length}`);
+}
+
+// Example: Get debug information
+const debugInfo = changeTracking.getDebugInfo();
+console.log('Change tracking status:', debugInfo);
+```
+
+### Conflict Resolution Example
+
+```javascript
+async function saveWithConflictResolution(eventData, changeTracking) {
+  try {
+    return await saveIncrementalChanges(eventData, changeTracking);
+  } catch (error) {
+    // Check if this is a conflict error
+    if (error.conflictDetected) {
+      const resolution = await handleConflict(error);
+      
+      if (resolution === 'retry') {
+        // User chose to retry with current changes
+        return await saveIncrementalChanges(eventData, changeTracking);
+      } else if (resolution === 'reload') {
+        // User chose to reload and lose changes
+        window.location.reload();
+      }
+    }
+    
+    throw error;
+  }
+}
+
+async function handleConflict(conflictError) {
+  const userChoice = await showConflictDialog({
+    message: conflictError.message,
+    conflictingFields: conflictError.conflictingFields,
+    lastModified: conflictError.lastModified
+  });
+  
+  return userChoice; // 'retry', 'reload', 'merge', etc.
 }
 ```
 

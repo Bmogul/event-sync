@@ -11,6 +11,7 @@ import GuestListSection from "./components/sections/GuestListSection";
 import RSVPCustomization from "./components/sections/RSVPCustomization";
 import EmailTemplateCreator from "./components/sections/EmailTemplateCreator";
 import LaunchSection from "./components/sections/LaunchSection";
+import { useChangeTracking } from "./hooks/useChangeTracking";
 
 const CreateEventContent = () => {
   const router = useRouter();
@@ -113,6 +114,10 @@ const CreateEventContent = () => {
     },
   });
 
+  // Initialize change tracking
+  const changeTracking = useChangeTracking();
+  const [useIncrementalUpdates, setUseIncrementalUpdates] = useState(true);
+  
   // Event form data
   const [eventData, setEventData] = useState(getDefaultEventData());
 
@@ -130,6 +135,11 @@ const CreateEventContent = () => {
 
       return newData;
     });
+    
+    // Update change tracking
+    if (changeTracking.currentData) {
+      changeTracking.updateData(updates);
+    }
   };
 
   // Load event data if in edit mode
@@ -166,6 +176,9 @@ const CreateEventContent = () => {
             console.log("  - Guests:", result.event.guests);
 
             setEventData(result.event);
+            
+            // Initialize change tracking with loaded data
+            changeTracking.initializeTracking(result.event);
 
             toast.success("Event loaded for editing!", {
               position: "top-center",
@@ -390,32 +403,78 @@ const CreateEventContent = () => {
     console.log(eventData);
     setIsLoading(true);
     try {
-      // Debug: Log the event data being sent
-      console.log("=== SAVE DRAFT: Event data being sent ===");
-      console.log("Guest count:", eventData.guests?.length || 0);
-      if (eventData.guests && eventData.guests.length > 0) {
-        eventData.guests.forEach((guest, index) => {
-          console.log(
-            `Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`,
-          );
-        });
+      // Determine whether to use incremental or full update
+      const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
+      const shouldUseIncremental = changes && isEditMode;
+      
+      if (shouldUseIncremental) {
+        const payloadComparison = changeTracking.getPayloadSizeComparison();
+        console.log("=== INCREMENTAL SAVE DRAFT ===");
+        console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
+        console.log("Changes:", changes.changes);
+      } else {
+        console.log("=== FULL SAVE DRAFT ===");
+        console.log("Guest count:", eventData.guests?.length || 0);
       }
-      console.log("=== END DEBUG ===");
 
-      // First create/update the event
+      // Prepare request payload
+      const requestPayload = shouldUseIncremental 
+        ? {
+            ...changes.changes,
+            public_id: eventData.public_id,
+            status: "draft",
+            isPartialUpdate: true,
+            conflictToken: changes.metadata.conflictToken
+          }
+        : {
+            ...eventData,
+            status: "draft",
+            isPartialUpdate: false
+          };
+
+      // Send request using appropriate method
       const response = await fetch("/api/events", {
-        method: "POST",
+        method: shouldUseIncremental ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...eventData,
-          status: "draft",
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save event");
+        // If incremental update fails, fallback to full update
+        if (shouldUseIncremental) {
+          console.warn("Incremental update failed, falling back to full update");
+          toast.warning("Using full update as fallback", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+          
+          const fallbackResponse = await fetch("/api/events", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...eventData,
+              status: "draft",
+              isPartialUpdate: false
+            }),
+          });
+          
+          if (!fallbackResponse.ok) {
+            throw new Error("Failed to save event");
+          }
+          
+          const fallbackResult = await fallbackResponse.json();
+          if (!fallbackResult.success && fallbackResult.duplicatesFound) {
+            setIsLoading(false);
+            handleDuplicateDetection(fallbackResult.duplicates, () => saveDraftWithDuplicates());
+            return;
+          }
+        } else {
+          throw new Error("Failed to save event");
+        }
       }
 
       const savedEvent = await response.json();
@@ -433,6 +492,20 @@ const CreateEventContent = () => {
 
       // Update local event data with the saved ID
       setEventData((prev) => ({ ...prev, id: eventId }));
+      
+      // Mark changes as saved
+      if (shouldUseIncremental) {
+        changeTracking.markAsSaved();
+        toast.success(`Draft saved! (${changeTracking.getPayloadSizeComparison().reduction}% smaller payload)`, {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      } else {
+        toast.success("Draft saved!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      }
 
     } catch (error) {
       console.error("Error saving draft:", error);
@@ -448,32 +521,78 @@ const CreateEventContent = () => {
   const publishEvent = async () => {
     setIsLoading(true);
     try {
-      // Debug: Log the event data being sent
-      console.log("=== PUBLISH EVENT: Event data being sent ===");
-      console.log("Guest count:", eventData.guests?.length || 0);
-      if (eventData.guests && eventData.guests.length > 0) {
-        eventData.guests.forEach((guest, index) => {
-          console.log(
-            `Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`,
-          );
-        });
+      // Determine whether to use incremental or full update
+      const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
+      const shouldUseIncremental = changes && isEditMode;
+      
+      if (shouldUseIncremental) {
+        const payloadComparison = changeTracking.getPayloadSizeComparison();
+        console.log("=== INCREMENTAL PUBLISH EVENT ===");
+        console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
+        console.log("Changes:", changes.changes);
+      } else {
+        console.log("=== FULL PUBLISH EVENT ===");
+        console.log("Guest count:", eventData.guests?.length || 0);
       }
-      console.log("=== END DEBUG ===");
 
-      // First create/update the event
+      // Prepare request payload
+      const requestPayload = shouldUseIncremental 
+        ? {
+            ...changes.changes,
+            public_id: eventData.public_id,
+            status: "published",
+            isPartialUpdate: true,
+            conflictToken: changes.metadata.conflictToken
+          }
+        : {
+            ...eventData,
+            status: "published",
+            isPartialUpdate: false
+          };
+
+      // Send request using appropriate method
       const response = await fetch("/api/events", {
-        method: "POST",
+        method: shouldUseIncremental ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...eventData,
-          status: "published",
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to publish event");
+        // If incremental update fails, fallback to full update
+        if (shouldUseIncremental) {
+          console.warn("Incremental publish failed, falling back to full update");
+          toast.warning("Using full update as fallback", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+          
+          const fallbackResponse = await fetch("/api/events", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...eventData,
+              status: "published",
+              isPartialUpdate: false
+            }),
+          });
+          
+          if (!fallbackResponse.ok) {
+            throw new Error("Failed to publish event");
+          }
+          
+          const fallbackResult = await fallbackResponse.json();
+          if (!fallbackResult.success && fallbackResult.duplicatesFound) {
+            setIsLoading(false);
+            handleDuplicateDetection(fallbackResult.duplicates, () => publishEventWithDuplicates());
+            return;
+          }
+        } else {
+          throw new Error("Failed to publish event");
+        }
       }
 
       const savedEvent = await response.json();
@@ -502,6 +621,11 @@ const CreateEventContent = () => {
       } catch (imageError) {
         console.warn("Image finalization failed:", imageError);
         // Don't fail the publish if images fail
+      }
+
+      // Mark changes as saved
+      if (shouldUseIncremental) {
+        changeTracking.markAsSaved();
       }
 
       toast.success("Event published successfully!", {

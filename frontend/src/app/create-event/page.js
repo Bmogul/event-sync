@@ -26,9 +26,9 @@ const CreateEventContent = () => {
   const heroContent = [
     {
       title: isEditMode ? "Edit Your Event" : "Create Your Event",
-      subtitle: isEditMode ? 
-        "Update your event details and settings. All changes will be saved automatically." :
-        "Set up your multi-day event with individual sub-events. Perfect for weddings, conferences, and celebrations.",
+      subtitle: isEditMode
+        ? "Update your event details and settings. All changes will be saved automatically."
+        : "Set up your multi-day event with individual sub-events. Perfect for weddings, conferences, and celebrations.",
     },
     {
       title: isEditMode ? "Update Sub-Events" : "Add Sub-Events",
@@ -39,13 +39,21 @@ const CreateEventContent = () => {
       subtitle:
         "Organize your guests into groups and select which sub-events each person is invited to attend.",
     },
-    { title: "Customize RSVP Page", subtitle: "Design your RSVP page to match your event's style and gather the information you need." },
-    { title: "Email Templates", subtitle: "Create and customize email templates for invitations, reminders, and updates." },
+    {
+      title: "Customize RSVP Page",
+      subtitle:
+        "Design your RSVP page to match your event's style and gather the information you need.",
+    },
+    {
+      title: "Email Templates",
+      subtitle:
+        "Create and customize email templates for invitations, reminders, and updates.",
+    },
     {
       title: isEditMode ? "Update & Launch" : "Ready to Launch",
-      subtitle: isEditMode ?
-        "Review your updated event details and save your changes." :
-        "Review your event details and choose how you'd like to launch your Event.",
+      subtitle: isEditMode
+        ? "Review your updated event details and save your changes."
+        : "Review your event details and choose how you'd like to launch your Event.",
     },
   ];
 
@@ -67,16 +75,16 @@ const CreateEventContent = () => {
     subEvents: [
       {
         id: 1,
-        title: '',
-        description: '',
-        date: '',
-        startTime: '',
-        endTime: '',
-        location: '',
-        maxGuests: '',
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        maxGuests: "",
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         isRequired: true,
-      }
+      },
     ],
 
     // Guest list
@@ -92,15 +100,16 @@ const CreateEventContent = () => {
     rsvpSettings: {
       pageTitle: "You're Invited!",
       subtitle: "Join us for our special celebration",
-      welcomeMessage: "We're so excited to celebrate with you! Please let us know if you can make it.",
-      theme: 'elegant',
-      fontFamily: 'Playfair Display',
-      backgroundColor: '#faf5ff',
-      textColor: '#581c87',
-      primaryColor: '#7c3aed',
-      customQuestions: ['dietary', 'message'],
+      welcomeMessage:
+        "We're so excited to celebrate with you! Please let us know if you can make it.",
+      theme: "elegant",
+      fontFamily: "Playfair Display",
+      backgroundColor: "#faf5ff",
+      textColor: "#581c87",
+      primaryColor: "#7c3aed",
+      customQuestions: ["dietary", "message"],
       backgroundImage: null,
-      backgroundOverlay: 20
+      backgroundOverlay: 20,
     },
   });
 
@@ -108,70 +117,77 @@ const CreateEventContent = () => {
   const [eventData, setEventData] = useState(getDefaultEventData());
 
   const updateEventData = (updates) => {
-    setEventData((prev) => ({
-      ...prev,
-      ...updates,
-    }));
-    
-    // Check if any temporary images were added
-    const newData = { ...eventData, ...updates };
-    const hasTemporaryImages = 
-      (newData.rsvpSettings?.logo && newData.rsvpSettings.logo.includes('/temp/')) ||
-      (newData.rsvpSettings?.backgroundImage && newData.rsvpSettings.backgroundImage.includes('/temp/')) ||
-      (newData.subEvents && newData.subEvents.some(se => se.image && se.image.includes('/temp/')));
-    
-    setHasUnsavedImages(hasTemporaryImages);
+    setEventData((prev) => {
+      const newData = { ...prev, ...updates };
+
+      // Ensure RSVP settings merge deeply instead of overwriting
+      if (updates.rsvpSettings) {
+        newData.rsvpSettings = {
+          ...prev.rsvpSettings,
+          ...updates.rsvpSettings,
+        };
+      }
+
+      return newData;
+    });
   };
 
   // Load event data if in edit mode
   useEffect(() => {
     const loadEventData = async () => {
-      const publicId = searchParams.get('edit');
-      
+      const publicId = searchParams.get("edit");
+
       if (publicId) {
         setIsEditMode(true);
         setIsLoadingEvent(true);
-        
+
         try {
           console.log("Loading event data for editing:", publicId);
-          
-          const response = await fetch(`/api/events?public_id=${encodeURIComponent(publicId)}`);
-          
+
+          const response = await fetch(
+            `/api/events?public_id=${encodeURIComponent(publicId)}`,
+          );
+
           if (!response.ok) {
-            throw new Error('Failed to load event details');
+            throw new Error("Failed to load event details");
           }
-          
+
           const result = await response.json();
-          
+
           if (result.success && result.event) {
             console.log("Event data loaded successfully:", result.event);
             console.log("Frontend Debug - Loaded data structure:");
-            console.log("  - Guest groups count:", result.event.guestGroups?.length || 0);
+            console.log(
+              "  - Guest groups count:",
+              result.event.guestGroups?.length || 0,
+            );
             console.log("  - Guests count:", result.event.guests?.length || 0);
             console.log("  - Guest groups:", result.event.guestGroups);
             console.log("  - Guests:", result.event.guests);
-            
+
             setEventData(result.event);
-            
+
             toast.success("Event loaded for editing!", {
               position: "top-center",
               autoClose: 2000,
             });
           } else {
-            throw new Error(result.error || 'Failed to load event');
+            throw new Error(result.error || "Failed to load event");
           }
-          
         } catch (error) {
           console.error("Error loading event:", error);
-          toast.error("Failed to load event for editing. Starting with blank form.", {
-            position: "top-center",
-            autoClose: 3000,
-          });
-          
+          toast.error(
+            "Failed to load event for editing. Starting with blank form.",
+            {
+              position: "top-center",
+              autoClose: 3000,
+            },
+          );
+
           // Fall back to default data but keep the public_id from URL
-          setEventData(prev => ({
+          setEventData((prev) => ({
             ...getDefaultEventData(),
-            public_id: publicId
+            public_id: publicId,
           }));
         } finally {
           setIsLoadingEvent(false);
@@ -188,29 +204,37 @@ const CreateEventContent = () => {
       if (hasUnsavedImages) {
         // Try to cleanup temp images on page unload
         try {
-          const { cleanupTempImages, extractTempImageUrls } = await import('../utils/imageUpload');
+          const { cleanupTempImages, extractTempImageUrls } = await import(
+            "../utils/imageUpload"
+          );
           const tempUrls = extractTempImageUrls(eventData);
           if (tempUrls.length > 0) {
             // Use sendBeacon for reliable cleanup during page unload
-            navigator.sendBeacon('/api/cleanup-temp-images', JSON.stringify({
-              imageUrls: tempUrls
-            }));
+            navigator.sendBeacon(
+              "/api/cleanup-temp-images",
+              JSON.stringify({
+                imageUrls: tempUrls,
+              }),
+            );
           }
         } catch (error) {
           console.warn("Failed to cleanup temp images on unload:", error);
         }
-        
+
         // Show confirmation dialog
         event.preventDefault();
-        event.returnValue = 'You have unsaved images. Are you sure you want to leave?';
-        return 'You have unsaved images. Are you sure you want to leave?';
+        event.returnValue =
+          "You have unsaved images. Are you sure you want to leave?";
+        return "You have unsaved images. Are you sure you want to leave?";
       }
     };
 
     const handleRouteChange = async () => {
       if (hasUnsavedImages) {
         try {
-          const { cleanupTempImages, extractTempImageUrls } = await import('../utils/imageUpload');
+          const { cleanupTempImages, extractTempImageUrls } = await import(
+            "../utils/imageUpload"
+          );
           const tempUrls = extractTempImageUrls(eventData);
           if (tempUrls.length > 0) {
             await cleanupTempImages(tempUrls);
@@ -221,10 +245,10 @@ const CreateEventContent = () => {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       // Cleanup on component unmount
       if (hasUnsavedImages) {
         handleRouteChange();
@@ -250,7 +274,7 @@ const CreateEventContent = () => {
 
   // Handle duplicate guest detection
   const handleDuplicateDetection = (duplicates, callback) => {
-    console.log(duplicates)
+    console.log(duplicates);
     setDuplicateGuests(duplicates);
     setDuplicateCallback(() => callback);
     setShowDuplicateModal(true);
@@ -260,33 +284,34 @@ const CreateEventContent = () => {
   const saveDraftWithDuplicates = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...eventData,
-          status: 'draft',
-          allowDuplicates: true
+          status: "draft",
+          allowDuplicates: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save event');
+        throw new Error("Failed to save event");
       }
 
       const savedEvent = await response.json();
       const eventId = savedEvent.id || savedEvent.eventId;
 
       // Update local event data with the saved ID
-      setEventData(prev => ({ ...prev, id: eventId }));
+      setEventData((prev) => ({ ...prev, id: eventId }));
 
       // Finalize any temporary images
       try {
-        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const { finalizeImages, extractImageDataForFinalization } =
+          await import("../utils/imageUpload");
         const imageData = extractImageDataForFinalization(eventData);
-        
+
         if (imageData.length > 0) {
           console.log("Finalizing images for draft...", imageData);
           await finalizeImages(eventId, imageData);
@@ -307,7 +332,6 @@ const CreateEventContent = () => {
           autoClose: 2000,
         });
       }
-
     } catch (error) {
       console.error("Error saving draft:", error);
       toast.error("Failed to save draft. Please try again.", {
@@ -324,44 +348,30 @@ const CreateEventContent = () => {
   const publishEventWithDuplicates = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...eventData,
-          status: 'published',
-          allowDuplicates: true
+          status: "published",
+          allowDuplicates: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to publish event');
+        throw new Error("Failed to publish event");
       }
 
       const savedEvent = await response.json();
       const eventId = savedEvent.id || savedEvent.eventId;
 
-      // Finalize any temporary images
-      try {
-        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
-        const imageData = extractImageDataForFinalization(eventData);
-        
-        if (imageData.length > 0) {
-          console.log("Finalizing images for published event...", imageData);
-          await finalizeImages(eventId, imageData);
-        }
-      } catch (imageError) {
-        console.warn("Image finalization failed:", imageError);
-        // Don't fail the publish if images fail
-      }
-
       toast.success("Event published successfully!", {
         position: "top-center",
         autoClose: 3000,
       });
-      
+
       // Redirect to event page or dashboard
       router.push(`/${eventId}`);
     } catch (error) {
@@ -385,66 +395,44 @@ const CreateEventContent = () => {
       console.log("Guest count:", eventData.guests?.length || 0);
       if (eventData.guests && eventData.guests.length > 0) {
         eventData.guests.forEach((guest, index) => {
-          console.log(`Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`);
+          console.log(
+            `Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`,
+          );
         });
       }
       console.log("=== END DEBUG ===");
 
       // First create/update the event
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...eventData,
-          status: 'draft'
+          status: "draft",
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save event');
+        throw new Error("Failed to save event");
       }
 
       const savedEvent = await response.json();
-      
+
       // Handle duplicate detection
       if (!savedEvent.success && savedEvent.duplicatesFound) {
         setIsLoading(false);
-        handleDuplicateDetection(savedEvent.duplicates, () => saveDraftWithDuplicates());
+        handleDuplicateDetection(savedEvent.duplicates, () =>
+          saveDraftWithDuplicates(),
+        );
         return;
       }
-      
+
       const eventId = savedEvent.id || savedEvent.eventId;
 
       // Update local event data with the saved ID
-      setEventData(prev => ({ ...prev, id: eventId }));
-
-      // Finalize any temporary images
-      try {
-        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
-        const imageData = extractImageDataForFinalization(eventData);
-        
-        if (imageData.length > 0) {
-          console.log("Finalizing images for draft...", imageData);
-          await finalizeImages(eventId, imageData);
-          toast.success("Draft saved with images!", {
-            position: "top-center",
-            autoClose: 2000,
-          });
-        } else {
-          toast.success("Draft saved successfully!", {
-            position: "top-center",
-            autoClose: 2000,
-          });
-        }
-      } catch (imageError) {
-        console.warn("Image finalization failed:", imageError);
-        toast.success("Draft saved (images may need re-upload)", {
-          position: "top-center",
-          autoClose: 2000,
-        });
-      }
+      setEventData((prev) => ({ ...prev, id: eventId }));
 
     } catch (error) {
       console.error("Error saving draft:", error);
@@ -465,43 +453,48 @@ const CreateEventContent = () => {
       console.log("Guest count:", eventData.guests?.length || 0);
       if (eventData.guests && eventData.guests.length > 0) {
         eventData.guests.forEach((guest, index) => {
-          console.log(`Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`);
+          console.log(
+            `Guest ${index + 1}: "${guest.name}" | POC: ${guest.isPointOfContact} | Group: "${guest.group}"`,
+          );
         });
       }
       console.log("=== END DEBUG ===");
 
       // First create/update the event
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...eventData,
-          status: 'published'
+          status: "published",
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to publish event');
+        throw new Error("Failed to publish event");
       }
 
       const savedEvent = await response.json();
-      
+
       // Handle duplicate detection
       if (!savedEvent.success && savedEvent.duplicatesFound) {
         setIsLoading(false);
-        handleDuplicateDetection(savedEvent.duplicates, () => publishEventWithDuplicates());
+        handleDuplicateDetection(savedEvent.duplicates, () =>
+          publishEventWithDuplicates(),
+        );
         return;
       }
-      
+
       const eventId = savedEvent.id || savedEvent.eventId;
 
       // Finalize any temporary images
       try {
-        const { finalizeImages, extractImageDataForFinalization } = await import('../utils/imageUpload');
+        const { finalizeImages, extractImageDataForFinalization } =
+          await import("../utils/imageUpload");
         const imageData = extractImageDataForFinalization(eventData);
-        
+
         if (imageData.length > 0) {
           console.log("Finalizing images for published event...", imageData);
           await finalizeImages(eventId, imageData);
@@ -515,7 +508,7 @@ const CreateEventContent = () => {
         position: "top-center",
         autoClose: 3000,
       });
-      
+
       // Redirect to event page or dashboard
       router.push(`/${eventId}`);
     } catch (error) {
@@ -538,8 +531,12 @@ const CreateEventContent = () => {
           <div className={styles.container}>
             {/* Page Header */}
             <div className={styles.pageHeader}>
-              <h1 className={styles.pageTitle}>{heroContent[currentStep-1].title}</h1>
-              <p className={styles.pageSubtitle}>{heroContent[currentStep-1].subtitle}</p>
+              <h1 className={styles.pageTitle}>
+                {heroContent[currentStep - 1].title}
+              </h1>
+              <p className={styles.pageSubtitle}>
+                {heroContent[currentStep - 1].subtitle}
+              </p>
             </div>
 
             {/* Progress Steps */}
@@ -636,23 +633,25 @@ const CreateEventContent = () => {
                 ×
               </button>
             </div>
-            
+
             <div className={styles.modalContent}>
               <p className={styles.duplicateMessage}>
-                We found {duplicateGuests.length} potential duplicate guest{duplicateGuests.length > 1 ? 's' : ''}:
+                We found {duplicateGuests.length} potential duplicate guest
+                {duplicateGuests.length > 1 ? "s" : ""}:
               </p>
-              
+
               <div className={styles.duplicateList}>
                 {duplicateGuests.map((duplicate, index) => (
                   <div key={index} className={styles.duplicateItem}>
                     <div className={styles.duplicateInfo}>
-                      <strong>{duplicate.guestName}</strong> in group <em>{duplicate.groupTitle}</em>
-                      {duplicate.type === 'existing_guest' && (
+                      <strong>{duplicate.guestName}</strong> in group{" "}
+                      <em>{duplicate.groupTitle}</em>
+                      {duplicate.type === "existing_guest" && (
                         <span className={styles.duplicateType}>
                           (Already exists in database)
                         </span>
                       )}
-                      {duplicate.type === 'within_new_list' && (
+                      {duplicate.type === "within_new_list" && (
                         <span className={styles.duplicateType}>
                           (Appears multiple times in your guest list)
                         </span>
@@ -661,11 +660,12 @@ const CreateEventContent = () => {
                   </div>
                 ))}
               </div>
-              
+
               <p className={styles.confirmationText}>
-                Would you like to proceed anyway? This will create separate entries for guests with the same name.
+                Would you like to proceed anyway? This will create separate
+                entries for guests with the same name.
               </p>
-              
+
               <div className={styles.modalActions}>
                 <button
                   className={styles.cancelButton}

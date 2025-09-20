@@ -28,7 +28,7 @@ const EventDetailsForm = ({
 
   const addSubEvent = () => {
     const newSubEvent = {
-      id: Date.now(),
+      id: -(Date.now() + Math.floor(Math.random() * 1000)), // Use negative ID for temporary sub-events
       title: '',
       description: '',
       date: '',

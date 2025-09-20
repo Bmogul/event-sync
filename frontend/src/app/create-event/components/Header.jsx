@@ -19,7 +19,7 @@ const Header = ({ onSaveDraft, isLoading }) => {
               onClick={onSaveDraft}
               disabled={isLoading}
             >
-              {isLoading ? 'Saving...' : 'Save Draft'}
+              {isLoading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </nav>

@@ -171,7 +171,8 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
 };
 
 const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
-  const imagesWithUrl = sortByPriority(subEvents || []).filter(se => se.image_url);
+  const imagesWithUrl =sortByStartDate(subEvents || []).filter(se => se.image_url);
+
   const [expandedImage, setExpandedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
@@ -325,7 +326,7 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
             <h3 style={{ color: "white" }}>{expandedImage.title}</h3>
             {expandedImage.event_date && (
               <p style={{ color: "rgba(255,255,255,0.8)" }}>
-                {new Date(expandedImage.event_date).toLocaleDateString()}
+                {new Date(expandedImage.event_date).toLocaleDateString(undefined, {timeZone:'UTC'})}
                 {expandedImage.start_time && ` at ${formatTime(expandedImage.start_time)}`}
               </p>
             )}
@@ -863,7 +864,7 @@ export default function RSVPPage() {
                 "Click logo below to continue"}
             </label>
           ) : (
-            <label>Please RSVP below</label>
+            <label>Please RSVP below by {}</label>
           )}
         </div>
 

@@ -829,17 +829,17 @@ const DashboardContent = () => {
                       </div>
 
                       <div className={styles.eventActions}>
-                        <button 
+                        {/*<button 
                           className={styles.btnSecondary}
                           onClick={() => handleEditEvent(event.id)}
                         >
                           ✏️ Edit
-                        </button>
+                        </button>*/}
                         <button 
                           className={styles.btnPrimary}
                           onClick={() => handleViewEvent(event.id)}
                         >
-                          👁️ Manage
+                          Manage
                         </button>
                       </div>
                     </div>

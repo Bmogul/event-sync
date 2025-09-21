@@ -763,7 +763,7 @@ const EmailPortal = ({
 
     if (res.status === 200 && result.success) {
       toast(
-        `Mail sent! ${result.results.successful} successful, ${result.results.failed} failed`,
+        `Mail sent! ${result.results.successful} successful, ${result.results.failed} did not have emails`,
       );
       if (result.guestList) {
         updateGuestList(result.guestList);

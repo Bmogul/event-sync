@@ -900,7 +900,7 @@
 .closeBtn {
   position: absolute;
   top: -40px;
-  right: -40px;
+  left: -40px;
   background: none;
   border: none;
   font-size: 24px;
@@ -982,7 +982,7 @@
 @media (max-width: 768px) {
   .closeBtn {
     top: 10px;
-    right: 10px;
+    left: 10px;
     font-size: 20px;
     padding: 12px;
   }

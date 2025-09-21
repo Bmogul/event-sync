@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect, useRef, useMemo} from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -12,8 +12,8 @@ import styles from "../styles/events.module.css";
 
 // Helper function to format time from 24-hour to 12-hour format
 const formatTime = (timeString) => {
-  if (!timeString) return '';
-  
+  if (!timeString) return "";
+
   try {
     const date = new Date(`1970-01-01T${timeString}`);
     return date.toLocaleTimeString([], {
@@ -36,8 +36,8 @@ const sortByPriority = (subEvents) => {
 
 const sortByStartDate = (subEvents) => {
   return [...subEvents].sort((a, b) => {
-    const dateTimeA = new Date(`${a.event_date} ${a.start_time || '00:00'}`);
-    const dateTimeB = new Date(`${b.event_date} ${b.start_time || '00:00'}`);
+    const dateTimeA = new Date(`${a.event_date} ${a.start_time || "00:00"}`);
+    const dateTimeB = new Date(`${b.event_date} ${b.start_time || "00:00"}`);
     return dateTimeA - dateTimeB;
   });
 };
@@ -119,15 +119,21 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     <div className={styles.minimalLayout}>
       <div className={styles.eventDetails}>
         <h2 style={{ color: themeStyles.color }}>Event Details</h2>
-        <p className={styles.eventDescription} style={{ color: themeStyles.color }}>
+        <p
+          className={styles.eventDescription}
+          style={{ color: themeStyles.color }}
+        >
           {event?.description || "Join us for this special event"}
         </p>
-        
+
         {subEvents && subEvents.length > 0 && (
           <div className={styles.minimalSubEvents}>
             <h3 style={{ color: themeStyles.color }}>Events</h3>
             {sortByPriority(subEvents).map((subEvent) => (
-              <div key={subEvent.id || subEvent.title} className={styles.minimalSubEvent}>
+              <div
+                key={subEvent.id || subEvent.title}
+                className={styles.minimalSubEvent}
+              >
                 <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
                 <p style={{ color: themeStyles.color, opacity: 0.8 }}>
                   {subEvent.event_date && subEvent.start_time
@@ -146,13 +152,18 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
       <div className={styles.minimalInviteSection}>
         <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
         <div className={styles.minimalGuestList}>
-          {party && party.map((guest) => (
-            <span key={guest.id} className={styles.minimalGuestName} style={{ color: themeStyles.color }}>
-              {guest.name}
-            </span>
-          ))}
+          {party &&
+            party.map((guest) => (
+              <span
+                key={guest.id}
+                className={styles.minimalGuestName}
+                style={{ color: themeStyles.color }}
+              >
+                {guest.name}
+              </span>
+            ))}
         </div>
-        
+
         {subEvents && subEvents.length > 0 && (
           <button
             className={styles.rsvpButton}
@@ -171,11 +182,13 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
 };
 
 const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
-  const imagesWithUrl =sortByStartDate(subEvents || []).filter(se => se.image_url);
+  const imagesWithUrl = sortByStartDate(subEvents || []).filter(
+    (se) => se.image_url,
+  );
 
   const [expandedImage, setExpandedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
+
   // Determine optimal column count for symmetrical layout based on screen size and image count
   const getColumnCount = (imageCount) => {
     if (imageCount === 0) return 1;
@@ -185,14 +198,14 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     if (imageCount <= 6) return 3;
     return 3; // For 7+ images, use 3 columns
   };
-  
+
   // Get responsive column count based on viewport
   const getResponsiveColumns = (imageCount) => {
     const baseColumns = getColumnCount(imageCount);
     // Use CSS media queries to handle responsive behavior instead of JavaScript
     return baseColumns;
   };
-  
+
   const columnCount = getResponsiveColumns(imagesWithUrl.length);
 
   // Image expansion handlers
@@ -206,10 +219,11 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   };
 
   const navigateImage = (direction) => {
-    const newIndex = direction === 'next' 
-      ? (currentImageIndex + 1) % imagesWithUrl.length
-      : (currentImageIndex - 1 + imagesWithUrl.length) % imagesWithUrl.length;
-    
+    const newIndex =
+      direction === "next"
+        ? (currentImageIndex + 1) % imagesWithUrl.length
+        : (currentImageIndex - 1 + imagesWithUrl.length) % imagesWithUrl.length;
+
     setCurrentImageIndex(newIndex);
     setExpandedImage(imagesWithUrl[newIndex]);
   };
@@ -218,138 +232,158 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (!expandedImage) return;
-      
-      if (e.key === 'Escape') {
+
+      if (e.key === "Escape") {
         closeExpandedView();
-      } else if (e.key === 'ArrowRight') {
-        navigateImage('next');
-      } else if (e.key === 'ArrowLeft') {
-        navigateImage('prev');
+      } else if (e.key === "ArrowRight") {
+        navigateImage("next");
+      } else if (e.key === "ArrowLeft") {
+        navigateImage("prev");
       }
     };
 
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
   }, [expandedImage, currentImageIndex, imagesWithUrl.length]);
-  
+
   return (
     <div className={styles.galleryLayout}>
-      <div 
+      <div
         className={styles.galleryGrid}
         style={{
           gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
           // Add responsive grid template areas for better mobile control
-          '--gallery-columns': columnCount,
+          "--gallery-columns": columnCount,
         }}
       >
         {imagesWithUrl.map((subEvent, index) => (
-        <div 
-          key={subEvent.id || subEvent.title} 
-          className={styles.galleryItem}
-          onClick={() => handleImageExpand(subEvent, index)}
-        >
-          <Image
-            src={subEvent.image_url}
-            alt={subEvent.title}
-            width={400}
-            height={300}
-            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
-            className={styles.galleryImage}
-            priority={index < 2} // Prioritize first 2 images for faster loading
-            style={{
-              width: '100%',
-              height: 'auto',
-              maxHeight: '100%',
-              objectFit: 'contain'
-            }}
-          />
-        </div>
-      ))}
-    </div>
-    
-    <div className={styles.galleryInfo}>
-      <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
-      <div className={styles.galleryGuestList}>
-        {party && party.map((guest) => (
-          <div key={guest.id} className={styles.galleryGuestName} style={{ color: themeStyles.color }}>
-            {guest.name}
+          <div
+            key={subEvent.id || subEvent.title}
+            className={styles.galleryItem}
+            onClick={() => handleImageExpand(subEvent, index)}
+          >
+            <Image
+              src={subEvent.image_url}
+              alt={subEvent.title}
+              width={400}
+              height={300}
+              sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
+              className={styles.galleryImage}
+              priority={index < 2} // Prioritize first 2 images for faster loading
+              style={{
+                width: "100%",
+                height: "auto",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
           </div>
         ))}
       </div>
-      
-      {subEvents && subEvents.length > 0 && (
-        <button
-          className={styles.rsvpButton}
-          onClick={openForm}
-          style={{
-            backgroundColor: themeStyles.primaryColor,
-            color: "white",
-          }}
-        >
-          RSVP Now
-        </button>
-      )}
-    </div>
 
-    {/* Expanded Image Modal */}
-    {expandedImage && (
-      <div className={styles.expandedImageModal} onClick={closeExpandedView}>
-        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <button 
-            className={styles.closeBtn}
-            onClick={closeExpandedView}
-            style={{ color: "white" }}
+      <div className={styles.galleryInfo}>
+        <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
+        <div className={styles.galleryGuestList}>
+          {party &&
+            party.map((guest) => (
+              <div
+                key={guest.id}
+                className={styles.galleryGuestName}
+                style={{ color: themeStyles.color }}
+              >
+                {guest.name}
+              </div>
+            ))}
+        </div>
+
+        {subEvents && subEvents.length > 0 && (
+          <button
+            className={styles.rsvpButton}
+            onClick={openForm}
+            style={{
+              backgroundColor: themeStyles.primaryColor,
+              color: "white",
+            }}
           >
-            ✕
+            RSVP Now
           </button>
+        )}
+      </div>
 
-          {imagesWithUrl.length > 1 && (
-            <>
-              <button 
-                className={`${styles.navBtn} ${styles.prevBtn}`}
-                onClick={() => navigateImage('prev')}
-                style={{ color: "white" }}
-              >
-                ‹
-              </button>
-              <button 
-                className={`${styles.navBtn} ${styles.nextBtn}`}
-                onClick={() => navigateImage('next')}
-                style={{ color: "white" }}
-              >
-                ›
-              </button>
-            </>
-          )}
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div className={styles.expandedImageModal} onClick={closeExpandedView}>
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className={styles.closeBtn}
+              onClick={closeExpandedView}
+              style={{ color: "white" }}
+            >
+              ✕
+            </button>
 
-          <div className={styles.imageDetails}>
-            <h3 style={{ color: "white" }}>{expandedImage.title}</h3>
-            {expandedImage.event_date && (
-              <p style={{ color: "rgba(255,255,255,0.8)" }}>
-                {new Date(expandedImage.event_date).toLocaleDateString(undefined, {timeZone:'UTC'})}
-                {expandedImage.start_time && ` at ${formatTime(expandedImage.start_time)}`}
-              </p>
+            {imagesWithUrl.length > 1 && (
+              <>
+                <button
+                  className={`${styles.navBtn} ${styles.prevBtn}`}
+                  onClick={() => navigateImage("prev")}
+                  style={{ color: "white" }}
+                >
+                  ‹
+                </button>
+                <button
+                  className={`${styles.navBtn} ${styles.nextBtn}`}
+                  onClick={() => navigateImage("next")}
+                  style={{ color: "white" }}
+                >
+                  ›
+                </button>
+              </>
             )}
-            {expandedImage.venue_address && (
-              <p style={{ color: "rgba(255,255,255,0.8)" }}>
-                📍 {expandedImage.venue_address}
-              </p>
-            )}
-          </div>
 
-          <div className={styles.expandedImageContainer}>
-            <Image
-              src={expandedImage.image_url}
-              alt={expandedImage.title}
-              width={1200}
-              height={800}
-              className={styles.expandedImage}
-            />
+            <div className={styles.imageDetails}>
+              <h3 style={{ color: "white" }}>{expandedImage.title}</h3>
+
+              {expandedImage.event_date && (
+                <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {new Date(expandedImage.event_date).toLocaleDateString(
+                    undefined,
+                    {
+                      timeZone: "UTC",
+                      weekday: "long", // ✅ Adds full day of week (e.g., Monday)
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )}
+                  {expandedImage.start_time &&
+                    ` at ${formatTime(expandedImage.start_time)}`}
+                </p>
+              )}
+
+              {expandedImage.venue_address && (
+                <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                  📍 {expandedImage.venue_address}
+                </p>
+              )}
+            </div>
+
+            <div className={styles.expandedImageContainer}>
+              <Image
+                src={expandedImage.image_url}
+                alt={expandedImage.title}
+                width={1200}
+                height={800}
+                className={styles.expandedImage}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    )}
-  </div>
+      )}
+    </div>
   );
 };
 
@@ -359,23 +393,38 @@ const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
       <div className={styles.timelineHeader}>
         <h2 style={{ color: themeStyles.color }}>Event Timeline</h2>
       </div>
-      
+
       <div className={styles.timeline}>
         {sortByStartDate(subEvents || []).map((subEvent) => (
-          <div key={subEvent.id || subEvent.title} className={styles.timelineItem}>
-            <div className={styles.timelineMarker} style={{ backgroundColor: themeStyles.primaryColor }}></div>
+          <div
+            key={subEvent.id || subEvent.title}
+            className={styles.timelineItem}
+          >
+            <div
+              className={styles.timelineMarker}
+              style={{ backgroundColor: themeStyles.primaryColor }}
+            ></div>
             <div className={styles.timelineContent}>
               <h3 style={{ color: themeStyles.color }}>{subEvent.title}</h3>
-              <p className={styles.timelineDate} style={{ color: themeStyles.color }}>
+              <p
+                className={styles.timelineDate}
+                style={{ color: themeStyles.color }}
+              >
                 {subEvent.event_date && subEvent.start_time
                   ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${formatTime(subEvent.start_time)}`
                   : "Date & Time TBD"}
               </p>
-              <p className={styles.timelineLocation} style={{ color: themeStyles.color, opacity: 0.8 }}>
+              <p
+                className={styles.timelineLocation}
+                style={{ color: themeStyles.color, opacity: 0.8 }}
+              >
                 {subEvent.venue_address || "Location TBD"}
               </p>
               {subEvent.description && (
-                <p className={styles.timelineDescription} style={{ color: themeStyles.color, opacity: 0.9 }}>
+                <p
+                  className={styles.timelineDescription}
+                  style={{ color: themeStyles.color, opacity: 0.9 }}
+                >
                   {subEvent.description}
                 </p>
               )}
@@ -383,17 +432,22 @@ const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
           </div>
         ))}
       </div>
-      
+
       <div className={styles.timelineInviteSection}>
         <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
         <div className={styles.timelineGuestList}>
-          {party && party.map((guest) => (
-            <span key={guest.id} className={styles.timelineGuestName} style={{ color: themeStyles.color }}>
-              {guest.name}
-            </span>
-          ))}
+          {party &&
+            party.map((guest) => (
+              <span
+                key={guest.id}
+                className={styles.timelineGuestName}
+                style={{ color: themeStyles.color }}
+              >
+                {guest.name}
+              </span>
+            ))}
         </div>
-        
+
         {subEvents && subEvents.length > 0 && (
           <button
             className={styles.rsvpButton}
@@ -410,7 +464,6 @@ const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     </div>
   );
 };
-
 
 export default function RSVPPage() {
   const router = useRouter();
@@ -472,12 +525,12 @@ export default function RSVPPage() {
         setEvent(data.event);
         setParty(data.party || []);
         setSubEvents(data.subEvents || []);
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("CONFIG DATA", data.event.landing_page_configs);
         }
         setLandingConfig(data.event.landing_page_configs?.[0] || null);
 
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("RSVP Data loaded:", {
             event: data.event?.title,
             partySize: data.party?.length,
@@ -486,7 +539,7 @@ export default function RSVPPage() {
           });
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.error("Error fetching RSVP data:", error);
         }
         toast.error(error.message || "Failed to load RSVP data");
@@ -503,8 +556,8 @@ export default function RSVPPage() {
   // RSVP Form controls
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openForm = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("dev data E",party, subEvents );
+    if (process.env.NODE_ENV === "development") {
+      console.log("dev data E", party, subEvents);
     }
 
     setShowForm(true);
@@ -549,7 +602,7 @@ export default function RSVPPage() {
         toast.success(
           "🎉 Thank you! Your RSVP has been submitted successfully.",
         );
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("RSVP submitted successfully:", result);
         }
       } else {
@@ -564,7 +617,7 @@ export default function RSVPPage() {
         throw new Error(errorMessage);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.error("RSVP submission error:", error);
       }
       toast.error(
@@ -583,9 +636,9 @@ export default function RSVPPage() {
     setPageOpened(true);
     //start music
     if (audioRef.current && !isMuted) {
-      audioRef.current.play().catch(error => {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Audio play failed:', error);
+      audioRef.current.play().catch((error) => {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Audio play failed:", error);
         }
       });
     }
@@ -593,16 +646,16 @@ export default function RSVPPage() {
 
   // Toggle mute functionality
   const toggleMute = () => {
-    setIsMuted(prev => {
+    setIsMuted((prev) => {
       if (audioRef.current) {
         if (!prev) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
         } else if (pageOpened) {
-          audioRef.current.play().catch(error => {
-            if (process.env.NODE_ENV === 'development') {
-          console.warn('Audio play failed:', error);
-        }
+          audioRef.current.play().catch((error) => {
+            if (process.env.NODE_ENV === "development") {
+              console.warn("Audio play failed:", error);
+            }
           });
         }
       }
@@ -613,7 +666,7 @@ export default function RSVPPage() {
   // Development-only layout toggle functionality
   const availableLayouts = ["default", "minimal", "gallery", "timeline"];
   const toggleLayout = () => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       const currentIndex = availableLayouts.indexOf(layoutVariation);
       const nextIndex = (currentIndex + 1) % availableLayouts.length;
       setLayoutVariation(availableLayouts[nextIndex]);
@@ -643,13 +696,13 @@ export default function RSVPPage() {
 
   // Memoized layout variation to prevent race conditions
   const computedLayoutVariation = useMemo(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log("CONFIG", landingConfig);
     }
     if (!landingConfig?.rsvp_config) {
       return "gallery"; // Hardcoded fallback to current layout
     }
-    
+
     // Check for layout_type in rsvp_config, default to "gallery"
     return landingConfig.rsvp_config.layout_type || "gallery";
   }, [landingConfig]);
@@ -677,7 +730,7 @@ export default function RSVPPage() {
       party,
       subEvents,
       themeStyles,
-      openForm
+      openForm,
     };
 
     switch (layoutVariation) {
@@ -702,15 +755,16 @@ export default function RSVPPage() {
                 <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
               </div>
               <div className={styles.guestList}>
-                {party && party.map((guest) => (
-                  <div
-                    key={guest.id}
-                    className={styles.guestName}
-                    style={{ color: themeStyles.color }}
-                  >
-                    {guest.name}
-                  </div>
-                ))}
+                {party &&
+                  party.map((guest) => (
+                    <div
+                      key={guest.id}
+                      className={styles.guestName}
+                      style={{ color: themeStyles.color }}
+                    >
+                      {guest.name}
+                    </div>
+                  ))}
               </div>
 
               {/* Only show RSVP button if there are sub-events to RSVP to */}
@@ -804,7 +858,7 @@ export default function RSVPPage() {
       </button>
 
       {/* Development-only layout toggle button */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <button
           onClick={toggleLayout}
           style={{

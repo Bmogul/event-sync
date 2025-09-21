@@ -26,7 +26,10 @@ const GuestRSVPBlock = ({
         </label>
         {subEvent.event_date && (
           <div className={styles.subEventDetails}>
-            Date: {new Date(subEvent.event_date).toLocaleDateString(undefined, {timeZone:'UTC'})}
+            Date:{" "}
+            {new Date(subEvent.event_date).toLocaleDateString(undefined, {
+              timeZone: "UTC",
+            })}
             {subEvent.start_time &&
               ` at ${new Date(
                 `1970-01-01T${subEvent.start_time}`,
@@ -181,7 +184,7 @@ const RsvpForm = ({
                 frontendResponse = "pending";
             }
 
-            if (process.env.NODE_ENV === 'development') {
+            if (process.env.NODE_ENV === "development") {
               console.log(
                 `Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`,
               );
@@ -214,7 +217,7 @@ const RsvpForm = ({
       }
     });
 
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log("RSVP Form Initialization Summary:", {
         totalGuests: party.length,
         guestsWithResponses: Object.keys(initialResponses).filter(
@@ -398,7 +401,7 @@ const RsvpForm = ({
   };
 
   const openGoogleCalendar = (subEvent) => {
-    console.log(subEvent)
+    console.log(subEvent);
     if (!subEvent.event_date) return;
 
     const eventDate = new Date(subEvent.event_date);
@@ -494,12 +497,21 @@ const RsvpForm = ({
                       >
                         📅 Add to Calendar
                       </button>
+
                       <span>
                         {new Date(
                           currentSubEvent.event_date,
-                        ).toLocaleDateString(undefined, {timeZone:'UTC'})}  {currentSubEvent.details?.custom_time
-    ? ' ' + currentSubEvent.details.custom_time
-    : ''}                        {currentSubEvent.start_time &&
+                        ).toLocaleDateString(undefined, {
+                          timeZone: "UTC",
+                          weekday: "long", // ✅ Adds the day of the week
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                        {currentSubEvent.details?.custom_time
+                          ? " " + currentSubEvent.details.custom_time
+                          : ""}
+                        {currentSubEvent.start_time &&
                           ` ${new Date(
                             `1970-01-01T${currentSubEvent.start_time}`,
                           ).toLocaleTimeString([], {
@@ -654,8 +666,8 @@ const RsvpForm = ({
                       Do you have any dietary restrictions?
                       {landingConfig.rsvp_config
                         .dietary_restrictions_required && (
-                        <span style={{ color: "#dc2626" }}>*</span>
-                      )}
+                          <span style={{ color: "#dc2626" }}>*</span>
+                        )}
                     </label>
                     <textarea
                       style={{ borderColor: themeStyles.primaryColor }}
@@ -700,8 +712,8 @@ const RsvpForm = ({
                       Special accommodations needed
                       {landingConfig.rsvp_config
                         .special_accommodations_required && (
-                        <span style={{ color: "#dc2626" }}>*</span>
-                      )}
+                          <span style={{ color: "#dc2626" }}>*</span>
+                        )}
                     </label>
                     <textarea
                       style={{ borderColor: themeStyles.primaryColor }}

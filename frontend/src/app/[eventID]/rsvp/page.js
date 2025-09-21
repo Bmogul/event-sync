@@ -250,7 +250,7 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     </div>
     
     <div className={styles.galleryInfo}>
-      <h2 style={{ color: themeStyles.color }}>You're Invited</h2>
+      <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
       <div className={styles.galleryGuestList}>
         {party && party.map((guest) => (
           <div key={guest.id} className={styles.galleryGuestName} style={{ color: themeStyles.color }}>
@@ -825,7 +825,7 @@ export default function RSVPPage() {
       <div className={styles.main} style={{ position: "relative", zIndex: 2 }}>
         <div className={styles.header}>
           <h1 style={{ color: themeStyles.color }}>
-            {landingConfig?.title || event?.title || "You're Invited!"}
+            {landingConfig?.title || event?.title || "Please Join Us"}
           </h1>
           {!guid ? (
             <label>Please use the link provided to view details</label>

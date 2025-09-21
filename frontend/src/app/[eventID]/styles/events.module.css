@@ -565,7 +565,7 @@
 /* Gallery Layout */
 .galleryLayout {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 16px;
   width: 100%;
   max-width: 1200px;

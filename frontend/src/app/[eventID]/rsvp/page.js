@@ -42,10 +42,10 @@ const EventCards = ({ subEvents }) => {
       : sortedEvents.slice(0, 3); // Limit to 3 placeholders
   }, [subEvents]);
 
-  const [cardOrder, setCardOrder] = useState([...cards]);
+  const [cardOrder, setCardOrder] = useState([...cards].reverse());
 
   useEffect(() => {
-    setCardOrder([...cards]);
+    setCardOrder([...cards].reverse());
   }, [cards]);
 
   const handleCardClick = (clickedCard) => {
@@ -99,64 +99,86 @@ const EventCards = ({ subEvents }) => {
 };
 
 // Layout Variations
-const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
-  <div className={styles.minimalLayout}>
-    <div className={styles.eventDetails}>
-      <h2 style={{ color: themeStyles.color }}>Event Details</h2>
-      <p className={styles.eventDescription} style={{ color: themeStyles.color }}>
-        {event?.description || "Join us for this special event"}
-      </p>
-      
-      {subEvents && subEvents.length > 0 && (
-        <div className={styles.minimalSubEvents}>
-          <h3 style={{ color: themeStyles.color }}>Events</h3>
-          {sortByPriority(subEvents).map((subEvent) => (
-            <div key={subEvent.id || subEvent.title} className={styles.minimalSubEvent}>
-              <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
-              <p style={{ color: themeStyles.color, opacity: 0.8 }}>
-                {subEvent.event_date && subEvent.start_time
-                  ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
-                  : "Date & Time TBD"}
-              </p>
-              <p style={{ color: themeStyles.color, opacity: 0.8 }}>
-                {subEvent.venue_address || "Location TBD"}
-              </p>
-            </div>
+const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
+  return (
+    <div className={styles.minimalLayout}>
+      <div className={styles.eventDetails}>
+        <h2 style={{ color: themeStyles.color }}>Event Details</h2>
+        <p className={styles.eventDescription} style={{ color: themeStyles.color }}>
+          {event?.description || "Join us for this special event"}
+        </p>
+        
+        {subEvents && subEvents.length > 0 && (
+          <div className={styles.minimalSubEvents}>
+            <h3 style={{ color: themeStyles.color }}>Events</h3>
+            {sortByPriority(subEvents).map((subEvent) => (
+              <div key={subEvent.id || subEvent.title} className={styles.minimalSubEvent}>
+                <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
+                <p style={{ color: themeStyles.color, opacity: 0.8 }}>
+                  {subEvent.event_date && subEvent.start_time
+                    ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
+                    : "Date & Time TBD"}
+                </p>
+                <p style={{ color: themeStyles.color, opacity: 0.8 }}>
+                  {subEvent.venue_address || "Location TBD"}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.minimalInviteSection}>
+        <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
+        <div className={styles.minimalGuestList}>
+          {party && party.map((guest) => (
+            <span key={guest.id} className={styles.minimalGuestName} style={{ color: themeStyles.color }}>
+              {guest.name}
+            </span>
           ))}
         </div>
-      )}
-    </div>
-
-    <div className={styles.minimalInviteSection}>
-      <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
-      <div className={styles.minimalGuestList}>
-        {party && party.map((guest) => (
-          <span key={guest.id} className={styles.minimalGuestName} style={{ color: themeStyles.color }}>
-            {guest.name}
-          </span>
-        ))}
+        
+        {subEvents && subEvents.length > 0 && (
+          <button
+            className={styles.rsvpButton}
+            onClick={openForm}
+            style={{
+              backgroundColor: themeStyles.primaryColor,
+              color: "white",
+            }}
+          >
+            RSVP Now
+          </button>
+        )}
       </div>
-      
-      {subEvents && subEvents.length > 0 && (
-        <button
-          className={styles.rsvpButton}
-          onClick={openForm}
-          style={{
-            backgroundColor: themeStyles.primaryColor,
-            color: "white",
-          }}
-        >
-          RSVP Now
-        </button>
-      )}
     </div>
-  </div>
-);
+  );
+};
 
-const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
-  <div className={styles.galleryLayout}>
-    <div className={styles.galleryGrid}>
-      {sortByPriority(subEvents || []).filter(se => se.image_url).map((subEvent) => (
+const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
+  const imagesWithUrl = sortByPriority(subEvents || []).filter(se => se.image_url);
+  
+  // Determine optimal column count for symmetrical layout
+  const getColumnCount = (imageCount) => {
+    if (imageCount === 0) return 1;
+    if (imageCount === 1) return 1;
+    if (imageCount === 2) return 2;
+    if (imageCount <= 4) return 2;
+    if (imageCount <= 6) return 3;
+    return 3; // For 7+ images, use 3 columns
+  };
+  
+  const columnCount = getColumnCount(imagesWithUrl.length);
+  
+  return (
+    <div className={styles.galleryLayout}>
+      <div 
+        className={styles.galleryGrid}
+        style={{
+          gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+        }}
+      >
+        {imagesWithUrl.map((subEvent) => (
         <div key={subEvent.id || subEvent.title} className={styles.galleryItem}>
           <Image
             src={subEvent.image_url}
@@ -165,9 +187,6 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
             height={200}
             className={styles.galleryImage}
           />
-          <div className={styles.galleryOverlay}>
-            <h4 style={{ color: "white" }}>{subEvent.title}</h4>
-          </div>
         </div>
       ))}
     </div>
@@ -196,63 +215,66 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
       )}
     </div>
   </div>
-);
+  );
+};
 
-const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
-  <div className={styles.timelineLayout}>
-    <div className={styles.timelineHeader}>
-      <h2 style={{ color: themeStyles.color }}>Event Timeline</h2>
-    </div>
-    
-    <div className={styles.timeline}>
-      {sortByStartDate(subEvents || []).map((subEvent) => (
-        <div key={subEvent.id || subEvent.title} className={styles.timelineItem}>
-          <div className={styles.timelineMarker} style={{ backgroundColor: themeStyles.primaryColor }}></div>
-          <div className={styles.timelineContent}>
-            <h3 style={{ color: themeStyles.color }}>{subEvent.title}</h3>
-            <p className={styles.timelineDate} style={{ color: themeStyles.color }}>
-              {subEvent.event_date && subEvent.start_time
-                ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
-                : "Date & Time TBD"}
-            </p>
-            <p className={styles.timelineLocation} style={{ color: themeStyles.color, opacity: 0.8 }}>
-              {subEvent.venue_address || "Location TBD"}
-            </p>
-            {subEvent.description && (
-              <p className={styles.timelineDescription} style={{ color: themeStyles.color, opacity: 0.9 }}>
-                {subEvent.description}
+const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
+  return (
+    <div className={styles.timelineLayout}>
+      <div className={styles.timelineHeader}>
+        <h2 style={{ color: themeStyles.color }}>Event Timeline</h2>
+      </div>
+      
+      <div className={styles.timeline}>
+        {sortByStartDate(subEvents || []).map((subEvent) => (
+          <div key={subEvent.id || subEvent.title} className={styles.timelineItem}>
+            <div className={styles.timelineMarker} style={{ backgroundColor: themeStyles.primaryColor }}></div>
+            <div className={styles.timelineContent}>
+              <h3 style={{ color: themeStyles.color }}>{subEvent.title}</h3>
+              <p className={styles.timelineDate} style={{ color: themeStyles.color }}>
+                {subEvent.event_date && subEvent.start_time
+                  ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
+                  : "Date & Time TBD"}
               </p>
-            )}
+              <p className={styles.timelineLocation} style={{ color: themeStyles.color, opacity: 0.8 }}>
+                {subEvent.venue_address || "Location TBD"}
+              </p>
+              {subEvent.description && (
+                <p className={styles.timelineDescription} style={{ color: themeStyles.color, opacity: 0.9 }}>
+                  {subEvent.description}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
-    
-    <div className={styles.timelineInviteSection}>
-      <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
-      <div className={styles.timelineGuestList}>
-        {party && party.map((guest) => (
-          <span key={guest.id} className={styles.timelineGuestName} style={{ color: themeStyles.color }}>
-            {guest.name}
-          </span>
         ))}
       </div>
       
-      {subEvents && subEvents.length > 0 && (
-        <button
-          className={styles.rsvpButton}
-          onClick={openForm}
-          style={{
-            backgroundColor: themeStyles.primaryColor,
-            color: "white",
-          }}
-        >
-          RSVP Now
-        </button>
-      )}
+      <div className={styles.timelineInviteSection}>
+        <h3 style={{ color: themeStyles.color }}>Invited Guests</h3>
+        <div className={styles.timelineGuestList}>
+          {party && party.map((guest) => (
+            <span key={guest.id} className={styles.timelineGuestName} style={{ color: themeStyles.color }}>
+              {guest.name}
+            </span>
+          ))}
+        </div>
+        
+        {subEvents && subEvents.length > 0 && (
+          <button
+            className={styles.rsvpButton}
+            onClick={openForm}
+            style={{
+              backgroundColor: themeStyles.primaryColor,
+              color: "white",
+            }}
+          >
+            RSVP Now
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 export default function RSVPPage() {
@@ -445,6 +467,16 @@ export default function RSVPPage() {
     });
   };
 
+  // Development-only layout toggle functionality
+  const availableLayouts = ["default", "minimal", "gallery", "timeline"];
+  const toggleLayout = () => {
+    if (process.env.NODE_ENV === 'development') {
+      const currentIndex = availableLayouts.indexOf(layoutVariation);
+      const nextIndex = (currentIndex + 1) % availableLayouts.length;
+      setLayoutVariation(availableLayouts[nextIndex]);
+    }
+  };
+
   // Helper function to get theme styles from landing config
   const getThemeStyles = () => {
     if (!landingConfig?.greeting_config) {
@@ -626,6 +658,35 @@ export default function RSVPPage() {
       >
         {isMuted ? "🔇" : "🔊"}
       </button>
+
+      {/* Development-only layout toggle button */}
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          onClick={toggleLayout}
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "20px",
+            zIndex: 1000,
+            backgroundColor: themeStyles.primaryColor,
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            fontSize: "12px",
+            cursor: "pointer",
+            fontFamily: "monospace",
+            fontWeight: "600",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            transition: "all 0.3s ease",
+            textTransform: "capitalize",
+          }}
+          title={`Current layout: ${layoutVariation}. Click to cycle layouts.`}
+          aria-label={`Layout toggle - current: ${layoutVariation}`}
+        >
+          {layoutVariation}
+        </button>
+      )}
 
       {showForm && (
         <div className={styles.formContainer}>

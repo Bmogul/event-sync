@@ -497,9 +497,10 @@ const RsvpForm = ({
                       <span>
                         {new Date(
                           currentSubEvent.event_date,
-                        ).toLocaleDateString(undefined, {timeZone:'UTC'})}
-                        {currentSubEvent.start_time &&
-                          ` at ${new Date(
+                        ).toLocaleDateString(undefined, {timeZone:'UTC'})}  {currentSubEvent.details?.custom_time
+    ? ' ' + currentSubEvent.details.custom_time
+    : ''}                        {currentSubEvent.start_time &&
+                          ` ${new Date(
                             `1970-01-01T${currentSubEvent.start_time}`,
                           ).toLocaleTimeString([], {
                             hour: "numeric",

@@ -10,6 +10,21 @@ import RSVPForm from "../components/RSVPForm";
 
 import styles from "../styles/events.module.css";
 
+// Helper function to format time from 24-hour to 12-hour format
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  
+  try {
+    const date = new Date(`1970-01-01T${timeString}`);
+    return date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    return timeString; // Fallback to original string if parsing fails
+  }
+};
+
 // Helper sorting functions
 const sortByPriority = (subEvents) => {
   return [...subEvents].sort((a, b) => {
@@ -84,7 +99,7 @@ const EventCards = ({ subEvents }) => {
                   <h3>{card.title || `Sub-Event ${index + 1}`}</h3>
                   <p>
                     {card.event_date && card.start_time
-                      ? `${new Date(card.event_date).toLocaleDateString()} at ${card.start_time}`
+                      ? `${new Date(card.event_date).toLocaleDateString()} at ${formatTime(card.start_time)}`
                       : "Date & Time"}
                   </p>
                   <p>{card.venue_address || "Location"}</p>
@@ -116,7 +131,7 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
                 <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
                 <p style={{ color: themeStyles.color, opacity: 0.8 }}>
                   {subEvent.event_date && subEvent.start_time
-                    ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
+                    ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${formatTime(subEvent.start_time)}`
                     : "Date & Time TBD"}
                 </p>
                 <p style={{ color: themeStyles.color, opacity: 0.8 }}>
@@ -157,6 +172,8 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
 
 const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   const imagesWithUrl = sortByPriority(subEvents || []).filter(se => se.image_url);
+  const [expandedImage, setExpandedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Determine optimal column count for symmetrical layout
   const getColumnCount = (imageCount) => {
@@ -169,6 +186,43 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   };
   
   const columnCount = getColumnCount(imagesWithUrl.length);
+
+  // Image expansion handlers
+  const handleImageExpand = (subEvent, index) => {
+    setExpandedImage(subEvent);
+    setCurrentImageIndex(index);
+  };
+
+  const closeExpandedView = () => {
+    setExpandedImage(null);
+  };
+
+  const navigateImage = (direction) => {
+    const newIndex = direction === 'next' 
+      ? (currentImageIndex + 1) % imagesWithUrl.length
+      : (currentImageIndex - 1 + imagesWithUrl.length) % imagesWithUrl.length;
+    
+    setCurrentImageIndex(newIndex);
+    setExpandedImage(imagesWithUrl[newIndex]);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!expandedImage) return;
+      
+      if (e.key === 'Escape') {
+        closeExpandedView();
+      } else if (e.key === 'ArrowRight') {
+        navigateImage('next');
+      } else if (e.key === 'ArrowLeft') {
+        navigateImage('prev');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [expandedImage, currentImageIndex, imagesWithUrl.length]);
   
   return (
     <div className={styles.galleryLayout}>
@@ -178,8 +232,12 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
           gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
         }}
       >
-        {imagesWithUrl.map((subEvent) => (
-        <div key={subEvent.id || subEvent.title} className={styles.galleryItem}>
+        {imagesWithUrl.map((subEvent, index) => (
+        <div 
+          key={subEvent.id || subEvent.title} 
+          className={styles.galleryItem}
+          onClick={() => handleImageExpand(subEvent, index)}
+        >
           <Image
             src={subEvent.image_url}
             alt={subEvent.title}
@@ -214,6 +272,65 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
         </button>
       )}
     </div>
+
+    {/* Expanded Image Modal */}
+    {expandedImage && (
+      <div className={styles.expandedImageModal} onClick={closeExpandedView}>
+        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <button 
+            className={styles.closeBtn}
+            onClick={closeExpandedView}
+            style={{ color: "white" }}
+          >
+            ✕
+          </button>
+
+          {imagesWithUrl.length > 1 && (
+            <>
+              <button 
+                className={`${styles.navBtn} ${styles.prevBtn}`}
+                onClick={() => navigateImage('prev')}
+                style={{ color: "white" }}
+              >
+                ‹
+              </button>
+              <button 
+                className={`${styles.navBtn} ${styles.nextBtn}`}
+                onClick={() => navigateImage('next')}
+                style={{ color: "white" }}
+              >
+                ›
+              </button>
+            </>
+          )}
+
+          <div className={styles.imageDetails}>
+            <h3 style={{ color: "white" }}>{expandedImage.title}</h3>
+            {expandedImage.event_date && (
+              <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                {new Date(expandedImage.event_date).toLocaleDateString()}
+                {expandedImage.start_time && ` at ${formatTime(expandedImage.start_time)}`}
+              </p>
+            )}
+            {expandedImage.venue_address && (
+              <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                📍 {expandedImage.venue_address}
+              </p>
+            )}
+          </div>
+
+          <div className={styles.expandedImageContainer}>
+            <Image
+              src={expandedImage.image_url}
+              alt={expandedImage.title}
+              width={1200}
+              height={800}
+              className={styles.expandedImage}
+            />
+          </div>
+        </div>
+      </div>
+    )}
   </div>
   );
 };
@@ -233,7 +350,7 @@ const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
               <h3 style={{ color: themeStyles.color }}>{subEvent.title}</h3>
               <p className={styles.timelineDate} style={{ color: themeStyles.color }}>
                 {subEvent.event_date && subEvent.start_time
-                  ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${subEvent.start_time}`
+                  ? `${new Date(subEvent.event_date).toLocaleDateString()} at ${formatTime(subEvent.start_time)}`
                   : "Date & Time TBD"}
               </p>
               <p className={styles.timelineLocation} style={{ color: themeStyles.color, opacity: 0.8 }}>

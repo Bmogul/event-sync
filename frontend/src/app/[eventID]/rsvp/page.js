@@ -841,7 +841,7 @@ export default function RSVPPage() {
             setParty={setParty}
             postResponse={postResponse}
             event={event}
-            subEvents={subEvents}
+            subEvents={sortByStartDate(subEvents)}
             landingConfig={landingConfig}
             themeStyles={themeStyles}
             toast={toast}
@@ -864,7 +864,7 @@ export default function RSVPPage() {
                 "Click logo below to continue"}
             </label>
           ) : (
-            <label>Please RSVP below by {}</label>
+            <label>Please RSVP below by {event?.details.rsvp_deadline}</label>
           )}
         </div>
 

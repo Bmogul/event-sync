@@ -454,6 +454,9 @@ export default function RSVPPage() {
         setEvent(data.event);
         setParty(data.party || []);
         setSubEvents(data.subEvents || []);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("CONFIG DATA", data.event.landing_page_configs);
+        }
         setLandingConfig(data.event.landing_page_configs?.[0] || null);
 
         if (process.env.NODE_ENV === 'development') {
@@ -465,7 +468,9 @@ export default function RSVPPage() {
           });
         }
       } catch (error) {
-        console.error("Error fetching RSVP data:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error fetching RSVP data:", error);
+        }
         toast.error(error.message || "Failed to load RSVP data");
         // Don't redirect, let them see the error state
       } finally {
@@ -484,7 +489,6 @@ export default function RSVPPage() {
       console.log("dev data E",party, subEvents );
     }
 
-      console.log("dev data",party, subEvents );
     setShowForm(true);
   };
 
@@ -562,7 +566,9 @@ export default function RSVPPage() {
     //start music
     if (audioRef.current && !isMuted) {
       audioRef.current.play().catch(error => {
-        console.warn('Audio play failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Audio play failed:', error);
+        }
       });
     }
   };
@@ -576,7 +582,9 @@ export default function RSVPPage() {
           audioRef.current.currentTime = 0;
         } else if (pageOpened) {
           audioRef.current.play().catch(error => {
-            console.warn('Audio play failed:', error);
+            if (process.env.NODE_ENV === 'development') {
+          console.warn('Audio play failed:', error);
+        }
           });
         }
       }
@@ -594,8 +602,8 @@ export default function RSVPPage() {
     }
   };
 
-  // Helper function to get theme styles from landing config
-  const getThemeStyles = () => {
+  // Memoized theme styles to prevent race conditions
+  const themeStyles = useMemo(() => {
     if (!landingConfig?.greeting_config) {
       return {
         backgroundColor: "#faf5ff",
@@ -613,24 +621,25 @@ export default function RSVPPage() {
       backgroundImage: config.background_image,
       backgroundOverlay: config.background_overlay || 20,
     };
-  };
+  }, [landingConfig]);
 
-  // Helper function to determine layout variation from landing config
-  const getLayoutVariation = (config) => {
-    if (!config?.rsvp_config) {
+  // Memoized layout variation to prevent race conditions
+  const computedLayoutVariation = useMemo(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log("CONFIG", landingConfig);
+    }
+    if (!landingConfig?.rsvp_config) {
       return "gallery"; // Hardcoded fallback to current layout
     }
     
-    // Check for layout_type in rsvp_config, default to "default"
-    return config.rsvp_config.layout_type || "gallery";
-  };
+    // Check for layout_type in rsvp_config, default to "gallery"
+    return landingConfig.rsvp_config.layout_type || "gallery";
+  }, [landingConfig]);
 
   // Update layout variation when landingConfig changes
   useEffect(() => {
-    setLayoutVariation(getLayoutVariation(landingConfig));
-  }, [landingConfig]);
-
-  const themeStyles = getThemeStyles();
+    setLayoutVariation(computedLayoutVariation);
+  }, [computedLayoutVariation]);
 
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   // While still loading
@@ -842,14 +851,14 @@ export default function RSVPPage() {
         </div>
 
         {/* Show greeting message if configured */}
-        {landingConfig?.greeting_config?.message && pageOpened && (
+        {/*landingConfig?.greeting_config?.message && pageOpened && (
           <div
             className={styles.greetingMessage}
             style={{ color: themeStyles.color }}
           >
             {landingConfig.greeting_config.message}
           </div>
-        )}
+        )*/}
 
         {event ? (
           party && party.length > 0 ? (

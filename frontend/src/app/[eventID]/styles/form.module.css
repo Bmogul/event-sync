@@ -183,9 +183,11 @@
 }
 
 .resBlock label {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 16px;
   color: #374151;
+
+  font-family: 'serif';
 }
 
 .responseBtn {

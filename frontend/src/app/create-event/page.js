@@ -152,7 +152,9 @@ const CreateEventContent = () => {
         setIsLoadingEvent(true);
 
         try {
-          console.log("Loading event data for editing:", publicId);
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Loading event data for editing:", publicId);
+          }
 
           const response = await fetch(
             `/api/events?public_id=${encodeURIComponent(publicId)}`,
@@ -165,15 +167,17 @@ const CreateEventContent = () => {
           const result = await response.json();
 
           if (result.success && result.event) {
-            console.log("Event data loaded successfully:", result.event);
-            console.log("Frontend Debug - Loaded data structure:");
-            console.log(
-              "  - Guest groups count:",
-              result.event.guestGroups?.length || 0,
-            );
-            console.log("  - Guests count:", result.event.guests?.length || 0);
-            console.log("  - Guest groups:", result.event.guestGroups);
-            console.log("  - Guests:", result.event.guests);
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Event data loaded successfully:", result.event);
+              console.log("Frontend Debug - Loaded data structure:");
+              console.log(
+                "  - Guest groups count:",
+                result.event.guestGroups?.length || 0,
+              );
+              console.log("  - Guests count:", result.event.guests?.length || 0);
+              console.log("  - Guest groups:", result.event.guestGroups);
+              console.log("  - Guests:", result.event.guests);
+            }
 
             setEventData(result.event);
             
@@ -188,7 +192,9 @@ const CreateEventContent = () => {
             throw new Error(result.error || "Failed to load event");
           }
         } catch (error) {
-          console.error("Error loading event:", error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error loading event:", error);
+          }
           toast.error(
             "Failed to load event for editing. Starting with blank form.",
             {
@@ -231,7 +237,9 @@ const CreateEventContent = () => {
             );
           }
         } catch (error) {
-          console.warn("Failed to cleanup temp images on unload:", error);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Failed to cleanup temp images on unload:", error);
+          }
         }
 
         // Show confirmation dialog
@@ -253,7 +261,9 @@ const CreateEventContent = () => {
             await cleanupTempImages(tempUrls);
           }
         } catch (error) {
-          console.warn("Failed to cleanup temp images on route change:", error);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Failed to cleanup temp images on route change:", error);
+          }
         }
       }
     };
@@ -287,7 +297,9 @@ const CreateEventContent = () => {
 
   // Handle duplicate guest detection
   const handleDuplicateDetection = (duplicates, callback) => {
-    console.log(duplicates);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(duplicates);
+    }
     setDuplicateGuests(duplicates);
     setDuplicateCallback(() => callback);
     setShowDuplicateModal(true);
@@ -326,7 +338,9 @@ const CreateEventContent = () => {
         const imageData = extractImageDataForFinalization(eventData);
 
         if (imageData.length > 0) {
-          console.log("Finalizing images for draft...", imageData);
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Finalizing images for draft...", imageData);
+          }
           await finalizeImages(eventId, imageData);
           toast.success("Draft saved with images!", {
             position: "top-center",
@@ -339,14 +353,18 @@ const CreateEventContent = () => {
           });
         }
       } catch (imageError) {
-        console.warn("Image finalization failed:", imageError);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Image finalization failed:", imageError);
+        }
         toast.success("Draft saved (images may need re-upload)", {
           position: "top-center",
           autoClose: 2000,
         });
       }
     } catch (error) {
-      console.error("Error saving draft:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving draft:", error);
+      }
       toast.error("Failed to save draft. Please try again.", {
         position: "top-center",
         autoClose: 3000,
@@ -388,7 +406,9 @@ const CreateEventContent = () => {
       // Redirect to event page or dashboard
       router.push(`/${eventId}`);
     } catch (error) {
-      console.error("Error publishing event:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error publishing event:", error);
+      }
       toast.error("Failed to publish event. Please try again.", {
         position: "top-center",
         autoClose: 3000,
@@ -400,7 +420,9 @@ const CreateEventContent = () => {
   };
 
   const saveDraft = async () => {
-    console.log(eventData);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(eventData);
+    }
     setIsLoading(true);
     try {
       // Determine whether to use incremental or full update
@@ -409,12 +431,16 @@ const CreateEventContent = () => {
       
       if (shouldUseIncremental) {
         const payloadComparison = changeTracking.getPayloadSizeComparison();
-        console.log("=== INCREMENTAL SAVE DRAFT ===");
-        console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
-        console.log("Changes:", changes.changes);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== INCREMENTAL SAVE DRAFT ===");
+          console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
+          console.log("Changes:", changes.changes);
+        }
       } else {
-        console.log("=== FULL SAVE DRAFT ===");
-        console.log("Guest count:", eventData.guests?.length || 0);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== FULL SAVE DRAFT ===");
+          console.log("Guest count:", eventData.guests?.length || 0);
+        }
       }
 
       // Prepare request payload
@@ -444,7 +470,9 @@ const CreateEventContent = () => {
       if (!response.ok) {
         // If incremental update fails, fallback to full update
         if (shouldUseIncremental) {
-          console.warn("Incremental update failed, falling back to full update");
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Incremental update failed, falling back to full update");
+          }
           toast.warning("Using full update as fallback", {
             position: "top-center",
             autoClose: 2000,
@@ -508,7 +536,9 @@ const CreateEventContent = () => {
       }
 
     } catch (error) {
-      console.error("Error saving draft:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving draft:", error);
+      }
       toast.error("Failed to save draft. Please try again.", {
         position: "top-center",
         autoClose: 3000,
@@ -527,12 +557,16 @@ const CreateEventContent = () => {
       
       if (shouldUseIncremental) {
         const payloadComparison = changeTracking.getPayloadSizeComparison();
-        console.log("=== INCREMENTAL PUBLISH EVENT ===");
-        console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
-        console.log("Changes:", changes.changes);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== INCREMENTAL PUBLISH EVENT ===");
+          console.log(`Payload reduction: ${payloadComparison.reduction}% (${payloadComparison.fullSize} → ${payloadComparison.incrementalSize} chars)`);
+          console.log("Changes:", changes.changes);
+        }
       } else {
-        console.log("=== FULL PUBLISH EVENT ===");
-        console.log("Guest count:", eventData.guests?.length || 0);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("=== FULL PUBLISH EVENT ===");
+          console.log("Guest count:", eventData.guests?.length || 0);
+        }
       }
 
       // Prepare request payload
@@ -562,7 +596,9 @@ const CreateEventContent = () => {
       if (!response.ok) {
         // If incremental update fails, fallback to full update
         if (shouldUseIncremental) {
-          console.warn("Incremental publish failed, falling back to full update");
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Incremental publish failed, falling back to full update");
+          }
           toast.warning("Using full update as fallback", {
             position: "top-center",
             autoClose: 2000,
@@ -615,11 +651,15 @@ const CreateEventContent = () => {
         const imageData = extractImageDataForFinalization(eventData);
 
         if (imageData.length > 0) {
-          console.log("Finalizing images for published event...", imageData);
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Finalizing images for published event...", imageData);
+          }
           await finalizeImages(eventId, imageData);
         }
       } catch (imageError) {
-        console.warn("Image finalization failed:", imageError);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Image finalization failed:", imageError);
+        }
         // Don't fail the publish if images fail
       }
 
@@ -636,7 +676,9 @@ const CreateEventContent = () => {
       // Redirect to event page or dashboard
       router.push(`/${eventId}`);
     } catch (error) {
-      console.error("Error publishing event:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error publishing event:", error);
+      }
       toast.error("Failed to publish event. Please try again.", {
         position: "top-center",
         autoClose: 3000,

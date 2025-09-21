@@ -181,9 +181,11 @@ const RsvpForm = ({
                 frontendResponse = "pending";
             }
 
-            console.log(
-              `Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`,
-            );
+            if (process.env.NODE_ENV === 'development') {
+              console.log(
+                `Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`,
+              );
+            }
             initialResponses[guest.id][subEvent.id] = frontendResponse;
           }
         });
@@ -212,13 +214,15 @@ const RsvpForm = ({
       }
     });
 
-    console.log("RSVP Form Initialization Summary:", {
-      totalGuests: party.length,
-      guestsWithResponses: Object.keys(initialResponses).filter(
-        (guestId) => Object.keys(initialResponses[guestId]).length > 0,
-      ).length,
-      initialResponses,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log("RSVP Form Initialization Summary:", {
+        totalGuests: party.length,
+        guestsWithResponses: Object.keys(initialResponses).filter(
+          (guestId) => Object.keys(initialResponses[guestId]).length > 0,
+        ).length,
+        initialResponses,
+      });
+    }
 
     setResponses(initialResponses);
     setGuestDetails(initialGuestDetails);

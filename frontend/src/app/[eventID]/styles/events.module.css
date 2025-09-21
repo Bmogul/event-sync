@@ -637,6 +637,8 @@
   font-size: 32px;
   font-weight: 600;
   margin: 0 0 20px 0;
+
+  font-family: 'serif';
 }
 
 .galleryGuestList {
@@ -645,6 +647,8 @@
   gap: 8px;
   align-items: center;
   margin-bottom: 20px;
+
+  font-family: 'serif';
 }
 
 .galleryGuestName {

@@ -27,7 +27,13 @@ const GuestRSVPBlock = ({
         {subEvent.event_date && (
           <div className={styles.subEventDetails}>
             Date: {new Date(subEvent.event_date).toLocaleDateString()}
-            {subEvent.start_time && ` at ${subEvent.start_time}`}
+            {subEvent.start_time &&
+              ` at ${new Date(
+                `1970-01-01T${subEvent.start_time}`,
+              ).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}`}
           </div>
         )}
       </div>
@@ -121,6 +127,8 @@ const RsvpForm = ({
   const [guestDetails, setGuestDetails] = useState({});
   const [customQuestionResponses, setCustomQuestionResponses] = useState({});
   const [currentSubEventIndex, setCurrentSubEventIndex] = useState(0);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Initialize responses from existing RSVP data
   useEffect(() => {
@@ -173,9 +181,11 @@ const RsvpForm = ({
                 frontendResponse = "pending";
             }
 
-            console.log(
-              `Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`,
-            );
+            if (process.env.NODE_ENV === 'development') {
+              console.log(
+                `Loading existing response for ${guest.name} (${guestType}) - ${subEvent.title}: DB status=${rsvp.status_id}, DB response=${rsvp.response} → Frontend: ${frontendResponse}`,
+              );
+            }
             initialResponses[guest.id][subEvent.id] = frontendResponse;
           }
         });
@@ -204,13 +214,15 @@ const RsvpForm = ({
       }
     });
 
-    console.log("RSVP Form Initialization Summary:", {
-      totalGuests: party.length,
-      guestsWithResponses: Object.keys(initialResponses).filter(
-        (guestId) => Object.keys(initialResponses[guestId]).length > 0,
-      ).length,
-      initialResponses,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log("RSVP Form Initialization Summary:", {
+        totalGuests: party.length,
+        guestsWithResponses: Object.keys(initialResponses).filter(
+          (guestId) => Object.keys(initialResponses[guestId]).length > 0,
+        ).length,
+        initialResponses,
+      });
+    }
 
     setResponses(initialResponses);
     setGuestDetails(initialGuestDetails);
@@ -224,6 +236,24 @@ const RsvpForm = ({
         [subEventId]: status,
       },
     }));
+  };
+
+  // Mobile detection and header collapse logic
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
+
+  const toggleHeader = () => {
+    if (isMobile) {
+      setIsHeaderCollapsed(!isHeaderCollapsed);
+    }
   };
 
   const onCustomQuestionChange = (questionId, value) => {
@@ -416,69 +446,92 @@ const RsvpForm = ({
           </div>
 
           <div
-            className={styles.formHeader}
+            className={`${styles.formHeader} ${isMobile && isHeaderCollapsed ? styles.headerCollapsed : ""}`}
             style={{ borderBottomColor: themeStyles.primaryColor }}
+            onClick={toggleHeader}
           >
-            <h3 style={{ color: themeStyles.color }}>
-              RSVP for {event?.title || "Event"}
-            </h3>
+            <div className={styles.headerTitle}>
+              <h3 style={{ color: themeStyles.color }}>
+                RSVP for {event?.title || "Event"}
+              </h3>
+              {isMobile && (
+                <div
+                  className={styles.toggleIcon}
+                  style={{ color: themeStyles.primaryColor }}
+                >
+                  {isHeaderCollapsed
+                    ? "▼ Tap to expand details"
+                    : "▲ Tap to collapse details"}
+                </div>
+              )}
+            </div>
 
-            {currentSubEvent && (
-              <div className={styles.headerInfo}>
-                <h4 style={{ color: themeStyles.primaryColor }}>
-                  {currentSubEvent.title}
-                </h4>
-                {currentSubEvent.event_date && (
-                  <div className={styles.eventDetails}>
-                    <button
-                      onClick={() => openGoogleCalendar(currentSubEvent)}
-                      className={styles.calendarBtn}
-                      style={{
-                        backgroundColor: themeStyles.primaryColor,
-                        color: "white",
-                        border: "none",
-                        padding: "8px 16px",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      📅 Add to Calendar
-                    </button>
-                    <span>
-                      {new Date(
-                        currentSubEvent.event_date,
-                      ).toLocaleDateString()}
-                      {currentSubEvent.start_time &&
-                        ` at ${new Date(
-                          `1970-01-01T${currentSubEvent.start_time}`,
-                        ).toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}`}
-                    </span>
-                  </div>
-                )}
-                {currentSubEvent.venue_address && (
-                  <div className={styles.locationInfo}>
-                    <button
-                      onClick={() => openMap(currentSubEvent.venue_address)}
-                      className={styles.mapBtn}
-                      style={{
-                        backgroundColor: "transparent",
-                        color: themeStyles.primaryColor,
-                        border: `1px solid ${themeStyles.primaryColor}`,
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      📍 View Location
-                    </button>
-                    <span>{currentSubEvent.venue_address}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <div
+              className={`${styles.headerDetails} ${isMobile && isHeaderCollapsed ? styles.detailsCollapsed : ""}`}
+            >
+              {currentSubEvent && (
+                <div className={styles.headerInfo}>
+                  <h4 style={{ color: themeStyles.primaryColor }}>
+                    {currentSubEvent.title}
+                  </h4>
+                  {currentSubEvent.event_date && (
+                    <div className={styles.eventDetails}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openGoogleCalendar(currentSubEvent);
+                        }}
+                        className={styles.calendarBtn}
+                        style={{
+                          backgroundColor: themeStyles.primaryColor,
+                          color: "white",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        📅 Add to Calendar
+                      </button>
+                      <span>
+                        {new Date(
+                          currentSubEvent.event_date,
+                        ).toLocaleDateString()}
+                        {currentSubEvent.start_time &&
+                          ` at ${new Date(
+                            `1970-01-01T${currentSubEvent.start_time}`,
+                          ).toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}`}
+                      </span>
+                    </div>
+                  )}
+                  {currentSubEvent.venue_address && (
+                    <div className={styles.locationInfo}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMap(currentSubEvent.venue_address);
+                        }}
+                        className={styles.mapBtn}
+                        style={{
+                          backgroundColor: "transparent",
+                          color: themeStyles.primaryColor,
+                          border: `1px solid ${themeStyles.primaryColor}`,
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        📍 View Location
+                      </button>
+                      <span>{currentSubEvent.venue_address}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className={styles.formBody}>

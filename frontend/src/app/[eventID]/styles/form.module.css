@@ -65,6 +65,54 @@
   padding: 24px 32px 16px 32px;
   border-bottom: 2px solid #e5e7eb;
   background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.formHeader.headerCollapsed {
+  padding: 16px 32px;
+}
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.toggleIcon {
+  font-size: 16px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+  user-select: none;
+  padding: 4px;
+  align-self: flex-start;
+}
+
+/* Desktop styles - disable click behavior */
+@media (min-width: 769px) {
+  .formHeader {
+    cursor: default;
+  }
+  
+  .toggleIcon {
+    display: none;
+  }
+}
+
+.headerDetails {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 500px;
+  opacity: 1;
+}
+
+.headerDetails.detailsCollapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .formHeader h3 {
@@ -135,9 +183,11 @@
 }
 
 .resBlock label {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 16px;
   color: #374151;
+
+  font-family: 'serif';
 }
 
 .responseBtn {
@@ -186,6 +236,18 @@
 
   .formHeader {
     padding: 20px 24px 16px 24px;
+  }
+
+  .formHeader.headerCollapsed {
+    padding: 16px 24px;
+  }
+
+  .headerTitle {
+    margin-bottom: 4px;
+  }
+
+  .toggleIcon {
+    font-size: 14px;
   }
 
   .formBody {

@@ -10,24 +10,42 @@ import RSVPForm from "../components/RSVPForm";
 
 import styles from "../styles/events.module.css";
 
+// Helper sorting functions
+const sortByPriority = (subEvents) => {
+  return [...subEvents].sort((a, b) => {
+    const priorityA = a.details?.priority || 999;
+    const priorityB = b.details?.priority || 999;
+    return priorityA - priorityB;
+  });
+};
+
+const sortByStartDate = (subEvents) => {
+  return [...subEvents].sort((a, b) => {
+    const dateTimeA = new Date(`${a.event_date} ${a.start_time || '00:00'}`);
+    const dateTimeB = new Date(`${b.event_date} ${b.start_time || '00:00'}`);
+    return dateTimeA - dateTimeB;
+  });
+};
+
 // EventCards component matching the preview design
 
 const EventCards = ({ subEvents }) => {
   // Compute cards only when subEvents change
   const cards = useMemo(() => {
-    const cardImages = subEvents
+    const sortedEvents = sortByPriority(subEvents);
+    const cardImages = sortedEvents
       .map((subEvent) => subEvent.image_url)
       .filter(Boolean);
 
     return cardImages.length > 0
-      ? subEvents.filter((subEvent) => subEvent.image_url)
-      : subEvents.slice(0, 3); // Limit to 3 placeholders
+      ? sortedEvents.filter((subEvent) => subEvent.image_url)
+      : sortedEvents.slice(0, 3); // Limit to 3 placeholders
   }, [subEvents]);
 
-  const [cardOrder, setCardOrder] = useState([...cards].reverse());
+  const [cardOrder, setCardOrder] = useState([...cards]);
 
   useEffect(() => {
-    setCardOrder([...cards].reverse());
+    setCardOrder([...cards]);
   }, [cards]);
 
   const handleCardClick = (clickedCard) => {
@@ -92,7 +110,7 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
       {subEvents && subEvents.length > 0 && (
         <div className={styles.minimalSubEvents}>
           <h3 style={{ color: themeStyles.color }}>Events</h3>
-          {subEvents.map((subEvent) => (
+          {sortByPriority(subEvents).map((subEvent) => (
             <div key={subEvent.id || subEvent.title} className={styles.minimalSubEvent}>
               <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
               <p style={{ color: themeStyles.color, opacity: 0.8 }}>
@@ -138,7 +156,7 @@ const MinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
 const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
   <div className={styles.galleryLayout}>
     <div className={styles.galleryGrid}>
-      {subEvents?.filter(se => se.image_url).map((subEvent) => (
+      {sortByPriority(subEvents || []).filter(se => se.image_url).map((subEvent) => (
         <div key={subEvent.id || subEvent.title} className={styles.galleryItem}>
           <Image
             src={subEvent.image_url}
@@ -187,7 +205,7 @@ const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => (
     </div>
     
     <div className={styles.timeline}>
-      {subEvents?.map((subEvent) => (
+      {sortByStartDate(subEvents || []).map((subEvent) => (
         <div key={subEvent.id || subEvent.title} className={styles.timelineItem}>
           <div className={styles.timelineMarker} style={{ backgroundColor: themeStyles.primaryColor }}></div>
           <div className={styles.timelineContent}>

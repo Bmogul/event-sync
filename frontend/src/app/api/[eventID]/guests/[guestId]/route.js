@@ -374,36 +374,97 @@ export async function PUT(request, { params }) {
 
     console.log(`Successfully updated guest ${guestId}`);
 
-    // Update RSVP entries for sub-event invitations (backward compatible)
+    // Update RSVP entries for sub-event invitations with preservation (backward compatible)
     if (guest.subEventInvitations !== undefined) {
       try {
-        // First, delete existing RSVPs for this guest
-        await supabase
+        console.log(`Updating RSVP invitations for guest ${guestId} with preservation...`);
+        
+        // Get existing RSVPs for this guest to preserve responses
+        const { data: existingRSVPs, error: existingRSVPError } = await supabase
           .from("rsvps")
-          .delete()
+          .select("id, subevent_id, status_id, created_at, updated_at")
           .eq("guest_id", parseInt(guestId));
+        
+        if (existingRSVPError) {
+          console.error("Error fetching existing RSVPs:", existingRSVPError);
+          return NextResponse.json({
+            success: true,
+            guest: updatedGuest,
+            warning: "Guest updated but RSVP update failed"
+          });
+        }
+        
+        const existingRSVPMap = new Map();
+        if (existingRSVPs) {
+          existingRSVPs.forEach(rsvp => {
+            existingRSVPMap.set(rsvp.subevent_id, rsvp);
+          });
+          console.log(`Found ${existingRSVPs.length} existing RSVPs to consider`);
+        }
 
-        // Create new RSVP entries if invitations provided
         if (guest.subEventInvitations && guest.subEventInvitations.length > 0) {
-          const rsvpEntries = guest.subEventInvitations.map(subEventId => ({
-            guest_id: parseInt(guestId),
-            subevent_id: parseInt(subEventId),
-            status_id: 1, // "invited"
-            created_at: new Date().toISOString()
-          }));
+          const newSubEventIds = new Set(guest.subEventInvitations.map(id => parseInt(id)));
+          const rsvpsToCreate = [];
+          let rsvpsPreserved = 0;
           
-          const { error: rsvpError } = await supabase
-            .from("rsvps")
-            .insert(rsvpEntries);
+          // Process each invitation
+          for (const subEventId of guest.subEventInvitations) {
+            const subEventIdInt = parseInt(subEventId);
+            const existingRSVP = existingRSVPMap.get(subEventIdInt);
             
-          if (rsvpError) {
-            console.error("Error updating RSVP entries:", rsvpError);
-            // Don't fail the entire operation, just log the error
-          } else {
-            console.log(`Updated ${rsvpEntries.length} RSVP invitations for guest ${guestId}`);
+            if (existingRSVP) {
+              // RSVP already exists, preserve it
+              rsvpsPreserved++;
+              console.log(`Preserving existing RSVP for subevent ${subEventIdInt} with status ${existingRSVP.status_id}`);
+            } else {
+              // New RSVP needed
+              rsvpsToCreate.push({
+                guest_id: parseInt(guestId),
+                subevent_id: subEventIdInt,
+                status_id: 1, // "invited"
+                created_at: new Date().toISOString()
+              });
+            }
           }
+          
+          // Remove RSVPs for subevents no longer in the invitation list
+          const rsvpsToRemove = existingRSVPs?.filter(rsvp => 
+            !newSubEventIds.has(rsvp.subevent_id)
+          ) || [];
+          
+          if (rsvpsToRemove.length > 0) {
+            console.log(`Removing ${rsvpsToRemove.length} RSVPs for subevents no longer invited`);
+            for (const rsvpToRemove of rsvpsToRemove) {
+              await supabase
+                .from("rsvps")
+                .delete()
+                .eq("id", rsvpToRemove.id);
+            }
+          }
+          
+          // Create new RSVPs
+          if (rsvpsToCreate.length > 0) {
+            const { error: rsvpError } = await supabase
+              .from("rsvps")
+              .insert(rsvpsToCreate);
+              
+            if (rsvpError) {
+              console.error("Error creating new RSVP entries:", rsvpError);
+            } else {
+              console.log(`Created ${rsvpsToCreate.length} new RSVP invitations for guest ${guestId}`);
+            }
+          }
+          
+          console.log(`RSVP update summary: ${rsvpsPreserved} preserved, ${rsvpsToCreate.length} created, ${rsvpsToRemove.length} removed`);
         } else {
-          console.log(`Removed all RSVP invitations for guest ${guestId}`);
+          // No invitations provided, remove all RSVPs
+          if (existingRSVPs && existingRSVPs.length > 0) {
+            console.log(`Removing all ${existingRSVPs.length} RSVP invitations for guest ${guestId}`);
+            await supabase
+              .from("rsvps")
+              .delete()
+              .eq("guest_id", parseInt(guestId));
+          }
         }
       } catch (rsvpError) {
         console.error("Error managing RSVP entries:", rsvpError);

@@ -26,7 +26,7 @@ const GuestRSVPBlock = ({
         </label>
         {subEvent.event_date && (
           <div className={styles.subEventDetails}>
-            Date: {new Date(subEvent.event_date).toLocaleDateString()}
+            Date: {new Date(subEvent.event_date).toLocaleDateString(undefined, {timeZone:'UTC'})}
             {subEvent.start_time &&
               ` at ${new Date(
                 `1970-01-01T${subEvent.start_time}`,
@@ -398,6 +398,7 @@ const RsvpForm = ({
   };
 
   const openGoogleCalendar = (subEvent) => {
+    console.log(subEvent)
     if (!subEvent.event_date) return;
 
     const eventDate = new Date(subEvent.event_date);
@@ -496,7 +497,7 @@ const RsvpForm = ({
                       <span>
                         {new Date(
                           currentSubEvent.event_date,
-                        ).toLocaleDateString()}
+                        ).toLocaleDateString(undefined, {timeZone:'UTC'})}
                         {currentSubEvent.start_time &&
                           ` at ${new Date(
                             `1970-01-01T${currentSubEvent.start_time}`,

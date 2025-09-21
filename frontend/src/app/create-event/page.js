@@ -20,19 +20,17 @@ const CreateEventContent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [hasUnsavedImages, setHasUnsavedImages] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false); // Edit mode disabled
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateGuests, setDuplicateGuests] = useState([]);
   const [duplicateCallback, setDuplicateCallback] = useState(null);
   const heroContent = [
     {
-      title: isEditMode ? "Edit Your Event" : "Create Your Event",
-      subtitle: isEditMode
-        ? "Update your event details and settings. All changes will be saved automatically."
-        : "Set up your multi-day event with individual sub-events. Perfect for weddings, conferences, and celebrations.",
+      title: "Create Your Event",
+      subtitle: "Set up your multi-day event with individual sub-events. Perfect for weddings, conferences, and celebrations.",
     },
     {
-      title: isEditMode ? "Update Sub-Events" : "Add Sub-Events",
+      title: "Add Sub-Events",
       subtitle: "These are the blocks that make up your event.",
     },
     {
@@ -51,10 +49,8 @@ const CreateEventContent = () => {
         "Create and customize email templates for invitations, reminders, and updates.",
     },
     {
-      title: isEditMode ? "Update & Launch" : "Ready to Launch",
-      subtitle: isEditMode
-        ? "Review your updated event details and save your changes."
-        : "Review your event details and choose how you'd like to launch your Event.",
+      title: "Ready to Launch",
+      subtitle: "Review your event details and choose how you'd like to launch your Event.",
     },
   ];
 
@@ -142,79 +138,27 @@ const CreateEventContent = () => {
     }
   };
 
-  // Load event data if in edit mode
+  // Event editing via create-event route is disabled
   useEffect(() => {
-    const loadEventData = async () => {
-      const publicId = searchParams.get("edit");
+    const publicId = searchParams.get("edit");
 
-      if (publicId) {
-        setIsEditMode(true);
-        setIsLoadingEvent(true);
+    if (publicId) {
+      // Redirect to dashboard or show error message instead of loading edit mode
+      toast.error(
+        "Event editing is currently disabled. Please use the dashboard to manage existing events.",
+        {
+          position: "top-center",
+          autoClose: 5000,
+        },
+      );
 
-        try {
-          if (process.env.NODE_ENV === 'development') {
-            console.log("Loading event data for editing:", publicId);
-          }
-
-          const response = await fetch(
-            `/api/events?public_id=${encodeURIComponent(publicId)}`,
-          );
-
-          if (!response.ok) {
-            throw new Error("Failed to load event details");
-          }
-
-          const result = await response.json();
-
-          if (result.success && result.event) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Event data loaded successfully:", result.event);
-              console.log("Frontend Debug - Loaded data structure:");
-              console.log(
-                "  - Guest groups count:",
-                result.event.guestGroups?.length || 0,
-              );
-              console.log("  - Guests count:", result.event.guests?.length || 0);
-              console.log("  - Guest groups:", result.event.guestGroups);
-              console.log("  - Guests:", result.event.guests);
-            }
-
-            setEventData(result.event);
-            
-            // Initialize change tracking with loaded data
-            changeTracking.initializeTracking(result.event);
-
-            toast.success("Event loaded for editing!", {
-              position: "top-center",
-              autoClose: 2000,
-            });
-          } else {
-            throw new Error(result.error || "Failed to load event");
-          }
-        } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error("Error loading event:", error);
-          }
-          toast.error(
-            "Failed to load event for editing. Starting with blank form.",
-            {
-              position: "top-center",
-              autoClose: 3000,
-            },
-          );
-
-          // Fall back to default data but keep the public_id from URL
-          setEventData((prev) => ({
-            ...getDefaultEventData(),
-            public_id: publicId,
-          }));
-        } finally {
-          setIsLoadingEvent(false);
-        }
+      // Optionally redirect to dashboard
+      // router.push('/dashboard');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Event editing via create-event route is disabled. Public ID:", publicId);
       }
-    };
-
-    loadEventData();
+    }
   }, [searchParams]);
 
   // Cleanup temporary images when leaving page without saving
@@ -328,8 +272,24 @@ const CreateEventContent = () => {
       const savedEvent = await response.json();
       const eventId = savedEvent.id || savedEvent.eventId;
 
-      // Update local event data with the saved ID
-      setEventData((prev) => ({ ...prev, id: eventId }));
+      // Update local event data with the complete saved data including IDs
+      setEventData((prev) => {
+        const updated = { ...prev, id: eventId };
+        
+        // Update guests with database IDs if provided
+        if (savedEvent.guests && Array.isArray(savedEvent.guests)) {
+          updated.guests = savedEvent.guests;
+          console.log(`✓ Updated ${savedEvent.guests.length} guests with database IDs`);
+        }
+        
+        // Update guest groups with database IDs if provided  
+        if (savedEvent.guestGroups && Array.isArray(savedEvent.guestGroups)) {
+          updated.guestGroups = savedEvent.guestGroups;
+          console.log(`✓ Updated ${savedEvent.guestGroups.length} guest groups with database IDs`);
+        }
+        
+        return updated;
+      });
 
       // Finalize any temporary images
       try {
@@ -427,7 +387,7 @@ const CreateEventContent = () => {
     try {
       // Determine whether to use incremental or full update
       const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
-      const shouldUseIncremental = changes && isEditMode;
+      const shouldUseIncremental = false; // Incremental updates disabled with edit mode
       
       if (shouldUseIncremental) {
         const payloadComparison = changeTracking.getPayloadSizeComparison();
@@ -553,7 +513,7 @@ const CreateEventContent = () => {
     try {
       // Determine whether to use incremental or full update
       const changes = useIncrementalUpdates ? changeTracking.getChanges() : null;
-      const shouldUseIncremental = changes && isEditMode;
+      const shouldUseIncremental = false; // Incremental updates disabled with edit mode
       
       if (shouldUseIncremental) {
         const payloadComparison = changeTracking.getPayloadSizeComparison();
@@ -626,6 +586,26 @@ const CreateEventContent = () => {
             handleDuplicateDetection(fallbackResult.duplicates, () => publishEventWithDuplicates());
             return;
           }
+
+          // Update local event data for fallback response
+          const fallbackEventId = fallbackResult.id || fallbackResult.eventId;
+          setEventData((prev) => {
+            const updated = { ...prev, id: fallbackEventId };
+            
+            // Update guests with database IDs if provided
+            if (fallbackResult.guests && Array.isArray(fallbackResult.guests)) {
+              updated.guests = fallbackResult.guests;
+              console.log(`✓ Updated ${fallbackResult.guests.length} guests with database IDs (fallback)`);
+            }
+            
+            // Update guest groups with database IDs if provided  
+            if (fallbackResult.guestGroups && Array.isArray(fallbackResult.guestGroups)) {
+              updated.guestGroups = fallbackResult.guestGroups;
+              console.log(`✓ Updated ${fallbackResult.guestGroups.length} guest groups with database IDs (fallback)`);
+            }
+            
+            return updated;
+          });
         } else {
           throw new Error("Failed to publish event");
         }
@@ -643,6 +623,25 @@ const CreateEventContent = () => {
       }
 
       const eventId = savedEvent.id || savedEvent.eventId;
+
+      // Update local event data with the complete saved data including IDs
+      setEventData((prev) => {
+        const updated = { ...prev, id: eventId };
+        
+        // Update guests with database IDs if provided
+        if (savedEvent.guests && Array.isArray(savedEvent.guests)) {
+          updated.guests = savedEvent.guests;
+          console.log(`✓ Updated ${savedEvent.guests.length} guests with database IDs`);
+        }
+        
+        // Update guest groups with database IDs if provided  
+        if (savedEvent.guestGroups && Array.isArray(savedEvent.guestGroups)) {
+          updated.guestGroups = savedEvent.guestGroups;
+          console.log(`✓ Updated ${savedEvent.guestGroups.length} guest groups with database IDs`);
+        }
+        
+        return updated;
+      });
 
       // Finalize any temporary images
       try {

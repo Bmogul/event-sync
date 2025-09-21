@@ -180,6 +180,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
         templatesToSave[0].status = "active";
       }
 
+      console.log("EVENT SAEC", event.logo)
       // Save templates by updating the event
       const response = await fetch("/api/events", {
         method: "POST",
@@ -190,6 +191,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
         body: JSON.stringify({
           public_id: event.eventID,
           title: event.eventTitle,
+          logo_url: event.logo,
           emailTemplates: templatesToSave,
           // Include other required fields to avoid validation errors
           status: "draft",

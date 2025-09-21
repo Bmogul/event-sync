@@ -1091,16 +1091,107 @@ export async function POST(request) {
       }
     }
 
-    // Step 7: Handle guest groups and guests
+    // Step 7: Handle guest groups and guests with RSVP preservation
     console.log("Step 7: Handling guest groups and guests...");
 
-    // For existing events, delete old guest groups (and their guests) first
+    // Helper function to create guest matching key (fallback method)
+    const createGuestMatchKey = (guest) => {
+      const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+      const email = guest.email?.toLowerCase()?.trim() || null;
+      const phone = guest.phone?.replace(/\D/g, '') || null; // Remove non-digits for comparison
+      
+      // Primary key: name + email (if available)
+      if (email) {
+        return `${name.toLowerCase().trim()}_${email}`;
+      }
+      // Secondary key: name + phone (if available)
+      if (phone) {
+        return `${name.toLowerCase().trim()}_${phone}`;
+      }
+      // Fallback: just name (less reliable)
+      return `${name.toLowerCase().trim()}_nocontact`;
+    };
+
+    // Helper function to find existing guest by ID first, then fuzzy matching
+    const findExistingGuest = (frontendGuest, existingGuests, guestMatchMap) => {
+      // Priority 1: Exact ID match (most reliable)
+      if (frontendGuest.id) {
+        const exactMatch = existingGuests.find(g => g.id === parseInt(frontendGuest.id));
+        if (exactMatch) {
+          console.log(`✓ Found guest by exact ID match: ${frontendGuest.name} (ID: ${frontendGuest.id})`);
+          return {
+            guest: exactMatch,
+            matchType: 'exact_id'
+          };
+        } else {
+          console.warn(`⚠ Guest ${frontendGuest.name} has ID ${frontendGuest.id} but no matching existing guest found`);
+        }
+      }
+
+      // Priority 2: Fuzzy matching (fallback)
+      const matchKey = createGuestMatchKey(frontendGuest);
+      const fuzzyMatch = guestMatchMap.get(matchKey);
+      if (fuzzyMatch) {
+        console.log(`✓ Found guest by fuzzy match: ${frontendGuest.name} (match key: ${matchKey})`);
+        return {
+          guest: fuzzyMatch.originalData,
+          matchType: 'fuzzy',
+          rsvps: fuzzyMatch.rsvps
+        };
+      }
+
+      // No match found
+      console.log(`✓ New guest detected: ${frontendGuest.name} (no ID: ${!frontendGuest.id}, no fuzzy match)`);
+      return null;
+    };
+
+    // For existing events, preserve guest data instead of deleting
+    let existingGuestGroups = [];
+    let existingGuests = [];
+    let guestMatchMap = new Map(); // Maps match keys to existing guest IDs
+    let finalGroups = [];
+    let allFinalGuests = []; // Declare at higher scope for response usage
+    
     if (existingEvent && !existingEventError) {
-      console.log("Deleting existing guest groups and guests...");
-      await supabase
+      console.log("Loading existing guest data for preservation...");
+      
+      // Fetch existing guest groups
+      const { data: existingGroupsData, error: existingGroupsError } = await supabase
         .from("guest_groups")
-        .delete()
+        .select("*")
         .eq("event_id", createdEvent.id);
+      
+      if (!existingGroupsError && existingGroupsData) {
+        existingGuestGroups = existingGroupsData;
+      }
+      
+      // Fetch existing guests with their RSVP data
+      const { data: existingGuestsData, error: existingGuestsError } = await supabase
+        .from("guests")
+        .select(`
+          *,
+          guest_groups(id, title),
+          rsvps(id, subevent_id, status_id, created_at, updated_at)
+        `)
+        .in("group_id", existingGuestGroups.map(g => g.id));
+      
+      if (!existingGuestsError && existingGuestsData) {
+        existingGuests = existingGuestsData;
+        
+        // Build guest match map
+        existingGuests.forEach(guest => {
+          const matchKey = createGuestMatchKey(guest);
+          guestMatchMap.set(matchKey, {
+            id: guest.id,
+            group_id: guest.group_id,
+            rsvps: guest.rsvps || [],
+            originalData: guest
+          });
+        });
+        
+        console.log(`Found ${existingGuests.length} existing guests, ${guestMatchMap.size} mapped for matching`);
+        console.log(`Existing guests have ${existingGuests.reduce((acc, g) => acc + (g.rsvps?.length || 0), 0)} total RSVPs`);
+      }
     }
 
     // Check if we have guests that need groups (only name is required)
@@ -1183,39 +1274,145 @@ export async function POST(request) {
       groupsToCreate.map((g) => g.name),
     );
 
-    let createdGroups = [];
+    let groupsCreatedCount = 0;
+    let groupsPreservedCount = 0;
 
     if (groupsToCreate.length > 0) {
-      const groupPayloads = groupsToCreate.map((group) => ({
-        event_id: createdEvent.id,
-        title: group.name,
-        size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
-        status_id: 1,
-        details: {
-          description: group.description || null,
-          color: group.color || "#7c3aed",
-        },
-      }));
+      // Map to track which groups we need vs which we can preserve
+      const groupMap = new Map();
+      
+      // First, check which groups already exist and can be preserved
+      existingGuestGroups.forEach(existingGroup => {
+        groupMap.set(existingGroup.title.toLowerCase(), {
+          id: existingGroup.id,
+          title: existingGroup.title,
+          preserved: true,
+          data: existingGroup
+        });
+      });
+      
+      // Determine which groups need to be created vs updated
+      const groupsToActuallyCreate = [];
+      const groupsToUpdate = [];
+      
+      groupsToCreate.forEach(group => {
+        const groupKey = group.name.toLowerCase();
+        const existingGroup = groupMap.get(groupKey);
+        
+        if (existingGroup) {
+          // Group exists, preserve it but possibly update it
+          groupsToUpdate.push({
+            id: existingGroup.id,
+            title: group.name,
+            size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
+            status_id: 1,
+            details: {
+              description: group.description || null,
+              color: group.color || "#7c3aed",
+            }
+          });
+          finalGroups.push({
+            id: existingGroup.id,
+            title: group.name,
+            event_id: createdEvent.id,
+            size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
+            status_id: 1,
+            details: {
+              description: group.description || null,
+              color: group.color || "#7c3aed",
+            }
+          });
+          groupsPreservedCount++;
+        } else {
+          // New group, needs to be created
+          groupsToActuallyCreate.push({
+            event_id: createdEvent.id,
+            title: group.name,
+            size_limit: group.maxSize ? parseInt(group.maxSize) : -1,
+            status_id: 1,
+            details: {
+              description: group.description || null,
+              color: group.color || "#7c3aed",
+            },
+          });
+        }
+      });
 
-      console.log("Creating guest groups:", groupPayloads.length);
+      console.log(`Group analysis: ${groupsToUpdate.length} to preserve/update, ${groupsToActuallyCreate.length} to create`);
 
-      const { data: groupResults, error: groupError } = await supabase
-        .from("guest_groups")
-        .insert(groupPayloads)
-        .select();
-
-      if (groupError) {
-        console.error("❌ Guest group creation error:", groupError);
-        throw groupError;
+      // Update existing groups
+      for (const groupUpdate of groupsToUpdate) {
+        const { error: updateError } = await supabase
+          .from("guest_groups")
+          .update({
+            title: groupUpdate.title,
+            size_limit: groupUpdate.size_limit,
+            status_id: groupUpdate.status_id,
+            details: groupUpdate.details
+          })
+          .eq("id", groupUpdate.id);
+        
+        if (updateError) {
+          console.error("❌ Guest group update error:", updateError);
+          throw updateError;
+        }
       }
 
-      createdGroups = groupResults;
-      console.log("✓ Guest groups created:", createdGroups.length);
+      // Create new groups
+      if (groupsToActuallyCreate.length > 0) {
+        console.log("Creating new guest groups:", groupsToActuallyCreate.length);
+
+        const { data: groupResults, error: groupError } = await supabase
+          .from("guest_groups")
+          .insert(groupsToActuallyCreate)
+          .select();
+
+        if (groupError) {
+          console.error("❌ Guest group creation error:", groupError);
+          throw groupError;
+        }
+
+        finalGroups.push(...groupResults);
+        groupsCreatedCount = groupResults.length;
+      }
+
+      console.log(`✓ Guest groups: ${groupsPreservedCount} preserved, ${groupsCreatedCount} created`);
+      
+      // Remove groups that are no longer needed
+      const neededGroupTitles = new Set(groupsToCreate.map(g => g.name.toLowerCase()));
+      const groupsToDelete = existingGuestGroups.filter(existingGroup => 
+        !neededGroupTitles.has(existingGroup.title.toLowerCase())
+      );
+      
+      if (groupsToDelete.length > 0) {
+        console.log(`Removing ${groupsToDelete.length} unused groups`);
+        for (const groupToDelete of groupsToDelete) {
+          // Before deleting, check if it has guests
+          const { data: guestsInGroup } = await supabase
+            .from("guests")
+            .select("id")
+            .eq("group_id", groupToDelete.id);
+          
+          if (!guestsInGroup || guestsInGroup.length === 0) {
+            await supabase
+              .from("guest_groups")
+              .delete()
+              .eq("id", groupToDelete.id);
+          } else {
+            console.log(`Skipping deletion of group "${groupToDelete.title}" - still has ${guestsInGroup.length} guests`);
+          }
+        }
+      }
+    } else {
+      // No groups to create, but we might have existing groups to preserve
+      finalGroups = existingGuestGroups;
+      groupsPreservedCount = existingGuestGroups.length;
+      console.log(`✓ Preserved ${groupsPreservedCount} existing groups`);
     }
 
-    // Step 8: Create guests (only if they have names and we have groups)
-    if (hasGuests && createdGroups.length > 0) {
-      console.log("Step 8: Creating guests...");
+    // Step 8: Handle guests with RSVP preservation (only if they have names and we have groups)
+    if (hasGuests && finalGroups.length > 0) {
+      console.log("Step 8: Processing guests with RSVP preservation...");
 
       const validGuests = eventData.guests.filter((guest) => {
         const name =
@@ -1312,262 +1509,222 @@ export async function POST(request) {
           return guestTypeMap[normalizedGuestType] || guestTypeMap["single"];
         };
 
-        // Create group mapping
-        const groupMap = createdGroups.reduce((acc, group) => {
+        // Create group mapping from finalGroups
+        const groupMap = finalGroups.reduce((acc, group) => {
           // Map by the group title (which was created from the name)
           acc[group.title] = group.id;
           return acc;
         }, {});
 
         // Default to first group if no specific group
-        const defaultGroupId = createdGroups[0]?.id;
+        const defaultGroupId = finalGroups[0]?.id;
 
         console.log("Group mapping:", groupMap);
         console.log("Default group ID:", defaultGroupId);
-        console.log("Created groups details:");
-        createdGroups.forEach((group) => {
+        console.log("Final groups details:");
+        finalGroups.forEach((group) => {
           console.log(`  Group ID ${group.id}: title="${group.title}"`);
         });
 
-        const guestPayloads = validGuests
-          .map((guest) => {
-            const name =
-              guest.name ||
-              [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+        // Process guests with RSVP preservation
+        const guestsToCreate = [];
+        const guestsToUpdate = [];
+        const rsvpBackup = new Map(); // Map to preserve RSVPs during guest updates
+        let guestsPreservedCount = 0;
+        let guestsCreatedCount = 0;
+        let guestsUpdatedCount = 0;
 
-            // Try to find group by name, fallback to default
-            let groupId = defaultGroupId;
-            if (guest.group && guest.group.trim()) {
-              groupId = groupMap[guest.group.trim()] || defaultGroupId;
-            }
+        for (const guest of validGuests) {
+          const name = guest.name || [guest.firstName, guest.lastName].filter(Boolean).join(" ");
+          
+          // Use new ID-first matching approach
+          const existingGuestMatch = findExistingGuest(guest, existingGuests, guestMatchMap);
 
-            // Map gender, age group, and guest type to their IDs
-            const genderId = getGenderIdFromString(guest.gender);
-            const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
-            const guestTypeId = getGuestTypeIdFromString(guest.guestType);
-
-            // Calculate guest_limit based on guest_type
-            let calculatedGuestLimit = null;
-            const guestTypeName = guest.guestType?.toLowerCase() || "single";
-            
-            switch (guestTypeName) {
-              case "single":
-                calculatedGuestLimit = 1;
-                break;
-              case "variable":
-                calculatedGuestLimit = null; // NULL for infinite
-                break;
-              case "multiple":
-                calculatedGuestLimit = guest.guestLimit && guest.guestLimit > 0 ? parseInt(guest.guestLimit) : 1;
-                break;
-              default:
-                calculatedGuestLimit = 1; // Default to single
-            }
-
-            console.log(
-              `Guest "${name}" -> Group Name: "${guest.group}" -> Mapped ID: ${groupId} -> POC: ${guest.isPointOfContact || false} -> Gender: "${guest.gender}" -> Gender ID: ${genderId} -> Age Group: "${guest.ageGroup}" -> Age Group ID: ${ageGroupId} -> Guest Type: "${guest.guestType}" -> Guest Type ID: ${guestTypeId} -> Raw Guest Limit: ${guest.guestLimit} -> Calculated Guest Limit: ${calculatedGuestLimit}`,
-            );
-            return {
-              group_id: groupId,
-              public_id: guest.public_id || crypto.randomUUID(), // Use frontend public_id or generate new one
-              name: name,
-              email:
-                guest.email && guest.email.trim() ? guest.email.trim() : null,
-              phone:
-                guest.phone && guest.phone.trim() ? guest.phone.trim() : null,
-              tag: guest.tag || null,
-              gender_id: genderId,
-              age_group_id: ageGroupId,
-              guest_type_id: guestTypeId,
-              guest_limit: calculatedGuestLimit,
-              point_of_contact: guest.isPointOfContact || false, // Store POC as boolean on guest record
-            };
-          })
-          .filter((guest) => {
-            if (!guest.group_id) {
-              console.warn(`Guest "${guest.name}" skipped - no valid group_id`);
-              return false;
-            }
-            return true;
-          });
-
-        console.log(
-          "Creating guests:",
-          guestPayloads.length,
-          "out of",
-          validGuests.length,
-          "valid guests",
-        );
-        console.log("=== GUEST PAYLOADS FOR DATABASE ===");
-        guestPayloads.forEach((payload, index) => {
-          console.log(
-            `Guest ${index + 1}: "${payload.name}" | POC: ${payload.point_of_contact} | Group ID: ${payload.group_id} | Guest Type ID: ${payload.guest_type_id} | Guest Limit: ${payload.guest_limit} ${payload.guest_limit === null ? '(infinite)' : ''}`,
-          );
-        });
-        console.log("=== END GUEST PAYLOADS ===");
-
-        if (guestPayloads.length > 0) {
-          // Step 8a: Check for potential duplicates before saving
-          console.log("Step 8a: Checking for potential duplicate guests...");
-
-          // Get existing guests for this event if it's an update
-          let existingGuests = [];
-          if (existingEvent && !existingEventError) {
-            const { data: existingGuestsData, error: existingGuestsError } =
-              await supabase
-                .from("guests")
-                .select(
-                  `
-      id, name, group_id, point_of_contact, guest_type_id, guest_limit,
-      guest_groups!inner(title),
-      guest_gender(state),
-      guest_age_group(state),
-      guest_type(name)
-    `,
-                )
-                .eq("guest_groups.event_id", createdEvent.id);
-
-            if (existingGuestsError) {
-              console.error(
-                "Error fetching existing guests:",
-                existingGuestsError,
-              );
+          // Handle group ID resolution with priority for database IDs
+          let groupId = defaultGroupId;
+          if (guest.group_id) {
+            // Priority 1: Use existing group_id from frontend if available
+            const existingGroup = finalGroups.find(g => g.id === parseInt(guest.group_id));
+            if (existingGroup) {
+              groupId = parseInt(guest.group_id);
+              console.log(`✓ Using existing group ID: ${groupId} for guest ${name}`);
             } else {
-              existingGuests = existingGuestsData || [];
+              console.warn(`⚠ Guest ${name} has group_id ${guest.group_id} but group not found`);
             }
+          } else if (guest.group && guest.group.trim()) {
+            // Priority 2: Find by group name
+            groupId = groupMap[guest.group.trim()] || defaultGroupId;
+            console.log(`✓ Mapped group "${guest.group}" to ID: ${groupId} for guest ${name}`);
           }
 
-          // Filter out guests that already have database IDs - they are existing guests being updated
-          const newGuestsOnly = guestPayloads.filter((guestPayload, index) => {
-            const correspondingFrontendGuest = validGuests[index];
-            const hasExistingId =
-              correspondingFrontendGuest && correspondingFrontendGuest.id;
+          // Map gender, age group, and guest type to their IDs
+          const genderId = getGenderIdFromString(guest.gender);
+          const ageGroupId = getAgeGroupIdFromString(guest.ageGroup);
+          const guestTypeId = getGuestTypeIdFromString(guest.guestType);
 
-            if (hasExistingId) {
-              console.log(
-                `Guest "${guestPayload.name}" has existing ID ${correspondingFrontendGuest.id} - skipping duplicate check`,
-              );
+          // Calculate guest_limit based on guest_type
+          let calculatedGuestLimit = null;
+          const guestTypeName = guest.guestType?.toLowerCase() || "single";
+          
+          switch (guestTypeName) {
+            case "single":
+              calculatedGuestLimit = 1;
+              break;
+            case "variable":
+              calculatedGuestLimit = null; // NULL for infinite
+              break;
+            case "multiple":
+              calculatedGuestLimit = guest.guestLimit && guest.guestLimit > 0 ? parseInt(guest.guestLimit) : 1;
+              break;
+            default:
+              calculatedGuestLimit = 1; // Default to single
+          }
+
+          const guestData = {
+            group_id: groupId,
+            public_id: guest.public_id || crypto.randomUUID(),
+            name: name,
+            email: guest.email && guest.email.trim() ? guest.email.trim() : null,
+            phone: guest.phone && guest.phone.trim() ? guest.phone.trim() : null,
+            tag: guest.tag || null,
+            gender_id: genderId,
+            age_group_id: ageGroupId,
+            guest_type_id: guestTypeId,
+            guest_limit: calculatedGuestLimit,
+            point_of_contact: guest.isPointOfContact || false,
+          };
+
+          if (existingGuestMatch) {
+            // Guest exists, preserve ID and RSVPs
+            const existingGuest = existingGuestMatch.guest;
+            const matchType = existingGuestMatch.matchType;
+            const rsvps = existingGuestMatch.rsvps || existingGuest.rsvps || [];
+            
+            console.log(`Preserving guest "${name}" (ID: ${existingGuest.id}, match: ${matchType}) with ${rsvps.length} RSVPs`);
+            
+            // Backup RSVPs for this guest
+            if (rsvps.length > 0) {
+              rsvpBackup.set(existingGuest.id, rsvps);
             }
+            
+            guestsToUpdate.push({
+              id: existingGuest.id,
+              ...guestData
+            });
+            guestsPreservedCount++;
+          } else {
+            // New guest
+            console.log(`Creating new guest "${name}"`);
+            guestsToCreate.push(guestData);
+          }
+        }
 
-            return !hasExistingId; // Only include guests without existing IDs
-          });
+        console.log(`Guest processing summary: ${guestsPreservedCount} to preserve, ${guestsToCreate.length} to create, ${guestsToUpdate.length} to update`);
+        console.log("=== GUEST PRESERVATION REPORT ===");
+        console.log(`RSVPs backed up for ${rsvpBackup.size} guests`);
+        let totalRsvpsPreserved = 0;
+        rsvpBackup.forEach((rsvps, guestId) => {
+          totalRsvpsPreserved += rsvps.length;
+        });
+        console.log(`Total RSVPs being preserved: ${totalRsvpsPreserved}`);
+        console.log("=== END PRESERVATION REPORT ===");
 
-          console.log(
-            `Checking duplicates for ${newGuestsOnly.length} new guests (filtered out ${guestPayloads.length - newGuestsOnly.length} existing guests)`,
-          );
+        // Step 8a: Execute guest preservation operations
+        if (guestsToCreate.length > 0 || guestsToUpdate.length > 0) {
+          console.log("Step 8a: Executing guest preservation operations...");
 
-          // Check for duplicates only among new guests
-          const duplicates = [];
-          const duplicateMap = new Map(); // Track duplicates within the new guest list itself
-
-          newGuestsOnly.forEach((newGuest, newGuestIndex) => {
-            // Find the original index in the full validGuests array
-            const originalIndex = guestPayloads.findIndex(
-              (gp) => gp === newGuest,
-            );
-            const frontendGuest = validGuests[originalIndex];
-
-            // Check within the new guest list for duplicates
-            const duplicateKey = `${newGuest.name.toLowerCase().trim()}-${newGuest.group_id}`;
-            if (duplicateMap.has(duplicateKey)) {
-              const firstGuestData = duplicateMap.get(duplicateKey);
-              duplicates.push({
-                type: "within_new_list",
-                newGuest: newGuest,
-                firstGuestIndex: firstGuestData.originalIndex,
-                currentIndex: originalIndex,
-                groupTitle: Object.keys(groupMap).find(
-                  (key) => groupMap[key] === newGuest.group_id,
-                ),
-              });
-            } else {
-              duplicateMap.set(duplicateKey, {
-                guest: newGuest,
-                originalIndex: originalIndex,
-              });
-            }
-
-            // Check against existing guests for updates (only if we have existing guests)
-            if (existingGuests.length > 0) {
-              const existingDuplicate = existingGuests.find(
-                (existing) =>
-                  existing.name.toLowerCase().trim() ===
-                    newGuest.name.toLowerCase().trim() &&
-                  existing.group_id === newGuest.group_id,
-              );
-
-              if (existingDuplicate) {
-                duplicates.push({
-                  type: "existing_guest",
-                  newGuest: newGuest,
-                  existingGuest: existingDuplicate,
-                  groupTitle:
-                    existingDuplicate.guest_groups?.title || "Unknown Group",
-                  newGuestFrontendIndex: originalIndex,
-                });
+          // Update existing guests first
+          if (guestsToUpdate.length > 0) {
+            console.log(`Updating ${guestsToUpdate.length} existing guests...`);
+            
+            for (const guestUpdate of guestsToUpdate) {
+              const { id, ...updateData } = guestUpdate;
+              const { error: updateError } = await supabase
+                .from("guests")
+                .update(updateData)
+                .eq("id", id);
+              
+              if (updateError) {
+                console.error(`Error updating guest ${id}:`, updateError);
+                throw updateError;
+              } else {
+                guestsUpdatedCount++;
               }
             }
+            console.log(`✓ Updated ${guestsUpdatedCount} guests`);
+          }
+
+          // Create new guests
+          let createdGuests = [];
+          if (guestsToCreate.length > 0) {
+            console.log(`Creating ${guestsToCreate.length} new guests...`);
+            
+            const { data: insertedGuests, error: guestError } = await supabase
+              .from("guests")
+              .insert(guestsToCreate)
+              .select();
+              
+            if (guestError) {
+              console.error("❌ Guest creation error:", guestError);
+              throw guestError;
+            }
+            
+            createdGuests = insertedGuests;
+            guestsCreatedCount = insertedGuests.length;
+            console.log(`✓ Created ${guestsCreatedCount} new guests`);
+          }
+
+          // Remove guests that are no longer in the frontend data
+          const currentGuestMatchKeys = new Set(validGuests.map(guest => createGuestMatchKey(guest)));
+          const guestsToRemove = existingGuests.filter(existingGuest => {
+            const matchKey = createGuestMatchKey(existingGuest);
+            return !currentGuestMatchKeys.has(matchKey);
           });
-
-          // If duplicates found and no explicit confirmation, return them for frontend handling
-          if (duplicates.length > 0 && !eventData.allowDuplicates) {
-            console.log(
-              `Found ${duplicates.length} potential duplicate guests among new guests only`,
-            );
-            console.log("Duplicate details:", duplicates);
-
-            return NextResponse.json({
-              success: false,
-              duplicatesFound: true,
-              duplicates: duplicates.map((dup) => ({
-                type: dup.type,
-                guestName: dup.newGuest.name,
-                groupTitle: dup.groupTitle,
-                ...(dup.type === "existing_guest"
-                  ? {
-                      existingGuestId: dup.existingGuest.id,
-                      existingGuestPOC: dup.existingGuest.point_of_contact,
-                      newGuestFrontendIndex: dup.newGuestFrontendIndex,
-                    }
-                  : {
-                      firstGuestIndex: dup.firstGuestIndex,
-                      currentIndex: dup.currentIndex,
-                    }),
-              })),
-              message:
-                "Duplicate guests detected among new guests. Please confirm if you want to proceed.",
-            });
+          
+          if (guestsToRemove.length > 0) {
+            console.log(`Removing ${guestsToRemove.length} guests no longer in frontend data...`);
+            for (const guestToRemove of guestsToRemove) {
+              const { error: deleteError } = await supabase
+                .from("guests")
+                .delete()
+                .eq("id", guestToRemove.id);
+              
+              if (deleteError) {
+                console.error(`Error removing guest ${guestToRemove.id}:`, deleteError);
+              } else {
+                console.log(`Removed guest "${guestToRemove.name}" (ID: ${guestToRemove.id})`);
+              }
+            }
+          }
+          
+          // Combine updated and newly created guests for final processing
+          allFinalGuests = [...createdGuests];
+          // Add updated guests by refetching them to get complete data
+          if (guestsToUpdate.length > 0) {
+            const { data: updatedGuestData } = await supabase
+              .from("guests")
+              .select("*")
+              .in("id", guestsToUpdate.map(g => g.id));
+            if (updatedGuestData) {
+              allFinalGuests.push(...updatedGuestData);
+            }
           }
 
-          // If duplicates are allowed or no duplicates found, proceed with creation
-          console.log(
-            "Proceeding with guest creation - no blocking duplicates found",
-          );
-
-          const { data: createdGuests, error: guestError } = await supabase
-            .from("guests")
-            .insert(guestPayloads)
-            .select();
-          if (guestError) {
-            console.error("❌ Guest creation error:", guestError);
-            throw guestError;
-          }
-
-          console.log("✓ Guests created:", createdGuests.length);
+          console.log(`✓ Guest operations completed: ${guestsPreservedCount} preserved, ${guestsCreatedCount} created, ${guestsToRemove.length} removed`);
 
           // Step 8b: Update point of contact for groups based on guest data
           console.log("Step 8b: Updating point of contact for groups...");
 
-          // Create a mapping of group names to created group objects for easy lookup
-          const groupNameMap = createdGroups.reduce((acc, group) => {
+          // Create a mapping of group names to final group objects for easy lookup
+          const groupNameMap = finalGroups.reduce((acc, group) => {
             acc[group.title] = group;
             return acc;
           }, {});
 
-          console.log(`✓ Guests created: ${createdGuests.length}`);
+          console.log(`✓ Final guest status: ${allFinalGuests.length} total guests (${guestsPreservedCount} preserved + ${guestsCreatedCount} created)`);
 
-          // Log POC status and guest type for each created guest
-          createdGuests.forEach((guest) => {
+          // Log POC status and guest type for each final guest
+          allFinalGuests.forEach((guest) => {
             console.log(
               `Guest "${guest.name}" -> POC: ${guest.point_of_contact} (public_id: ${guest.public_id}) -> Guest Type ID: ${guest.guest_type_id} -> Guest Limit: ${guest.guest_limit} ${guest.guest_limit === null ? '(infinite)' : ''}`,
             );
@@ -1602,8 +1759,8 @@ export async function POST(request) {
                   `Processing RSVPs for guest "${frontendGuest.name}" (${Object.keys(frontendGuest.subEventRSVPs).length} RSVPs)`,
                 );
 
-                // Find the corresponding created guest from the database result by name and group
-                const createdGuest = createdGuests.find(
+                // Find the corresponding guest from all final guests by name and group
+                const correspondingGuest = allFinalGuests.find(
                   (cg) =>
                     cg.name === frontendGuest.name &&
                     (frontendGuest.group
@@ -1611,9 +1768,9 @@ export async function POST(request) {
                       : true),
                 );
 
-                if (createdGuest) {
+                if (correspondingGuest) {
                   console.log(
-                    `Found created guest: "${createdGuest.name}" (ID: ${createdGuest.id}, Group ID: ${createdGuest.group_id})`,
+                    `Found guest: "${correspondingGuest.name}" (ID: ${correspondingGuest.id}, Group ID: ${correspondingGuest.group_id})`,
                   );
 
                   // Process each sub-event RSVP
@@ -1639,13 +1796,13 @@ export async function POST(request) {
 
                         if (matchingSubEvent) {
                           const rsvpRecord = {
-                            guest_id: createdGuest.id, // Use the actual database ID
+                            guest_id: correspondingGuest.id, // Use the actual database ID
                             subevent_id: matchingSubEvent.id,
                             status_id: 1, // 1 = pending status
                           };
                           rsvpPayloads.push(rsvpRecord);
                           console.log(
-                            `RSVP: Guest "${createdGuest.name}" (ID: ${createdGuest.id}) invited to "${matchingSubEvent.title}" (ID: ${matchingSubEvent.id})`,
+                            `RSVP: Guest "${correspondingGuest.name}" (ID: ${correspondingGuest.id}) invited to "${matchingSubEvent.title}" (ID: ${matchingSubEvent.id})`,
                           );
                         } else {
                           console.warn(
@@ -1657,11 +1814,11 @@ export async function POST(request) {
                   );
                 } else {
                   console.warn(
-                    `Could not find created guest for "${frontendGuest.name}" in group "${frontendGuest.group}"`,
+                    `Could not find guest for "${frontendGuest.name}" in group "${frontendGuest.group}"`,
                   );
                   console.warn(
-                    `Available created guests:`,
-                    createdGuests.map(
+                    `Available guests:`,
+                    allFinalGuests.map(
                       (cg) => `"${cg.name}" (Group ID: ${cg.group_id})`,
                     ),
                   );
@@ -1671,16 +1828,36 @@ export async function POST(request) {
 
             // Deduplicate RSVP records to prevent constraint violations
             if (rsvpPayloads.length > 0) {
-              console.log(
-                `Deduplicating ${rsvpPayloads.length} RSVP records...`,
-              );
+              console.log(`Processing ${rsvpPayloads.length} RSVP records with preservation...`);
 
-              // Create a Map to deduplicate by guest_id + subevent_id combination
+              // Get all existing RSVPs for this event to avoid conflicts
+              const { data: existingRSVPs, error: rsvpFetchError } = await supabase
+                .from("rsvps")
+                .select("guest_id, subevent_id, status_id")
+                .in("guest_id", allFinalGuests.map(g => g.id));
+
+              const existingRSVPKeys = new Set();
+              if (!rsvpFetchError && existingRSVPs) {
+                existingRSVPs.forEach(rsvp => {
+                  existingRSVPKeys.add(`${rsvp.guest_id}-${rsvp.subevent_id}`);
+                });
+                console.log(`Found ${existingRSVPs.length} existing RSVPs to preserve`);
+              }
+
+              // Create a Map to deduplicate and filter out existing RSVPs
               const rsvpMap = new Map();
               const duplicatesFound = [];
+              const preservedCount = { value: 0 };
 
               rsvpPayloads.forEach((rsvp, index) => {
                 const key = `${rsvp.guest_id}-${rsvp.subevent_id}`;
+
+                if (existingRSVPKeys.has(key)) {
+                  // RSVP already exists, preserve it
+                  preservedCount.value++;
+                  console.log(`Preserving existing RSVP for guest ${rsvp.guest_id} -> subevent ${rsvp.subevent_id}`);
+                  return;
+                }
 
                 if (rsvpMap.has(key)) {
                   duplicatesFound.push({
@@ -1697,7 +1874,7 @@ export async function POST(request) {
               const uniqueRsvpPayloads = Array.from(rsvpMap.values());
 
               console.log(
-                `After deduplication: ${uniqueRsvpPayloads.length} unique RSVP records (removed ${rsvpPayloads.length - uniqueRsvpPayloads.length} duplicates)`,
+                `RSVP processing: ${preservedCount.value} preserved, ${uniqueRsvpPayloads.length} new to create, ${duplicatesFound.length} duplicates removed`,
               );
 
               if (duplicatesFound.length > 0) {
@@ -2021,8 +2198,8 @@ export async function POST(request) {
 
     console.log("=== EVENT CREATION COMPLETED SUCCESSFULLY ===");
 
-    // Return success response
-    return NextResponse.json({
+    // Prepare complete response with guest and group data
+    const responseData = {
       success: true,
       event: createdEvent,
       id: createdEvent.id,
@@ -2033,7 +2210,67 @@ export async function POST(request) {
           ? "Event published successfully!"
           : "Draft saved successfully!",
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    // Include guest and group data if they were processed
+    if (finalGroups && finalGroups.length > 0) {
+      responseData.guestGroups = finalGroups.map(group => ({
+        id: group.id,
+        name: group.title,
+        title: group.title,
+        description: group.details?.description || "",
+        maxSize: group.size_limit === -1 ? "" : group.size_limit,
+        size: 0, // Will be updated with actual guest count
+        color: group.details?.color || "#7c3aed"
+      }));
+      console.log(`✓ Including ${finalGroups.length} guest groups in response`);
+    }
+
+    if (allFinalGuests && allFinalGuests.length > 0) {
+      // Fetch complete guest data with relationships for response
+      const { data: completeGuestData, error: completeGuestError } = await supabase
+        .from("guests")
+        .select(`
+          id, public_id, name, email, phone, tag, group_id, point_of_contact,
+          guest_gender(state),
+          guest_age_group(state), 
+          guest_type(name),
+          guest_limit,
+          guest_groups(id, title)
+        `)
+        .in("id", allFinalGuests.map(g => g.id));
+
+      if (!completeGuestError && completeGuestData) {
+        responseData.guests = completeGuestData.map(guest => ({
+          id: guest.id,
+          public_id: guest.public_id,
+          name: guest.name,
+          email: guest.email || "",
+          phone: guest.phone || "",
+          tag: guest.tag || "",
+          group: guest.guest_groups?.title || "",
+          group_id: guest.group_id,
+          gender: guest.guest_gender?.state || "",
+          ageGroup: guest.guest_age_group?.state || "",
+          guestType: guest.guest_type?.name || "single",
+          guestLimit: guest.guest_limit,
+          isPointOfContact: guest.point_of_contact || false,
+          subEventRSVPs: {} // Will be populated if needed
+        }));
+
+        // Update group sizes in response
+        if (responseData.guestGroups) {
+          responseData.guestGroups.forEach(group => {
+            group.size = responseData.guests.filter(g => g.group_id === group.id).length;
+          });
+        }
+
+        console.log(`✓ Including ${responseData.guests.length} guests in response`);
+      }
+    }
+
+    // Return success response with complete data
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("=== EVENT CREATION FAILED ===");
     console.error("Error:", error);

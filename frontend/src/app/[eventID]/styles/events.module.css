@@ -575,12 +575,15 @@
 
 .galleryGrid {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 8px;
   justify-content: center;
   align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(200px, auto));
   justify-items: center;
+  width: 100%;
+  /* Use CSS custom properties for responsive behavior */
+  grid-template-columns: repeat(var(--gallery-columns, 3), 1fr);
+  grid-auto-rows: auto;
 }
 
 .galleryItem {
@@ -589,23 +592,31 @@
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s ease;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  /* Let images determine their own height based on aspect ratio */
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Safari-specific fixes */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .galleryItem:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .galleryImage {
   max-width: 100%;
-  max-height: 100%;
-  width: auto;
   height: auto;
   object-fit: contain;
   object-position: center;
   display: block;
+  border-radius: var(--radius-lg);
 }
 
 .galleryOverlay {
@@ -785,15 +796,15 @@
   }
 
   .galleryGrid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 16px;
+    gap: 10px;
     max-width: 100%;
+    /* Override column count for mobile */
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .galleryItem {
-    max-width: 100%;
-    aspect-ratio: 3/2;
-    min-height: 200px;
+    min-height: 180px;
+    max-height: 300px;
   }
 
   .timeline {
@@ -845,13 +856,14 @@
   }
 
   .galleryGrid {
-    grid-template-columns: 1fr !important;
-    gap: 12px;
+    gap: 8px;
+    /* Single column layout for smallest screens */
+    grid-template-columns: 1fr;
   }
 
   .galleryItem {
-    aspect-ratio: 3/2;
-    min-height: 180px;
+    min-height: 200px;
+    max-height: 350px;
   }
 }
 
@@ -1015,45 +1027,69 @@
 }
 
 /* Gallery Layout Responsive Optimizations */
+/* Desktop - Large screens */
 @media (min-width: 1200px) {
   .galleryGrid {
-    gap: 10px;
+    gap: 16px;
   }
   
   .galleryLayout {
     gap: 20px;
     padding: 0 16px;
   }
+
+  .galleryItem {
+    aspect-ratio: 4/3;
+    min-height: 250px;
+    max-height: 350px;
+  }
+
+  .galleryImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
+/* Desktop - Medium screens */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .galleryItem {
+    aspect-ratio: 4/3;
+    min-height: 220px;
+    max-height: 300px;
+  }
+
+  .galleryImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* Tablet */
 @media (max-width: 768px) {
   .galleryLayout {
     gap: 12px;
-    padding: 0 4px;
+    padding: 0 8px;
   }
-  
-  .galleryGrid {
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-  
-  .galleryItem {
-    min-height: 180px;
+
+  .galleryImage {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
   }
 }
 
+/* Mobile */
 @media (max-width: 480px) {
   .galleryLayout {
-    gap: 8px;
-    padding: 0 2px;
+    gap: 10px;
+    padding: 0 4px;
   }
-  
-  .galleryGrid {
-    gap: 4px;
-    margin-bottom: 4px;
-  }
-  
-  .galleryItem {
-    min-height: 150px;
+
+  .galleryImage {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
   }
 }

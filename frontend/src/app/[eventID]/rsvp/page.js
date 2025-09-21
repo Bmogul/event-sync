@@ -175,7 +175,7 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   const [expandedImage, setExpandedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Determine optimal column count for symmetrical layout
+  // Determine optimal column count for symmetrical layout based on screen size and image count
   const getColumnCount = (imageCount) => {
     if (imageCount === 0) return 1;
     if (imageCount === 1) return 1;
@@ -185,7 +185,14 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     return 3; // For 7+ images, use 3 columns
   };
   
-  const columnCount = getColumnCount(imagesWithUrl.length);
+  // Get responsive column count based on viewport
+  const getResponsiveColumns = (imageCount) => {
+    const baseColumns = getColumnCount(imageCount);
+    // Use CSS media queries to handle responsive behavior instead of JavaScript
+    return baseColumns;
+  };
+  
+  const columnCount = getResponsiveColumns(imagesWithUrl.length);
 
   // Image expansion handlers
   const handleImageExpand = (subEvent, index) => {
@@ -230,6 +237,8 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
         className={styles.galleryGrid}
         style={{
           gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+          // Add responsive grid template areas for better mobile control
+          '--gallery-columns': columnCount,
         }}
       >
         {imagesWithUrl.map((subEvent, index) => (
@@ -241,9 +250,17 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
           <Image
             src={subEvent.image_url}
             alt={subEvent.title}
-            width={300}
-            height={200}
+            width={400}
+            height={300}
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
             className={styles.galleryImage}
+            priority={index < 2} // Prioritize first 2 images for faster loading
+            style={{
+              width: '100%',
+              height: 'auto',
+              maxHeight: '100%',
+              objectFit: 'contain'
+            }}
           />
         </div>
       ))}

@@ -27,7 +27,13 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
 
-  const { session, supabase, user, userProfile, loading: authLoading } = useAuth(); // get supabase client and session from context
+  const {
+    session,
+    supabase,
+    user,
+    userProfile,
+    loading: authLoading,
+  } = useAuth(); // get supabase client and session from context
 
   // Get user permissions for this event
   const {
@@ -41,33 +47,34 @@ const Page = () => {
     canEditEvent,
     isOwner,
     isAdmin,
-    error: permissionsError
+    error: permissionsError,
   } = useEventPermissions(event?.eventID);
 
-
   // GuestList functions
-  const getGuestList = useCallback(async (event) => {
-    try {
-      if (!session?.access_token)
-        throw new Error("User not authenticated");
+  const getGuestList = useCallback(
+    async (event) => {
+      try {
+        if (!session?.access_token) throw new Error("User not authenticated");
 
-      const res = await fetch(`/api/${params.eventID}/guestList`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+        const res = await fetch(`/api/${params.eventID}/guestList`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
-      const result = await res.json();
-      console.log("GUESTLIST:", params.eventID, result);
+        const result = await res.json();
+        console.log("GUESTLIST:", params.eventID, result);
 
-      if (res.status === 200 && result.validated) {
-        setGuestList(result.allUsers);
-      } else throw new Error("Failed to get guestlist");
-    } catch (error) {
-      console.error(error);
-      toast("Failed to get guests. Try again");
-    }
-  }, [session?.access_token, params.eventID]);
+        if (res.status === 200 && result.validated) {
+          setGuestList(result.allUsers);
+        } else throw new Error("Failed to get guestlist");
+      } catch (error) {
+        console.error(error);
+        toast("Failed to get guests. Try again");
+      }
+    },
+    [session?.access_token, params.eventID],
+  );
   // Fetch event data
   useEffect(() => {
     const fetchEventData = async () => {
@@ -93,14 +100,12 @@ const Page = () => {
     if (!authLoading) {
       if (!session) {
         // Redirect to login if not authenticated
-        router.push('/login');
+        router.push("/login");
         return;
       }
       fetchEventData();
     }
   }, [params.eventID, session, authLoading, router, getGuestList]);
-
-
 
   const updateGuestList = async (usersToUpdate) => {
     let guests = guestList;
@@ -111,8 +116,7 @@ const Page = () => {
     }
 
     try {
-      if (!session?.access_token)
-        throw new Error("User not authenticated");
+      if (!session?.access_token) throw new Error("User not authenticated");
 
       const res = await fetch(`/api/${params.eventID}/guestList`, {
         method: "POST",
@@ -131,11 +135,9 @@ const Page = () => {
     }
   };
 
-  const handleCustomizeRSVP = ()=>{
-   //router.push(`/create-event?edit=${event.id}`) 
-  }
-
-
+  const handleCustomizeRSVP = () => {
+    //router.push(`/create-event?edit=${event.id}`)
+  };
 
   // Show loading while authentication and permissions are being checked
   if (authLoading || loading || permissionsLoading) {
@@ -211,34 +213,53 @@ const Page = () => {
               </p>
               <div className={styles.eventActions}>
                 {canSendEmails && (
-                  <button 
-                    className={currentView === "email" ? styles.btnPrimary : styles.btnOutline}
+                  <button
+                    className={
+                      currentView === "email"
+                        ? styles.btnPrimary
+                        : styles.btnOutline
+                    }
                     onClick={() => setCurrentView("email")}
                   >
                     ✉️ Send Mail
                   </button>
                 )}
-                
+
                 {canViewAnalytics && (
-                  <button className={styles.btnOutline}>📊 View Analytics</button>
+                  <button className={styles.btnOutline}>
+                    📊 View Analytics
+                  </button>
                 )}
-                
+
                 {canEditEvent && (
-                  <button onClick={handleCustomizeRSVP()} className={styles.btnOutline}>🎨 Customize RSVP</button>
+                  <button
+                    onClick={handleCustomizeRSVP()}
+                    className={styles.btnOutline}
+                  >
+                    🎨 Customize RSVP
+                  </button>
                 )}
-                
+
                 {canEditTemplates && (
-                  <button 
-                    className={currentView === "template-editor" ? styles.btnPrimary : styles.btnOutline}
+                  <button
+                    className={
+                      currentView === "template-editor"
+                        ? styles.btnPrimary
+                        : styles.btnOutline
+                    }
                     onClick={() => setCurrentView("template-editor")}
                   >
                     🎨 Edit Templates
                   </button>
                 )}
-                
+
                 {(isOwner || isAdmin) && (
-                  <button 
-                    className={currentView === "manage-team" ? styles.btnPrimary : styles.btnOutline}
+                  <button
+                    className={
+                      currentView === "manage-team"
+                        ? styles.btnPrimary
+                        : styles.btnOutline
+                    }
                     onClick={() => setCurrentView("manage-team")}
                   >
                     👥 Manage Team
@@ -254,28 +275,54 @@ const Page = () => {
               <div className={styles.statNumber}>{guestList?.length || 0}</div>
               <div className={styles.statLabel}>Total Guests</div>
             </div>
+
             <div className={styles.statCard}>
               <div className={styles.statNumber}>
-                {guestList?.filter((guest) => guest.Sent === "Yes").length || 0}
+                {guestList
+                  ? new Set(
+                    guestList
+                      .filter(
+                        (guest) =>
+                          guest.group_status_id === 3 ||
+                          guest.group_invite_sent_at != null,
+                      )
+                      .map((guest) => guest.group_id),
+                  ).size
+                  : 0}
               </div>
-              <div className={styles.statLabel}>Invites Sent</div>
+              <div className={styles.statLabel}>Invites Sent (by group)</div>
             </div>
+
             <div className={styles.statCard}>
               <div className={styles.statNumber}>
-                {guestList?.filter(
-                  (guest) =>
-                    guest.MainResponse === "1" || guest.MainResponse === 1,
-                ).length || 0}
+                {guestList?.filter((guest) => {
+                  // Convert rsvpStatus object to an array of its values
+                  const statuses = guest.rsvp_status
+                    ? Object.values(guest.rsvp_status)
+                    : [];
+
+                  // Return true if ANY RSVP status_id is 3, 4, or 5
+                  return statuses.some((rsvp) =>
+                    [3, 4, 5].includes(rsvp.status_id),
+                  );
+                }).length || 0}
               </div>
               <div className={styles.statLabel}>Responses</div>
             </div>
+
             <div className={styles.statCard}>
               <div className={styles.statNumber}>
-                {guestList?.filter(
-                  (guest) =>
-                    guest.Sent === "Yes" &&
-                    (!guest.MainResponse || guest.MainResponse === ""),
-                ).length || 0}
+                {guestList?.filter((guest) => {
+                  // Convert rsvpStatus object to an array of its values
+                  const statuses = guest.rsvp_status
+                    ? Object.values(guest.rsvp_status)
+                    : [];
+
+                  // Return true if ANY RSVP status_id is 1, 2, 6
+                  return statuses.some((rsvp) =>
+                    [1,2,6].includes(rsvp.status_id),
+                  );
+                }).length || 0}
               </div>
               <div className={styles.statLabel}>Pending</div>
             </div>
@@ -297,7 +344,7 @@ const Page = () => {
                 canEditTemplates,
                 canViewAnalytics,
                 hasPermission,
-                userRole
+                userRole,
               }}
             />
           ) : currentView === "template-editor" ? (
@@ -310,13 +357,11 @@ const Page = () => {
               permissions={{
                 canEditTemplates,
                 hasPermission,
-                userRole
+                userRole,
               }}
             />
           ) : currentView === "manage-team" ? (
-            <ManageTeam
-              eventPublicId={event?.eventID}
-            />
+            <ManageTeam eventPublicId={event?.eventID} />
           ) : null}
         </div>
       </main>

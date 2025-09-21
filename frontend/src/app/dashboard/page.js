@@ -464,6 +464,7 @@ const DashboardContent = () => {
 
   // Handle select all events
   const handleSelectAllEvents = (checked) => {
+    console.log("CHECKED", checked)
     if (checked) {
       setSelectedEvents(events.map(event => event.id));
     } else {

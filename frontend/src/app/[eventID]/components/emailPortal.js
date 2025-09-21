@@ -702,6 +702,7 @@ const EmailPortal = ({
   const handleSelectAll = (isSelected) => {
     if (isSelected) {
       setSelectedRows(filteredGuests);
+
     } else {
       setSelectedRows([]);
     }

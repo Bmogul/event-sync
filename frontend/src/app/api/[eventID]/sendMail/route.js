@@ -12,11 +12,11 @@ const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
 
 export const POST = async (req, { params }) => {
   const { eventID } = params;
-  
+
   try {
     const supabase = createClient();
     const body = await req.json();
-    const { guestList, emailType = 'invitation', templateId } = body;
+    const { guestList, emailType = "invitation", templateId } = body;
 
     // Get auth token from request headers
     const authHeader = req.headers.get("Authorization");
@@ -25,17 +25,20 @@ export const POST = async (req, { params }) => {
     if (!token) {
       return NextResponse.json(
         { validated: false, message: "No auth token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Get the current user from Supabase
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(
         { validated: false, message: "Invalid user" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,14 +52,15 @@ export const POST = async (req, { params }) => {
     if (profileError || !userProfile) {
       return NextResponse.json(
         { validated: false, message: "Invalid user profile" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Fetch event with details
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select(`
+      .select(
+        `
         id,
         public_id,
         title,
@@ -66,7 +70,8 @@ export const POST = async (req, { params }) => {
         details,
         logo_url,
         status_id
-      `)
+      `,
+      )
       .eq("public_id", eventID)
       .single();
 
@@ -86,12 +91,15 @@ export const POST = async (req, { params }) => {
     if (managerError || !managers || managers.length === 0) {
       return NextResponse.json(
         { validated: false, message: "Access denied" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     if (!guestList || guestList.length === 0) {
-      return NextResponse.json({ error: "No guests provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No guests provided" },
+        { status: 400 },
+      );
     }
 
     // Fetch email template from database if templateId is provided
@@ -100,26 +108,34 @@ export const POST = async (req, { params }) => {
       console.log("Fetching email template with ID:", templateId);
       const { data: template, error: templateError } = await supabase
         .from("email_templates")
-        .select(`
+        .select(
+          `
           *,
           email_template_categories(name),
           email_template_status(name)
-        `)
+        `,
+        )
         .eq("id", templateId)
         .eq("event_id", event.id)
         .single();
 
       if (templateError) {
         console.error("Template fetch error:", templateError);
-        return NextResponse.json({ 
-          error: "Email template not found" 
-        }, { status: 404 });
+        return NextResponse.json(
+          {
+            error: "Email template not found",
+          },
+          { status: 404 },
+        );
       }
 
       if (!template) {
-        return NextResponse.json({ 
-          error: "Email template not found for this event" 
-        }, { status: 404 });
+        return NextResponse.json(
+          {
+            error: "Email template not found for this event",
+          },
+          { status: 404 },
+        );
       }
 
       databaseTemplate = template;
@@ -129,29 +145,53 @@ export const POST = async (req, { params }) => {
     // Extract email content from event.details JSONB (fallback for when no template is selected)
     const eventDetails = event.details || {};
     const emailConfig = eventDetails.emailConfig || {};
-    
+
     const defaultSender = {
       email: "sender@event-sync.com",
-      name: eventDetails.organizerName || eventDetails.senderName || "Event Organizer"
+      name:
+        eventDetails.organizerName ||
+        eventDetails.senderName ||
+        "Event Organizer",
     };
 
     // Build email content - prioritize database template, then fall back to event details/config
     const emailContent = {
-      greeting: databaseTemplate?.greeting || emailConfig.greeting || eventDetails.greeting || "Dear Guest,",
-      body: databaseTemplate?.body || emailConfig.body || eventDetails.body || eventDetails.email_message || "You are invited to our special event.",
-      signoff: databaseTemplate?.signoff || emailConfig.signoff || eventDetails.signoff || "Best regards,",
-      subjectLine: databaseTemplate?.subject_line || emailConfig.subjectLine || eventDetails.subjectLine || `Invitation: ${event.title}`,
-      senderName: databaseTemplate?.sender_name || emailConfig.senderName || eventDetails.senderName || defaultSender.name,
+      greeting:
+        databaseTemplate?.greeting ||
+        emailConfig.greeting ||
+        eventDetails.greeting ||
+        "Dear Guest,",
+      body:
+        databaseTemplate?.body ||
+        emailConfig.body ||
+        eventDetails.body ||
+        eventDetails.email_message ||
+        "You are invited to our special event.",
+      signoff:
+        databaseTemplate?.signoff ||
+        emailConfig.signoff ||
+        eventDetails.signoff ||
+        "Best regards,",
+      subjectLine:
+        databaseTemplate?.subject_line ||
+        emailConfig.subjectLine ||
+        eventDetails.subjectLine ||
+        `Invitation: ${event.title}`,
+      senderName:
+        databaseTemplate?.sender_name ||
+        emailConfig.senderName ||
+        eventDetails.senderName ||
+        defaultSender.name,
       // Add template colors for the base template
       primary_color: databaseTemplate?.primary_color || "#ffffff",
-      secondary_color: databaseTemplate?.secondary_color || "#e1c0b7", 
-      text_color: databaseTemplate?.font_color || "#333333"
+      secondary_color: databaseTemplate?.secondary_color || "#e1c0b7",
+      text_color: databaseTemplate?.font_color || "#333333",
     };
 
     const updatedGuestList = [];
     const emailResults = {
       successful: [],
-      failed: []
+      failed: [],
     };
 
     // Process each guest
@@ -161,14 +201,14 @@ export const POST = async (req, { params }) => {
           updatedGuestList.push(guest);
           emailResults.failed.push({
             guest: guest,
-            error: "No email address"
+            error: "No email address",
           });
           continue;
         }
 
         // Generate RSVP link using guest public_id
-        const rsvpLink = `${process.env.HOST || 'http://localhost:3000'}/${eventID}/rsvp?guestId=${guest.group_id}`;
-        
+        const rsvpLink = `${process.env.HOST || "http://localhost:3000"}/${eventID}/rsvp?guestId=${guest.group_id}`;
+
         const templateData = {
           rsvpLink: rsvpLink,
           eventName: event.title,
@@ -177,27 +217,29 @@ export const POST = async (req, { params }) => {
           body: emailContent.body,
           signoff: emailContent.signoff,
           senderName: emailContent.senderName,
-          guestName: guest.name || 'Guest',
-          eventDate: event.start_date ? new Date(event.start_date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long', 
-            day: 'numeric'
-          }) : 'Date TBD',
-          eventDescription: event.description || '',
+          guestName: guest.name || "Guest",
+          eventDate: event.start_date
+            ? new Date(event.start_date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+            : "Date TBD",
+          eventDescription: event.description || "",
           // Add template colors for the base template styling
           primary_color: emailContent.primary_color,
           secondary_color: emailContent.secondary_color,
-          text_color: emailContent.text_color
+          text_color: emailContent.text_color,
         };
 
         const msg = {
           to: guest.email,
           from: {
             email: defaultSender.email,
-            name: emailContent.senderName
+            name: emailContent.senderName,
           },
           subject: emailContent.subjectLine,
-          html: compiledInviteTemplate(templateData)
+          html: compiledInviteTemplate(templateData),
         };
 
         // Send email
@@ -206,22 +248,21 @@ export const POST = async (req, { params }) => {
 
         emailResults.successful.push({
           guest: guest,
-          email: guest.email
+          email: guest.email,
         });
 
         // Add guest to updated list (we'll handle status updates in database later)
         updatedGuestList.push({
           ...guest,
           emailSent: true,
-          lastEmailSent: new Date().toISOString()
+          lastEmailSent: new Date().toISOString(),
         });
-
       } catch (error) {
         console.error(`Error sending email to ${guest.email}:`, error);
-        
+
         emailResults.failed.push({
           guest: guest,
-          error: error.message
+          error: error.message,
         });
 
         // Add guest to updated list without email status update
@@ -229,27 +270,51 @@ export const POST = async (req, { params }) => {
       }
     }
 
-    return NextResponse.json({
-      validated: true,
-      success: true,
-      results: {
-        total: guestList.length,
-        successful: emailResults.successful.length,
-        failed: emailResults.failed.length,
-        details: emailResults
-      },
-      guestList: updatedGuestList
-    }, { status: 200 });
+    for (const guest of updatedGuestList) {
+      if (guest.emailSent) {
+        // Update guest_groups (invite_sent_at/by) or guests table
+        const { error: updateError } = await supabase
+          .from("guest_groups")
+          .update({
+            invite_sent_at: new Date().toISOString(),
+            invite_sent_by: userProfile.id,
+            updated_at: new Date().toISOString(),
+            status_id: 3
+          })
+          .eq("id", guest.group_id);
 
+        if (updateError) {
+          console.error(
+            `Failed to update invite status for group ${guest.group_id}:`,
+            updateError,
+          );
+        }
+      }
+    }
+
+    return NextResponse.json(
+      {
+        validated: true,
+        success: true,
+        results: {
+          total: guestList.length,
+          successful: emailResults.successful.length,
+          failed: emailResults.failed.length,
+          details: emailResults,
+        },
+        guestList: updatedGuestList,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("SendMail API error:", error);
     return NextResponse.json(
-      { 
-        validated: false, 
-        error: "Internal server error", 
-        message: error.message 
-      }, 
-      { status: 500 }
+      {
+        validated: false,
+        error: "Internal server error",
+        message: error.message,
+      },
+      { status: 500 },
     );
   }
 };

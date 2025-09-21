@@ -26,7 +26,7 @@ export async function GET(request, { params }) {
         { status: 401 },
       );
     }
-  console.log("got token", token);
+    console.log("got token", token);
 
     // Get the current user from Supabase
     const {
@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
       err,
     } = await supabase.auth.getUser(token);
 
-    console.log("\nUSER\n", user,err)
+    console.log("\nUSER\n", user, err);
 
     if (err || !user) {
       return NextResponse.json(
@@ -43,8 +43,11 @@ export async function GET(request, { params }) {
       );
     }
 
-
-    const {data: userProfile, error: err_fetching_user} = await supabase.from("users").select("*").eq("supa_id", user.id).single()
+    const { data: userProfile, error: err_fetching_user } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", user.id)
+      .single();
     if (err_fetching_user || !userProfile) {
       return NextResponse.json(
         { validated: false, message: "Invalid user" },
@@ -52,7 +55,7 @@ export async function GET(request, { params }) {
       );
     }
     const currentUser = userProfile;
-    console.log(currentUser)
+    console.log(currentUser);
 
     // Fetch event
     const { data: event, error: eventError } = await supabase
@@ -69,12 +72,10 @@ export async function GET(request, { params }) {
       .eq("public_id", eventID)
       .single();
 
-
     if (eventError || !event) {
       console.error("Event fetch error:", eventError);
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
-
 
     // Check access permissions using event_managers table
     const { data: managers, error } = await supabase
@@ -84,7 +85,7 @@ export async function GET(request, { params }) {
       .eq("user_id", currentUser.id)
       .limit(1);
 
-    console.log(event.id, currentUser.id, managers)
+    console.log(event.id, currentUser.id, managers);
 
     if (error) {
       console.error("Error checking event manager:", error);
@@ -118,7 +119,9 @@ export async function GET(request, { params }) {
         guest_groups!inner (
           id,
           title,
-          event_id
+          event_id,
+          status_id,
+          invite_sent_at
         ),
         guest_gender (
           id,
@@ -150,12 +153,12 @@ export async function GET(request, { params }) {
     if (guestError) {
       console.error("Guest fetch error:", guestError);
       return NextResponse.json(
-        { error: "Failed to fetch guest list" , message:guestError},
+        { error: "Failed to fetch guest list", message: guestError },
         { status: 500 },
       );
     }
-    
-    console.log("\n\nGUEST\n\n",allGuests)
+
+    console.log("\n\nGUEST\n\n", allGuests);
 
     // Transform guests
     const transformedUsers =
@@ -169,6 +172,8 @@ export async function GET(request, { params }) {
         point_of_contact: guest.point_of_contact, // boolean
         group: guest.guest_groups?.title,
         group_id: guest.guest_groups?.id,
+        group_status_id: guest.guest_groups?.status_id,
+        group_invite_sent_at: guest.guest_groups?.invite_sent_at,
         gender: guest.guest_gender?.state,
         gender_id: guest.guest_gender?.id,
         ageGroup: guest.guest_age_group?.state,
@@ -214,12 +219,12 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   const { eventID } = params;
-  
+
   try {
     const supabase = createClient();
     const body = await request.json();
     const { event, guestList } = body;
-    
+
     // Get auth token from request headers
     const authHeader = request.headers.get("Authorization");
     const token = authHeader?.split(" ")[1];
@@ -292,7 +297,7 @@ export async function POST(request, { params }) {
 function getStatusName(statusId) {
   const statusMap = {
     1: "pending",
-    2: "opened", 
+    2: "opened",
     3: "attending",
     4: "not_attending",
     5: "maybe",

@@ -35,6 +35,10 @@ const EmailPortal = ({
 
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pocTransferData, setPocTransferData] = useState(null);
+  const [showAreaCodeModal, setShowAreaCodeModal] = useState(false);
+  const [areaCodeModalData, setAreaCodeModalData] = useState(null);
+  const [areaCodeInput, setAreaCodeInput] = useState("");
+  const [whatsappMessage, setWhatsappMessage] = useState("");
 
   // Color palette for groups
   const groupColors = [
@@ -1008,50 +1012,39 @@ const EmailPortal = ({
     try {
       console.log("WHATSAPP, ", guest);
 
-      // Build the RSVP link — adjust to match your routing / query param names
+      // Build the RSVP link
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
-
-      // Prefilled message
-      const message = `${event.details?.whatsapp_msg}: ${rsvpLink}`;
+      
+      // Set initial message
+      const initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+      setWhatsappMessage(initialMessage);
 
       // Clean the phone number (remove non-digits)
       let phoneNumber = guest.phone?.replace(/\D/g, "") || "";
 
-      // If phone number exists, prompt user for area code
-      if (phoneNumber) {
-        const shouldAddAreaCode = window.confirm(
-          `Do you want to add an area code to the phone number ${guest.phone}?`
-        );
+      // Store guest data and show modal (always show modal now for message editing)
+      setAreaCodeModalData({
+        guest,
+        phoneNumber,
+        originalPhone: guest.phone,
+        rsvpLink
+      });
+      setAreaCodeInput("");
+      setShowAreaCodeModal(true);
+    } catch (err) {
+      console.error("Error opening WhatsApp share:", err);
+      toast.error("Unable to open WhatsApp share.");
+    }
+  };
 
-        if (shouldAddAreaCode === null) {
-          // User cancelled the confirm dialog
-          return;
-        }
-
-        if (shouldAddAreaCode) {
-          const areaCode = window.prompt("Please enter the area code (e.g., +1, +44, etc.):");
-          
-          if (areaCode === null) {
-            // User cancelled the prompt
-            return;
-          }
-
-          if (areaCode) {
-            // Clean area code (remove non-digits and +)
-            const cleanAreaCode = areaCode.replace(/[^\d]/g, "");
-            phoneNumber = cleanAreaCode + phoneNumber;
-          }
-        }
-      }
-
-      // Encode the final phone number
-      phoneNumber = encodeURIComponent(phoneNumber);
+  const proceedWithWhatsAppShare = async (guest, finalPhoneNumber) => {
+    try {
+      // Use the edited message from the modal
+      const message = whatsappMessage;
 
       // Construct WhatsApp URL
-      // If phone number exists → direct message that number
-      // Otherwise → fallback to just text share
-      const url = phoneNumber
-        ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+      const url = finalPhoneNumber
+        ? `https://wa.me/${finalPhoneNumber}?text=${encodeURIComponent(message)}`
         : `https://wa.me/?text=${encodeURIComponent(message)}`;
 
       console.log("WHATSAPP URL:", url);
@@ -1095,9 +1088,39 @@ const EmailPortal = ({
         toast(`WhatsApp shared with ${guest.name}!`);
       }
     } catch (err) {
-      console.error("Error opening WhatsApp share:", err);
+      console.error("Error in WhatsApp share:", err);
       toast.error("Unable to open WhatsApp share.");
     }
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!areaCodeModalData) return;
+
+    let finalPhoneNumber = areaCodeModalData.phoneNumber;
+
+    // If there's a phone number and area code input, combine them
+    if (finalPhoneNumber && areaCodeInput.trim()) {
+      // Clean area code (remove non-digits)
+      const cleanAreaCode = areaCodeInput.replace(/[^\d]/g, "");
+      finalPhoneNumber = cleanAreaCode + areaCodeModalData.phoneNumber;
+    }
+
+    // Close modal and proceed
+    const guest = areaCodeModalData.guest;
+    setShowAreaCodeModal(false);
+    setAreaCodeModalData(null);
+    setAreaCodeInput("");
+    
+    // Encode phone number if it exists, otherwise empty string for general share
+    const encodedPhoneNumber = finalPhoneNumber ? encodeURIComponent(finalPhoneNumber) : "";
+    proceedWithWhatsAppShare(guest, encodedPhoneNumber);
+  };
+
+  const handleAreaCodeCancel = () => {
+    setShowAreaCodeModal(false);
+    setAreaCodeModalData(null);
+    setAreaCodeInput("");
+    setWhatsappMessage("");
   };
 
   // Handle file upload
@@ -2482,6 +2505,140 @@ const EmailPortal = ({
                 onClick={handlePOCTransferConfirm}
               >
                 Transfer POC Role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Area Code Modal */}
+      {showAreaCodeModal && areaCodeModalData && (
+        <div className={styles.guestFormOverlay}>
+          <div className={styles.areaCodeModal}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                <span className={styles.whatsappIcon}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z" fill="#25D366"/>
+                    <path d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z" fill="#fff"/>
+                  </svg>
+                </span>
+                WhatsApp Invitation
+              </h3>
+              <button
+                className={styles.closeModal}
+                onClick={handleAreaCodeCancel}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.areaCodeContent}>
+              <div className={styles.guestInfo}>
+                <div className={styles.guestAvatar}>
+                  {areaCodeModalData.guest.name.charAt(0).toUpperCase()}
+                </div>
+                <div className={styles.guestDetails}>
+                  <h4 className={styles.guestName}>{areaCodeModalData.guest.name}</h4>
+                  <p className={styles.guestPhone}>{areaCodeModalData.originalPhone}</p>
+                </div>
+              </div>
+
+              <div className={styles.areaCodeForm}>
+                {/* Message Preview Section */}
+                <div className={styles.messageSection}>
+                  <label className={styles.inputLabel}>Message Preview</label>
+                  <div className={styles.messagePreview}>
+                    <div className={styles.messageHeader}>
+                      <span className={styles.messageIcon}>💬</span>
+                      <span>WhatsApp Message</span>
+                    </div>
+                    <textarea
+                      className={styles.messageTextarea}
+                      value={whatsappMessage}
+                      onChange={(e) => setWhatsappMessage(e.target.value)}
+                      placeholder="Enter your WhatsApp message..."
+                      rows="4"
+                    />
+                    <div className={styles.messageFooter}>
+                      <span className={styles.characterCount}>
+                        {whatsappMessage.length} characters
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone Number Section */}
+                {areaCodeModalData.phoneNumber && (
+                  <>
+                    <div className={styles.formDescription}>
+                      <p>Do you want to add a country code to this phone number?</p>
+                      <p className={styles.formHint}>This helps ensure the WhatsApp link works internationally</p>
+                    </div>
+
+                    <div className={styles.areaCodeInput}>
+                      <label className={styles.inputLabel}>Country Code (optional)</label>
+                      <div className={styles.inputContainer}>
+                        <span className={styles.inputPrefix}>+</span>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={areaCodeInput}
+                          onChange={(e) => setAreaCodeInput(e.target.value)}
+                          placeholder="1, 44, 91, etc."
+                          maxLength="4"
+                        />
+                      </div>
+                      <div className={styles.inputHelp}>
+                        Examples: +1 (US/CA), +44 (UK), +91 (India), +49 (Germany)
+                      </div>
+                    </div>
+
+                    <div className={styles.phonePreview}>
+                      <span className={styles.previewLabel}>Final number:</span>
+                      <span className={styles.previewNumber}>
+                        {areaCodeInput.trim() 
+                          ? `+${areaCodeInput.replace(/[^\d]/g, "")}${areaCodeModalData.phoneNumber}`
+                          : areaCodeModalData.originalPhone
+                        }
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* No Phone Number Message */}
+                {!areaCodeModalData.phoneNumber && (
+                  <div className={styles.noPhoneMessage}>
+                    <div className={styles.noPhoneIcon}>📱</div>
+                    <p>No phone number available for this guest.</p>
+                    <p className={styles.formHint}>The message will be opened as a general WhatsApp share.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.areaCodeActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={handleAreaCodeCancel}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={handleSendWhatsApp}
+                disabled={!whatsappMessage.trim()}
+              >
+                <span className={styles.whatsappIcon}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z" fill="currentColor"/>
+                    <path d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z" fill="#fff"/>
+                  </svg>
+                </span>
+                Send WhatsApp
               </button>
             </div>
           </div>

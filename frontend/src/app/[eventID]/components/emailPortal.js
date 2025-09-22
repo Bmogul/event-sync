@@ -1014,10 +1014,38 @@ const EmailPortal = ({
       // Prefilled message
       const message = `${event.details?.whatsapp_msg}: ${rsvpLink}`;
 
-      // Clean and encode the phone number (remove non-digits, keep country code if included)
-      const phoneNumber = encodeURIComponent(
-        guest.phone?.replace(/\D/g, "") || "",
-      );
+      // Clean the phone number (remove non-digits)
+      let phoneNumber = guest.phone?.replace(/\D/g, "") || "";
+
+      // If phone number exists, prompt user for area code
+      if (phoneNumber) {
+        const shouldAddAreaCode = window.confirm(
+          `Do you want to add an area code to the phone number ${guest.phone}?`
+        );
+
+        if (shouldAddAreaCode === null) {
+          // User cancelled the confirm dialog
+          return;
+        }
+
+        if (shouldAddAreaCode) {
+          const areaCode = window.prompt("Please enter the area code (e.g., +1, +44, etc.):");
+          
+          if (areaCode === null) {
+            // User cancelled the prompt
+            return;
+          }
+
+          if (areaCode) {
+            // Clean area code (remove non-digits and +)
+            const cleanAreaCode = areaCode.replace(/[^\d]/g, "");
+            phoneNumber = cleanAreaCode + phoneNumber;
+          }
+        }
+      }
+
+      // Encode the final phone number
+      phoneNumber = encodeURIComponent(phoneNumber);
 
       // Construct WhatsApp URL
       // If phone number exists → direct message that number

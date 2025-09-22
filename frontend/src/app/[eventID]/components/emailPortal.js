@@ -28,6 +28,8 @@ const EmailPortal = ({
   const [statusFilters, setStatusFilters] = useState([]);
   const [genderFilters, setGenderFilters] = useState([]);
   const [ageGroupFilters, setAgeGroupFilters] = useState([]);
+  const [contactFilters, setContactFilters] = useState([]);
+  const [groupStatusFilters, setGroupStatusFilters] = useState([]);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -91,6 +93,26 @@ const EmailPortal = ({
   // Transform guest list to match API response structure
   const transformedGuestList =
     guestList?.map((guest) => {
+      // Contact information flags
+      const hasEmail = !!(guest.email && guest.email.trim());
+      const hasPhone = !!(guest.phone && guest.phone.trim());
+      const hasContactInfo = hasEmail && hasPhone;
+
+      // Map group status from group_status.status_id to readable status
+      const getGroupStatusName = (statusId) => {
+        const statusMap = {
+          1: "draft",
+          2: "pending",
+          3: "invited",
+          4: "responded",
+          5: "completed",
+          6: "cancelled",
+        };
+        return statusMap[statusId] || "unknown";
+      };
+
+      const groupStatusName = getGroupStatusName(guest.group_status_id);
+
       return {
         // Core guest information
         id: guest.id,
@@ -100,9 +122,23 @@ const EmailPortal = ({
         phone: guest.phone || "",
         tag: guest.tag || "",
 
+        // Contact information flags
+        hasEmail,
+        hasPhone,
+        hasContactInfo,
+        contactStatus: hasContactInfo
+          ? "Complete"
+          : hasEmail
+            ? "Email Only"
+            : hasPhone
+              ? "Phone Only"
+              : "No Contact",
+
         // Group information
         group: guest.group || "",
         group_id: guest.group_id,
+        groupStatus: groupStatusName,
+        group_status_id: guest.group_status_id,
 
         // Lookup table data
         gender: guest.gender || "",
@@ -115,7 +151,7 @@ const EmailPortal = ({
         rsvpStatus: guest.rsvp_status || {},
         total_rsvps: guest.total_rsvps || 0,
 
-        // Email status (derived)
+        // Email status (derived from both RSVP and group status)
         inviteStatus: guest.total_rsvps > 0 ? "Invited" : "Not Invited",
         responseStatus:
           Object.keys(guest.rsvp_status || {}).length > 0
@@ -164,6 +200,38 @@ const EmailPortal = ({
       } else if (primarySort === "inviteStatus") {
         primaryA = a.total_rsvps > 0 ? "Invited" : "Not Invited";
         primaryB = b.total_rsvps > 0 ? "Invited" : "Not Invited";
+      } else if (primarySort === "groupStatus") {
+        // Sort by group status using hierarchy: draft < pending < invited < responded < completed < cancelled
+        const statusOrder = {
+          draft: 1,
+          pending: 2,
+          invited: 3,
+          responded: 4,
+          completed: 5,
+          cancelled: 6,
+          unknown: 7,
+        };
+        primaryA = statusOrder[a.groupStatus] || 7;
+        primaryB = statusOrder[b.groupStatus] || 7;
+      } else if (primarySort === "hasEmail") {
+        primaryA = a.hasEmail ? 1 : 0;
+        primaryB = b.hasEmail ? 1 : 0;
+      } else if (primarySort === "hasPhone") {
+        primaryA = a.hasPhone ? 1 : 0;
+        primaryB = b.hasPhone ? 1 : 0;
+      } else if (primarySort === "hasContactInfo") {
+        primaryA = a.hasContactInfo ? 1 : 0;
+        primaryB = b.hasContactInfo ? 1 : 0;
+      } else if (primarySort === "contactStatus") {
+        // Sort by contact completeness: Complete > Email Only > Phone Only > No Contact
+        const contactOrder = {
+          Complete: 1,
+          "Email Only": 2,
+          "Phone Only": 3,
+          "No Contact": 4,
+        };
+        primaryA = contactOrder[a.contactStatus] || 4;
+        primaryB = contactOrder[b.contactStatus] || 4;
       }
 
       // Primary sort comparison
@@ -275,6 +343,18 @@ const EmailPortal = ({
       );
     }
 
+    if (contactFilters.length > 0) {
+      filtered = filtered.filter((guest) =>
+        contactFilters.includes(guest.contactStatus),
+      );
+    }
+
+    if (groupStatusFilters.length > 0) {
+      filtered = filtered.filter((guest) =>
+        groupStatusFilters.includes(guest.groupStatus),
+      );
+    }
+
     // Apply sorting (default to group-based sorting)
     filtered = sortGuests(filtered, sortBy, sortDirection, secondarySortBy);
 
@@ -295,6 +375,14 @@ const EmailPortal = ({
       groups: [
         ...new Set(transformedGuestList.map((g) => g.group).filter(Boolean)),
       ],
+      contactStatuses: [
+        ...new Set(transformedGuestList.map((g) => g.contactStatus)),
+      ],
+      groupStatuses: [
+        ...new Set(
+          transformedGuestList.map((g) => g.groupStatus).filter(Boolean),
+        ),
+      ],
     };
   };
 
@@ -307,6 +395,8 @@ const EmailPortal = ({
     setStatusFilters([]);
     setGenderFilters([]);
     setAgeGroupFilters([]);
+    setContactFilters([]);
+    setGroupStatusFilters([]);
   };
 
   // Handle multi-select filter changes
@@ -316,6 +406,8 @@ const EmailPortal = ({
       status: setStatusFilters,
       gender: setGenderFilters,
       ageGroup: setAgeGroupFilters,
+      contact: setContactFilters,
+      groupStatus: setGroupStatusFilters,
     }[filterType];
 
     if (setFilter) {
@@ -341,7 +433,9 @@ const EmailPortal = ({
       groupFilters.length > 0 ||
       statusFilters.length > 0 ||
       genderFilters.length > 0 ||
-      ageGroupFilters.length > 0
+      ageGroupFilters.length > 0 ||
+      contactFilters.length > 0 ||
+      groupStatusFilters.length > 0
     );
   };
 
@@ -455,9 +549,8 @@ const EmailPortal = ({
     return (
       <tr
         key={guest.id}
-        className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${
-          isSelected ? styles.selectedRow : ""
-        } ${isGroupMember ? styles.groupMemberRow : ""}`}
+        className={`${isPointOfContact ? styles.pointOfContactRow : ""} ${isSelected ? styles.selectedRow : ""
+          } ${isGroupMember ? styles.groupMemberRow : ""}`}
       >
         <td>
           <input
@@ -533,7 +626,7 @@ const EmailPortal = ({
                   style={{
                     backgroundColor:
                       groupColors[
-                        Math.abs(guest.group.charCodeAt(0)) % groupColors.length
+                      Math.abs(guest.group.charCodeAt(0)) % groupColors.length
                       ],
                   }}
                 />
@@ -574,13 +667,12 @@ const EmailPortal = ({
         })}
         <td>
           <span
-            className={`${styles.statusBadge} ${
-              guest.inviteStatus === "Invited"
+            className={`${styles.statusBadge} ${[3, 4, 5].includes(guest.group_status_id) 
                 ? styles.statusInvited
                 : styles.statusNotInvited
-            }`}
+              }`}
           >
-            {guest.inviteStatus}
+            {[3, 4, 5].includes(guest.group_status_id) ? "invited" : "pending"}
           </span>
         </td>
       </tr>
@@ -636,7 +728,7 @@ const EmailPortal = ({
                     style={{
                       backgroundColor:
                         groupColors[
-                          Math.abs(groupName.charCodeAt(0)) % groupColors.length
+                        Math.abs(groupName.charCodeAt(0)) % groupColors.length
                         ],
                     }}
                   />
@@ -702,7 +794,6 @@ const EmailPortal = ({
   const handleSelectAll = (isSelected) => {
     if (isSelected) {
       setSelectedRows(filteredGuests);
-
     } else {
       setSelectedRows([]);
     }
@@ -913,7 +1004,7 @@ const EmailPortal = ({
     }
   };
 
-  const handleShareWhatsApp = (guest) => {
+  const handleShareWhatsApp = async (guest) => {
     try {
       console.log("WHATSAPP, ", guest);
 
@@ -921,7 +1012,7 @@ const EmailPortal = ({
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
 
       // Prefilled message
-      const message = `Hi ${guest?.name || ""}! Please RSVP: ${rsvpLink}`;
+      const message = `${event.details?.whatsapp_msg}: ${rsvpLink}`;
 
       // Clean and encode the phone number (remove non-digits, keep country code if included)
       const phoneNumber = encodeURIComponent(
@@ -937,7 +1028,44 @@ const EmailPortal = ({
 
       console.log("WHATSAPP URL:", url);
 
+      // Open WhatsApp
       window.open(url, "_blank", "noopener,noreferrer");
+
+      // Update group status to "invited" (status_id: 3) after sharing
+      if (session?.access_token && guest.group_id) {
+        try {
+          const response = await fetch(`/api/${params.eventID}/updateGroupStatus`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              group_id: guest.group_id,
+              status_id: 3, // "invited" status
+              invite_method: "whatsapp"
+            }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            toast(`WhatsApp invitation sent to ${guest.name}! Group status updated to ${result.new_status}.`);
+            // Refresh guest list to show updated status
+            if (getGuestList && event) {
+              await getGuestList(event);
+            }
+          } else {
+            console.error("Failed to update group status:", result);
+            toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+          }
+        } catch (statusError) {
+          console.error("Error updating group status:", statusError);
+          toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+        }
+      } else {
+        toast(`WhatsApp shared with ${guest.name}!`);
+      }
     } catch (err) {
       console.error("Error opening WhatsApp share:", err);
       toast.error("Unable to open WhatsApp share.");
@@ -1374,6 +1502,59 @@ const EmailPortal = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Contact Info Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>
+                    Contact Info:
+                  </label>
+                  <div className={styles.checkboxGrid}>
+                    {getFilterOptions().contactStatuses.map((contactStatus) => (
+                      <label
+                        key={contactStatus}
+                        className={styles.checkboxLabel}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={contactFilters.includes(contactStatus)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "contact",
+                              contactStatus,
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        <span>{contactStatus}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Group Status Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>
+                    Group Status:
+                  </label>
+                  <div className={styles.checkboxGrid}>
+                    {getFilterOptions().groupStatuses.map((groupStatus) => (
+                      <label key={groupStatus} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={groupStatusFilters.includes(groupStatus)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "groupStatus",
+                              groupStatus,
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        <span className="capitalize">{groupStatus}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -1390,6 +1571,8 @@ const EmailPortal = ({
                     ]);
                     setGenderFilters(getFilterOptions().genders);
                     setAgeGroupFilters(getFilterOptions().ageGroups);
+                    setContactFilters(getFilterOptions().contactStatuses);
+                    setGroupStatusFilters(getFilterOptions().groupStatuses);
                   }}
                 >
                   Select All
@@ -1401,6 +1584,8 @@ const EmailPortal = ({
                     setStatusFilters([]);
                     setGenderFilters([]);
                     setAgeGroupFilters([]);
+                    setContactFilters([]);
+                    setGroupStatusFilters([]);
                   }}
                 >
                   Clear All
@@ -1446,6 +1631,46 @@ const EmailPortal = ({
               }}
             >
               📧 Status → Name
+            </button>
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "groupStatus" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("groupStatus");
+                setSecondarySortBy("name");
+                setSortDirection("asc");
+              }}
+            >
+              📋 Group Status → Name
+            </button>
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "contactStatus" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("contactStatus");
+                setSecondarySortBy("name");
+                setSortDirection("asc");
+              }}
+            >
+              📞 Contact Info → Name
+            </button>
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "hasEmail" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("hasEmail");
+                setSecondarySortBy("name");
+                setSortDirection("desc");
+              }}
+            >
+              📧 Has Email → Name
+            </button>
+            <button
+              className={`${styles.btnOutlineSmall} ${sortBy === "hasPhone" && secondarySortBy === "name" ? styles.active : ""}`}
+              onClick={() => {
+                setSortBy("hasPhone");
+                setSecondarySortBy("name");
+                setSortDirection("desc");
+              }}
+            >
+              📱 Has Phone → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "ageGroup" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -2104,9 +2329,9 @@ const EmailPortal = ({
                                 {member.gender || "No gender"} •
                                 {member.ageGroup
                                   ? ageGroups.find(
-                                      (group) =>
-                                        group.value === member.ageGroup,
-                                    )?.label || member.ageGroup
+                                    (group) =>
+                                      group.value === member.ageGroup,
+                                  )?.label || member.ageGroup
                                   : "No age group"}
                               </div>
                               {member.tag && (

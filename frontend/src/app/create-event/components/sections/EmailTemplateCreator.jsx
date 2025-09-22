@@ -715,7 +715,7 @@ const EmailTemplateCreator = ({
                 )}
               </div>
 
-              <div className={styles.formGroup}>
+             {/* <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Email Greeting</label>
                 <input
                   type="text"
@@ -726,7 +726,7 @@ const EmailTemplateCreator = ({
                   }
                   placeholder="Dear Guest,"
                 />
-              </div>
+              </div>*/}
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Email Body *</label>

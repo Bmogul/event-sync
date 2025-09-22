@@ -386,7 +386,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
               >
                 {/* Message Content */}
                 <div style={{ marginBottom: "40px" }}>
-                  <p
+                 {/* <p
                     style={{
                       fontSize: "20px",
                       color: currentTemplate.text_color || "#333333",
@@ -395,7 +395,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                     }}
                   >
                     {templateData.greeting}
-                  </p>
+                  </p>*/}
 
                   <div
                     style={{
@@ -748,7 +748,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                 )}
               </div>
 
-              <div className={styles.formGroup}>
+              {/*<div className={styles.formGroup}>
                 <label className={styles.formLabel}>Email Greeting</label>
                 <input
                   type="text"
@@ -759,7 +759,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
                   }
                   placeholder="Dear Guest,"
                 />
-              </div>
+              </div>*/}
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Email Body *</label>

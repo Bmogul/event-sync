@@ -633,13 +633,40 @@
   background: white;
 }
 
+.resizableTable {
+  table-layout: fixed;
+}
+
+.resizableColumn {
+  position: relative;
+  resize: horizontal;
+  overflow: hidden;
+  min-width: 80px;
+  border-right: 2px solid #e5e7eb;
+}
+.resizableMed{
+  min-width: 250px;
+}
+.resizableLarge{
+  min-width: 420px;
+}
+.resizableSmall{
+  min-width: 50px;;
+}
+
+.resizableColumn:hover {
+  border-right-color: #9ca3af;
+}
+
 .guestTable th,
 .guestTable td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #f3f4f6;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: normal; /* Allow text wrapping */
   vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .guestTable th {

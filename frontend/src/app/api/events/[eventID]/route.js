@@ -80,6 +80,12 @@ export async function GET(request, { params }) {
       console.error("Sub-events fetch error:", subEventsError);
     }
     console.log(subEvents);
+    
+    // Get Guest Groups
+    const {data: guestGroups, error: guestGroupsError} = await supabase
+      .from("guest_groups")
+      .select(`*`)
+      .eq("event_id", event.id)
 
     // Transform the data to match the expected format
     const landingConfig = event.landing_page_configs?.[0];
@@ -102,6 +108,9 @@ export async function GET(request, { params }) {
       // Landing page config
       landingConfig: landingConfig,
       email_message: landingConfig?.greeting_config?.message || "",
+
+      // Guest Groups
+      guestGroups: guestGroups,
 
       // Transform sub-events to legacy format
       ...subEvents?.reduce((acc, subEvent, index) => {

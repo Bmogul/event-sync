@@ -26,7 +26,8 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
+  const [currentView, setCurrentView] = useState("manage-guests"); // "email", "template-editor", or "manage-team"
+  const [groups, setGroups] = useState();
 
   const {
     session,
@@ -85,6 +86,7 @@ const Page = () => {
         const data = await response.json();
         console.log(data);
         setEvent(data);
+        setGroups(data.guestGroups);
 
         // Fetch guest list after event data is loaded, but only if authenticated
         if (data && session?.access_token) {
@@ -372,7 +374,7 @@ const Page = () => {
           ) : currentView === "manage-team" ? (
             <ManageTeam eventPublicId={event?.eventID} />
           ) : currentView === "manage-guests" ? (
-            <ManageGuests event={event} guests={guestList} />
+            <ManageGuests event={event} guests={guestList} groups={groups}/>
           ) : null}
         </div>
       </main>

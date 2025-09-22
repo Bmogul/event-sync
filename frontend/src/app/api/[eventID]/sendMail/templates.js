@@ -103,7 +103,6 @@ export const inviteTemplate = `
                 font-weight: 500;
               "
             >
-              {{greeting}}
             </p>
             
             <div 

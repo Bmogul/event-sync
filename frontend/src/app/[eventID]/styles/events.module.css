@@ -574,17 +574,22 @@
   margin-bottom: 150px;
 }
 
+
 .galleryGrid {
   display: grid;
   gap: 12px;
   margin-bottom: 8px;
-  justify-content: center;
+  justify-content: center; /* centers the whole grid when fewer columns */
   align-items: start;
   justify-items: center;
   width: 100%;
-  /* Use CSS custom properties for responsive behavior */
-  grid-template-columns: repeat(var(--gallery-columns, 3), 1fr);
-  grid-auto-rows: auto;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Center the last item if it would otherwise sit alone on a row */
+.galleryGrid > *:last-child:nth-child(odd) {
+  grid-column: 1/-1;   /* span all columns */
+  justify-self: center;  /* center it horizontally */
 }
 
 .galleryItem {
@@ -868,6 +873,7 @@
     max-height: 400px;
   }
 }
+
 
 /* Expanded Image Modal */
 .expandedImageModal {

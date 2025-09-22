@@ -14,6 +14,7 @@ import Loading from "../components/loading";
 import Email from "../components/emailPortal";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import ManageTeam from "../components/ManageTeam";
+import ManageGuests from "../components/ManageGuests";
 
 import styles from "../styles/portal.module.css";
 
@@ -239,6 +240,14 @@ const Page = () => {
                     🎨 Customize RSVP
                   </button>
                 )}
+                {canEditEvent && (
+                  <button
+                    onClick={()=>{setCurrentView("manage-guests")}}
+                    className={styles.btnOutline}
+                  >
+                    Manage Guests
+                  </button>
+                )}
 
                 {canEditTemplates && (
                   <button
@@ -320,7 +329,7 @@ const Page = () => {
 
                   // Return true if ANY RSVP status_id is 1, 2, 6
                   return statuses.some((rsvp) =>
-                    [1,2,6].includes(rsvp.status_id),
+                    [1, 2, 6].includes(rsvp.status_id),
                   );
                 }).length || 0}
               </div>
@@ -362,6 +371,8 @@ const Page = () => {
             />
           ) : currentView === "manage-team" ? (
             <ManageTeam eventPublicId={event?.eventID} />
+          ) : currentView === "manage-guests" ? (
+            <ManageGuests event={event} guests={guestList} />
           ) : null}
         </div>
       </main>

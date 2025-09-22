@@ -805,10 +805,10 @@
   }
 
   .galleryGrid>*:last-child:nth-child(odd) {
-    grid-column: 1/-1;
-    /* span all columns */
+    grid-column-start: 1;
+    grid-column-end: -1;
     justify-self: center;
-    /* center it horizontally */
+    max-width: calc((100% - 12px) / 2); /* Make it same size as other items */
   }
 
   .galleryItem {

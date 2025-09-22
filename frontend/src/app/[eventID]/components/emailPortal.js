@@ -1004,7 +1004,7 @@ const EmailPortal = ({
     }
   };
 
-  const handleShareWhatsApp = (guest) => {
+  const handleShareWhatsApp = async (guest) => {
     try {
       console.log("WHATSAPP, ", guest);
 
@@ -1012,7 +1012,7 @@ const EmailPortal = ({
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
 
       // Prefilled message
-      const message = `Hi ${guest?.name || ""}! Please RSVP: ${rsvpLink}`;
+      const message = `${event.details?.whatsapp_msg}: ${rsvpLink}`;
 
       // Clean and encode the phone number (remove non-digits, keep country code if included)
       const phoneNumber = encodeURIComponent(
@@ -1028,7 +1028,44 @@ const EmailPortal = ({
 
       console.log("WHATSAPP URL:", url);
 
+      // Open WhatsApp
       window.open(url, "_blank", "noopener,noreferrer");
+
+      // Update group status to "invited" (status_id: 3) after sharing
+      if (session?.access_token && guest.group_id) {
+        try {
+          const response = await fetch(`/api/${params.eventID}/updateGroupStatus`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              group_id: guest.group_id,
+              status_id: 3, // "invited" status
+              invite_method: "whatsapp"
+            }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            toast(`WhatsApp invitation sent to ${guest.name}! Group status updated to ${result.new_status}.`);
+            // Refresh guest list to show updated status
+            if (getGuestList && event) {
+              await getGuestList(event);
+            }
+          } else {
+            console.error("Failed to update group status:", result);
+            toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+          }
+        } catch (statusError) {
+          console.error("Error updating group status:", statusError);
+          toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+        }
+      } else {
+        toast(`WhatsApp shared with ${guest.name}!`);
+      }
     } catch (err) {
       console.error("Error opening WhatsApp share:", err);
       toast.error("Unable to open WhatsApp share.");

@@ -595,7 +595,7 @@
   transition: transform 0.3s ease;
   width: 100%;
   background: rgba(255, 255, 255, 0.05);
-  /* Let images determine their own height based on aspect ratio */
+  aspect-ratio: 4/3;
   min-height: 200px;
   display: flex;
   align-items: center;
@@ -863,8 +863,9 @@
   }
 
   .galleryItem {
-    min-height: 200px;
-    max-height: 350px;
+    aspect-ratio: 4/3;
+    min-height: 250px;
+    max-height: 400px;
   }
 }
 

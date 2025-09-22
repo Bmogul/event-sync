@@ -188,21 +188,31 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
 
   const [expandedImage, setExpandedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
-  // Determine optimal column count for symmetrical layout based on screen size and image count
+  // Determine optimal column count - use 3 columns for odd numbers on desktop
   const getColumnCount = (imageCount) => {
     if (imageCount === 0) return 1;
     if (imageCount === 1) return 1;
     if (imageCount === 2) return 2;
-    if (imageCount <= 4) return 2;
-    if (imageCount <= 6) return 3;
-    return 3; // For 7+ images, use 3 columns
+    
+    // For odd numbers, use 3 columns to create complete rows
+    if (imageCount % 3 === 0) return 3; // Divisible by 3: use 3 columns
+    if (imageCount % 2 === 0) return 2; // Even numbers not divisible by 3: use 2 columns
+    return 3; // Odd numbers: use 3 columns (3, 7, 9, 13, etc.)
   };
 
   // Get responsive column count based on viewport
   const getResponsiveColumns = (imageCount) => {
     const baseColumns = getColumnCount(imageCount);
-    // Use CSS media queries to handle responsive behavior instead of JavaScript
+    
+    // Use windowWidth state for responsive behavior
+    if (windowWidth <= 768) {
+      // Mobile and Tablet: max 2 columns
+      return Math.min(baseColumns, 2);
+    }
+    
+    // Desktop: use full column count
     return baseColumns;
   };
 
@@ -245,6 +255,16 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
   }, [expandedImage, currentImageIndex, imagesWithUrl.length]);
+
+  // Handle window resize for responsive column count
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div className={styles.galleryLayout}>

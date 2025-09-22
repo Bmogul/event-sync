@@ -574,12 +574,12 @@
   margin-bottom: 150px;
 }
 
-
 .galleryGrid {
   display: grid;
   gap: 12px;
   margin-bottom: 8px;
-  justify-content: center; /* centers the whole grid when fewer columns */
+  justify-content: center;
+  /* centers the whole grid when fewer columns */
   align-items: start;
   justify-items: center;
   width: 100%;
@@ -587,11 +587,6 @@
 }
 
 /* Center the last item if it would otherwise sit alone on a row */
-.galleryGrid > *:last-child:nth-child(odd) {
-  grid-column: 1/-1;   /* span all columns */
-  justify-self: center;  /* center it horizontally */
-}
-
 .galleryItem {
   position: relative;
   border-radius: var(--radius-lg);
@@ -655,7 +650,7 @@
   font-weight: 600;
   margin: 0 0 20px 0;
 
-  font-family: 'serif';
+  font-family: "serif";
 }
 
 .galleryGuestList {
@@ -665,7 +660,7 @@
   align-items: center;
   margin-bottom: 20px;
 
-  font-family: 'serif';
+  font-family: "serif";
 }
 
 .galleryGuestName {
@@ -704,7 +699,7 @@
 }
 
 .timeline::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 15px;
   top: 0;
@@ -795,6 +790,7 @@
 
 /* Responsive Design for Layout Variations */
 @media (max-width: 768px) {
+
   .minimalLayout,
   .timelineLayout {
     padding: 16px;
@@ -806,6 +802,13 @@
     max-width: 100%;
     /* Override column count for mobile */
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .galleryGrid>*:last-child:nth-child(odd) {
+    grid-column: 1/-1;
+    /* span all columns */
+    justify-self: center;
+    /* center it horizontally */
   }
 
   .galleryItem {
@@ -840,6 +843,7 @@
 }
 
 @media (max-width: 480px) {
+
   .minimalLayout,
   .timelineLayout {
     padding: 12px;
@@ -874,7 +878,6 @@
   }
 }
 
-
 /* Expanded Image Modal */
 .expandedImageModal {
   position: fixed;
@@ -891,8 +894,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
@@ -986,7 +994,6 @@
   font-size: 16px;
 }
 
-
 /* Mobile adjustments for modal */
 @media (max-width: 768px) {
   .closeBtn {
@@ -1044,7 +1051,7 @@
   .galleryGrid {
     gap: 16px;
   }
-  
+
   .galleryLayout {
     gap: 20px;
     padding: 0 16px;

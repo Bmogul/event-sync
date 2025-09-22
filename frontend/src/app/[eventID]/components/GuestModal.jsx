@@ -2,7 +2,7 @@
 
 import styles from "../styles/portal.module.css";
 import Select from "react-select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestList }) => {
   if (!isOpen || !currentGuest) return null;
@@ -11,8 +11,11 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
     value: group.id,
     label: group.title,
   }));
-  const [guest, setGuest] = useState({ ...currentGuest });
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setCreateGroup] = useState(false);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [editingGuest, setEditingGuest] = useState(null);
+  
   const defaultGroup = {
     details: {
       description: "",
@@ -23,6 +26,18 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
     title: "",
   };
   const [newGroup, setNewGroup] = useState(defaultGroup);
+
+  const defaultGuest = {
+    name: "",
+    email: "",
+    phone: "",
+    gender_id: null,
+    age_group_id: null,
+    tag: "",
+    point_of_contact: false,
+    group_id: selectedGroup?.id || null,
+  };
+  const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
   const genderOptions = [
     { value: 1, label: 'Male' },
@@ -40,6 +55,16 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
     { value: 6, label: 'Age not specified' }
   ];
 
+  // Load the current guest's group when modal opens
+  useEffect(() => {
+    if (currentGuest && currentGuest.group_id) {
+      const guestGroup = groups.find(g => g.id === currentGuest.group_id);
+      if (guestGroup) {
+        setSelectedGroup(guestGroup);
+      }
+    }
+  }, [currentGuest, groups]);
+
   return (
     <div className={styles.guestFormOverlay}>
       <div className={styles.guestFormModal}>
@@ -52,31 +77,16 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
 
         <div className={styles.modalContent}>
           {/* Group Section */}
-
           <div className={styles.formSectionGroup}>
             <h4 className={styles.formSectionTitle}>Group Information</h4>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Group</label>
+              <label className={styles.formLabel}>Select Group</label>
               <Select
                 classNamePrefix="react-select"
-                value={
-                  groupOptions.find((opt) => opt.value === guest.group_id) ||
-                  null
-                }
-                onChange={(selected, actionMeta) => {
-                  if (actionMeta.action === "clear") {
-                    // Revert to the original group_id from currentGuest
-                    setGuest((prev) => ({
-                      ...prev,
-                      group_id: currentGuest.group_id,
-                    }));
-                  } else {
-                    // Normal selection change
-                    setGuest((prev) => ({
-                      ...prev,
-                      group_id: selected?.value || null,
-                    }));
-                  }
+                value={selectedGroup ? { value: selectedGroup.id, label: selectedGroup.title } : null}
+                onChange={(selected) => {
+                  const group = groups.find(g => g.id === selected?.value);
+                  setSelectedGroup(group || null);
                 }}
                 options={groupOptions}
                 placeholder="Search or select a group…"
@@ -84,19 +94,16 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                 isSearchable
               />
               <div className={styles.fieldHelp}>
-                The group this guest belongs to
+                Select an existing group or create a new one
               </div>
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnPrimary}`}
-                onClick={() => {
-                  // Add new group functionality here
-                  console.log("Add new group clicked");
-                  setCreateGroup(true);
-                }}
+                onClick={() => setCreateGroup(true)}
               >
                 Create New Group
               </button>
+              
               {/* Create New Group Fields */}
               {showCreateGroup && (
                 <>
@@ -106,16 +113,21 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                       type="text"
                       className={styles.formInput}
                       placeholder="Enter group name..."
+                      value={newGroup.title}
+                      onChange={(e) => setNewGroup(prev => ({ ...prev, title: e.target.value }))}
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      Group Description
-                    </label>
+                    <label className={styles.formLabel}>Group Description</label>
                     <textarea
                       className={styles.formInput}
                       placeholder="Enter group description..."
                       rows={3}
+                      value={newGroup.details.description}
+                      onChange={(e) => setNewGroup(prev => ({ 
+                        ...prev, 
+                        details: { ...prev.details, description: e.target.value }
+                      }))}
                     />
                   </div>
                   <div className={styles.formActions}>
@@ -131,7 +143,7 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                       className={`${styles.btn} ${styles.btnPrimary}`}
                       onClick={() => {
                         // Add create group logic here
-                        console.log("Creating new group");
+                        console.log("Creating new group", newGroup);
                         setCreateGroup(false);
                       }}
                     >
@@ -140,161 +152,218 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                   </div>
                 </>
               )}
+            </div>
+          </div>
 
-              {/* Other Guests in Group */}
-              {guest.group_id && (
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Other Guests in Group</label>
-                  <div className={styles.guestsList}>
-                    {guestList
-                      ?.filter(
-                        (g) => 
-                          g.group_id === guest.group_id && 
-                          g.id !== currentGuest.id
-                      )
-                      .map((otherGuest) => (
-                        <div key={otherGuest.id} className={styles.guestItem}>
-                          <div className={styles.guestName}>
-                            {otherGuest.name}
-                            {otherGuest.point_of_contact && (
-                              <span className={styles.pocBadge}> (POC)</span>
-                            )}
-                          </div>
-                          <div className={styles.guestDetails}>
-                            {otherGuest.email}
-                            {otherGuest.phone && ` • ${otherGuest.phone}`}
-                          </div>
+          {/* Guests Section */}
+          {selectedGroup && (
+            <div className={styles.formSectionGroup}>
+              <h4 className={styles.formSectionTitle}>Guests in Group</h4>
+              <div className={styles.guestsGrid}>
+                {guestList
+                  ?.filter((g) => g.group_id === selectedGroup.id)
+                  .map((guest) => (
+                    <div key={guest.id} className={styles.guestCard}>
+                      <div className={styles.guestInfo}>
+                        <div className={styles.guestName}>
+                          {guest.name}
+                          {guest.point_of_contact && (
+                            <span className={styles.pocBadge}> (POC)</span>
+                          )}
                         </div>
-                      )) || <div className={styles.noGuests}>No other guests in this group</div>}
-                  </div>
+                        <div className={styles.guestDetails}>
+                          {guest.email}
+                          {guest.phone && ` • ${guest.phone}`}
+                        </div>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}
+                        onClick={() => {
+                          setEditingGuest(guest);
+                          setGuestFormData(guest);
+                          setShowGuestForm(true);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      </div>
+
+                    </div>
+                  )) || <div className={styles.noGuests}>No guests in this group</div>}
+              </div>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={() => {
+                  setEditingGuest(null);
+                  setGuestFormData({ ...defaultGuest, group_id: selectedGroup.id });
+                  setShowGuestForm(true);
+                }}
+              >
+                Add Guest
+              </button>
+            </div>
+          )}
+
+          {/* Guest Form */}
+          {showGuestForm && (
+            <div className={styles.formSectionGroup}>
+              <h4 className={styles.formSectionTitle}>
+                {editingGuest ? 'Edit Guest' : 'Add New Guest'}
+              </h4>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Full Name</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={guestFormData.name || ""}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }));
+                    }}
+                  />
                 </div>
-              )}
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Email</label>
+                  <input
+                    type="email"
+                    className={styles.formInput}
+                    value={guestFormData.email || ""}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Phone</label>
+                  <input
+                    type="tel"
+                    className={styles.formInput}
+                    value={guestFormData.phone || ""}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Gender</label>
+                  <Select
+                    classNamePrefix="react-select"
+                    value={
+                      genderOptions.find((opt) => opt.value === guestFormData.gender_id) ||
+                      null
+                    }
+                    onChange={(selected) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        gender_id: selected?.value || null,
+                      }));
+                    }}
+                    options={genderOptions}
+                    placeholder="Select gender..."
+                    isClearable
+                    isSearchable
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Age Group</label>
+                  <Select
+                    classNamePrefix="react-select"
+                    value={
+                      ageGroupOptions.find((opt) => opt.value === guestFormData.age_group_id) ||
+                      null
+                    }
+                    onChange={(selected) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        age_group_id: selected?.value || null,
+                      }));
+                    }}
+                    options={ageGroupOptions}
+                    placeholder="Select age group..."
+                    isClearable
+                    isSearchable
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Tag/Side</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={guestFormData.tag || ""}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        tag: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Point of Contact Section */}
+              <div className={styles.pointOfContactSection}>
+                <label className={styles.pointOfContactLabel}>
+                  <input
+                    type="checkbox"
+                    checked={guestFormData.point_of_contact || false}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        point_of_contact: e.target.checked,
+                      }));
+                    }}
+                  />
+                  Point of Contact
+                </label>
+                <div className={styles.pointOfContactHelp}>
+                  Point of contact receives important updates and can help
+                  coordinate with their group
+                </div>
+              </div>
+
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  onClick={() => {
+                    setShowGuestForm(false);
+                    setEditingGuest(null);
+                    setGuestFormData(defaultGuest);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => {
+                    // Add save guest logic here
+                    console.log(editingGuest ? "Updating guest" : "Creating guest", guestFormData);
+                    setShowGuestForm(false);
+                    setEditingGuest(null);
+                    setGuestFormData(defaultGuest);
+                  }}
+                >
+                  {editingGuest ? 'Update Guest' : 'Save Guest'}
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className={styles.formSectionGroup}>
-            <h4 className={styles.formSectionTitle}>Guest Information</h4>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Full Name</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  value={guest.name || ""}
-                  onChange={(e) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Email</label>
-                <input
-                  type="email"
-                  className={styles.formInput}
-                  value={guest.email || ""}
-                  onChange={(e) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      email: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Phone</label>
-                <input
-                  type="tel"
-                  className={styles.formInput}
-                  value={guest.phone || ""}
-                  onChange={(e) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      phone: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Gender</label>
-                <Select
-                  classNamePrefix="react-select"
-                  value={
-                    genderOptions.find((opt) => opt.value === guest.gender_id) ||
-                    null
-                  }
-                  onChange={(selected) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      gender_id: selected?.value || null,
-                    }));
-                  }}
-                  options={genderOptions}
-                  placeholder="Select gender..."
-                  isClearable
-                  isSearchable
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Age Group</label>
-                <Select
-                  classNamePrefix="react-select"
-                  value={
-                    ageGroupOptions.find((opt) => opt.value === guest.age_group_id) ||
-                    null
-                  }
-                  onChange={(selected) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      age_group_id: selected?.value || null,
-                    }));
-                  }}
-                  options={ageGroupOptions}
-                  placeholder="Select age group..."
-                  isClearable
-                  isSearchable
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Tag/Side</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  value={guest.tag || ""}
-                  onChange={(e) => {
-                    setGuest((prev) => ({
-                      ...prev,
-                      tag: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Point of Contact Section */}
-          <div className={styles.pointOfContactSection}>
-            <label className={styles.pointOfContactLabel}>
-              <input
-                type="checkbox"
-                checked={guest.point_of_contact || false}
-                readOnly
-                disabled
-              />
-              Point of Contact
-            </label>
-            <div className={styles.pointOfContactHelp}>
-              Point of contact receives important updates and can help
-              coordinate with their group
-            </div>
-          </div>
+          )}
         </div>
 
         <div className={styles.modalFooter}>

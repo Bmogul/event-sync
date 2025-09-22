@@ -943,7 +943,7 @@
 }
 
 .expandedImageContainer {
-  max-width: 35vw;
+  max-width: 25vw;
   max-height: 75vh;
   display: flex;
   align-items: center;

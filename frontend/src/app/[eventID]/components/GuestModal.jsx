@@ -4,28 +4,35 @@ import styles from "../styles/portal.module.css";
 import Select from "react-select";
 import { useState, useEffect } from "react";
 
-const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestList }) => {
+const GuestModal = ({
+  currentGuest,
+  isOpen,
+  onClose,
+  groups,
+  subevents,
+  guestList,
+  eventID
+}) => {
   if (!isOpen || !currentGuest) return null;
 
-  const groupOptions = groups.map((group) => ({
-    value: group.id,
-    label: group.title,
-  }));
+  const [groupOptions, setGroupOptions] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setCreateGroup] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [editingGuest, setEditingGuest] = useState(null);
-  
+
   const defaultGroup = {
     details: {
       description: "",
     },
     event_id: null,
+    id: null,
     size_limit: -1,
     status_id: 2,
     title: "",
   };
   const [newGroup, setNewGroup] = useState(defaultGroup);
+  const [groupsStaging, setGroupsStaging] = useState(null);
 
   const defaultGuest = {
     name: "",
@@ -40,30 +47,62 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
   const genderOptions = [
-    { value: 1, label: 'Male' },
-    { value: 2, label: 'Female' },
-    { value: 3, label: 'Other/Prefer not to say' },
-    { value: 4, label: 'Not specified' }
+    { value: 1, label: "Male" },
+    { value: 2, label: "Female" },
+    { value: 3, label: "Other/Prefer not to say" },
+    { value: 4, label: "Not specified" },
   ];
 
   const ageGroupOptions = [
-    { value: 1, label: 'Infant (0-2 years)' },
-    { value: 2, label: 'Child (3-12 years)' },
-    { value: 3, label: 'Teenager (13-17 years)' },
-    { value: 4, label: 'Adult (18-64 years)' },
-    { value: 5, label: 'Senior (65+ years)' },
-    { value: 6, label: 'Age not specified' }
+    { value: 1, label: "Infant (0-2 years)" },
+    { value: 2, label: "Child (3-12 years)" },
+    { value: 3, label: "Teenager (13-17 years)" },
+    { value: 4, label: "Adult (18-64 years)" },
+    { value: 5, label: "Senior (65+ years)" },
+    { value: 6, label: "Age not specified" },
   ];
 
   // Load the current guest's group when modal opens
   useEffect(() => {
+    if (groups) {
+      setGroupsStaging([...groups])
+      setGroupOptions(groups.map((group) => ({
+        value: group.id,
+        label: group.title,
+      })))
+    }
     if (currentGuest && currentGuest.group_id) {
-      const guestGroup = groups.find(g => g.id === currentGuest.group_id);
+      const guestGroup = groups.find((g) => g.id === currentGuest.group_id);
       if (guestGroup) {
         setSelectedGroup(guestGroup);
+        setShowGuestForm(true);
+        setEditingGuest(true);
+        setGuestFormData({ ...currentGuest });
       }
     }
   }, [currentGuest, groups]);
+
+  const createGroup = (group)=>{
+    // Generate temporary negative ID for new groups
+    const tempId = -Date.now()
+    console.log("EVENT DATA", eventID, subevents)
+    const groupWithTempId = { ...group, id: tempId }
+    groupWithTempId.event_id = eventID;
+    console.log("new group", groupWithTempId);
+    const newGroupOption = {value: tempId, label: group.title}
+    
+    setGroupsStaging(prev => [...prev, groupWithTempId])
+    setGroupOptions(prev => [...prev, newGroupOption])
+
+    setSelectedGroup(groupWithTempId)
+  }
+
+
+  const onSave = () => {
+    console.log(guestFormData)
+    console.log(groupsStaging)
+    console.log(groupOptions)
+  }
 
   return (
     <div className={styles.guestFormOverlay}>
@@ -83,9 +122,13 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
               <label className={styles.formLabel}>Select Group</label>
               <Select
                 classNamePrefix="react-select"
-                value={selectedGroup ? { value: selectedGroup.id, label: selectedGroup.title } : null}
+                value={
+                  selectedGroup
+                    ? { value: selectedGroup.id, label: selectedGroup.title }
+                    : null
+                }
                 onChange={(selected) => {
-                  const group = groups.find(g => g.id === selected?.value);
+                  const group = groupsStaging.find((g) => g.id === selected?.value);
                   setSelectedGroup(group || null);
                 }}
                 options={groupOptions}
@@ -103,7 +146,7 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
               >
                 Create New Group
               </button>
-              
+
               {/* Create New Group Fields */}
               {showCreateGroup && (
                 <>
@@ -114,20 +157,32 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                       className={styles.formInput}
                       placeholder="Enter group name..."
                       value={newGroup.title}
-                      onChange={(e) => setNewGroup(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={(e) =>
+                        setNewGroup((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Group Description</label>
+                    <label className={styles.formLabel}>
+                      Group Description
+                    </label>
                     <textarea
                       className={styles.formInput}
                       placeholder="Enter group description..."
                       rows={3}
                       value={newGroup.details.description}
-                      onChange={(e) => setNewGroup(prev => ({ 
-                        ...prev, 
-                        details: { ...prev.details, description: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewGroup((prev) => ({
+                          ...prev,
+                          details: {
+                            ...prev.details,
+                            description: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className={styles.formActions}>
@@ -143,6 +198,7 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                       className={`${styles.btn} ${styles.btnPrimary}`}
                       onClick={() => {
                         // Add create group logic here
+                        createGroup(newGroup);
                         console.log("Creating new group", newGroup);
                         setCreateGroup(false);
                       }}
@@ -175,28 +231,32 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                           {guest.email}
                           {guest.phone && ` • ${guest.phone}`}
                         </div>
-                      <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}
-                        onClick={() => {
-                          setEditingGuest(guest);
-                          setGuestFormData(guest);
-                          setShowGuestForm(true);
-                        }}
-                      >
-                        ✏️
-                      </button>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}
+                          onClick={() => {
+                            setEditingGuest(guest);
+                            setGuestFormData(guest);
+                            setShowGuestForm(true);
+                          }}
+                        >
+                          ✏️
+                        </button>
                       </div>
-
                     </div>
-                  )) || <div className={styles.noGuests}>No guests in this group</div>}
+                  )) || (
+                    <div className={styles.noGuests}>No guests in this group</div>
+                  )}
               </div>
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnPrimary}`}
                 onClick={() => {
                   setEditingGuest(null);
-                  setGuestFormData({ ...defaultGuest, group_id: selectedGroup.id });
+                  setGuestFormData({
+                    ...defaultGuest,
+                    group_id: selectedGroup.id,
+                  });
                   setShowGuestForm(true);
                 }}
               >
@@ -209,7 +269,7 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
           {showGuestForm && (
             <div className={styles.formSectionGroup}>
               <h4 className={styles.formSectionTitle}>
-                {editingGuest ? 'Edit Guest' : 'Add New Guest'}
+                {editingGuest ? "Edit Guest" : "Add New Guest"}
               </h4>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
@@ -262,8 +322,9 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                   <Select
                     classNamePrefix="react-select"
                     value={
-                      genderOptions.find((opt) => opt.value === guestFormData.gender_id) ||
-                      null
+                      genderOptions.find(
+                        (opt) => opt.value === guestFormData.gender_id,
+                      ) || null
                     }
                     onChange={(selected) => {
                       setGuestFormData((prev) => ({
@@ -283,8 +344,9 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                   <Select
                     classNamePrefix="react-select"
                     value={
-                      ageGroupOptions.find((opt) => opt.value === guestFormData.age_group_id) ||
-                      null
+                      ageGroupOptions.find(
+                        (opt) => opt.value === guestFormData.age_group_id,
+                      ) || null
                     }
                     onChange={(selected) => {
                       setGuestFormData((prev) => ({
@@ -353,13 +415,16 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
                   className={`${styles.btn} ${styles.btnPrimary}`}
                   onClick={() => {
                     // Add save guest logic here
-                    console.log(editingGuest ? "Updating guest" : "Creating guest", guestFormData);
+                    console.log(
+                      editingGuest ? "Updating guest" : "Creating guest",
+                      guestFormData,
+                    );
                     setShowGuestForm(false);
                     setEditingGuest(null);
                     setGuestFormData(defaultGuest);
                   }}
                 >
-                  {editingGuest ? 'Update Guest' : 'Save Guest'}
+                  {editingGuest ? "Update Guest" : "Save Guest"}
                 </button>
               </div>
             </div>
@@ -373,6 +438,13 @@ const GuestModal = ({ currentGuest, isOpen, onClose, groups, subevents, guestLis
             onClick={onClose}
           >
             Close
+          </button>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={onSave}
+          >
+            Save
           </button>
         </div>
       </div>

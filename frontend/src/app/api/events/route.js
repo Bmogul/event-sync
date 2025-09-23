@@ -141,6 +141,7 @@ export async function GET(request) {
     // Transform data to match frontend format
     const eventData = {
       public_id: event.public_id,
+      id: event.id,
       title: event.title || "",
       description: event.description || "",
       location: event.details?.location || "",
@@ -204,10 +205,6 @@ export async function GET(request) {
           // Find point of contact - now stored as boolean on individual guests
           const pocGuest = groupGuests.find(
             (guest) => guest.point_of_contact === true,
-          );
-
-          console.log(
-            `Group "${group.title}" (ID: ${group.id}) has ${groupGuests.length} guests, POC: ${pocGuest ? pocGuest.name + " (" + pocGuest.public_id + ")" : "none"}`,
           );
 
           return {
@@ -339,30 +336,11 @@ export async function GET(request) {
     console.log("✓ Event data loaded successfully");
     console.log("Debug: Raw database results:");
     console.log("  - Event:", event?.title || "No event");
-    console.log("  - Sub-events count:", subEvents?.length || 0);
+    console.log("  - Sub-events count:", subEvents?.length || 0, subEvents);
     console.log("  - Guest groups count:", guestGroups?.length || 0);
     console.log("  - Guests count:", guests?.length || 0);
     console.log("  - Email templates count:", emailTemplates?.length || 0);
     console.log("  - Landing config:", !!landingConfig);
-
-    if (guestGroups?.length > 0) {
-      console.log(
-        "Raw guest groups:",
-        guestGroups.map((g) => ({ id: g.id, title: g.title })),
-      );
-    }
-
-    if (guests?.length > 0) {
-      console.log(
-        "Raw guests:",
-        guests.map((g) => ({
-          id: g.id,
-          name: g.name,
-          group_id: g.group_id,
-          guest_groups: g.guest_groups,
-        })),
-      );
-    }
 
     console.log("Transformed event data structure:");
     console.log("  - Guest groups:", eventData.guestGroups?.length || 0);

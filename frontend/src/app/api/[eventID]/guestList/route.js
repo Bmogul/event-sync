@@ -158,7 +158,6 @@ export async function GET(request, { params }) {
       );
     }
 
-    console.log("\n\nGUEST\n\n", allGuests);
 
     // Transform guests
     const transformedUsers =

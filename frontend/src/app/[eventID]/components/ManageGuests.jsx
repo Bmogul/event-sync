@@ -11,18 +11,21 @@ const ManageGuests = ({ event, guests, groups }) => {
   const [sortDirection, setSortDirection] = useState("asc");
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [subevents, setSubevents] = useState([]);
 
   useEffect(() => {
-    console.log("MANAGE GUEST LIST", guests, event);
-  }, []);
+    // Get subevents from event object (all items starting with func)
+    const getSubevents = () => {
+      if (!event || event.numberOfFunctions <= 0) {
+        return [];
+      }
+      return Object.keys(event)
+        .filter((key) => key.startsWith("func"))
+        .map((key) => event[key]);
+    };
 
-  // Get subevents from event object (all items starting with func)
-  const getSubevents = () => {
-    if (!event || !event.func) return [];
-    return Object.keys(event.func).filter((key) => key.startsWith("func"));
-  };
-
-  const subevents = getSubevents();
+    setSubevents(getSubevents());
+  }, [event]);
 
   // Filter guests based on search term
   const getFilteredGuests = () => {
@@ -132,7 +135,9 @@ const ManageGuests = ({ event, guests, groups }) => {
         <td>{guest.ageGroup || "-"}</td>
         <td>{guest.tag || "-"}</td>
         {subevents.map((subevent) => (
-          <td key={subevent}>{guest[subevent] || "-"}</td>
+          <td key={subevent.id || subevent.funcTitle}>
+            {guest.rsvp_status?.[subevent.funcTitle]?.status_name|| "not invited"}
+          </td>
         ))}
       </tr>
     );
@@ -152,9 +157,9 @@ const ManageGuests = ({ event, guests, groups }) => {
         <button
           type="button"
           className={`${styles.btnOutline}`}
-          style={{marginBottom:"15px"}}
+          style={{ marginBottom: "15px" }}
           title="Add new guest"
-          onClick={()=>handleCreateGuest()}
+          onClick={() => handleCreateGuest()}
         >
           ➕ Add Guest
         </button>
@@ -237,11 +242,11 @@ const ManageGuests = ({ event, guests, groups }) => {
                 </th>
                 {subevents.map((subevent, index) => (
                   <th
-                    key={subevent}
+                    key={subevent.id || index}
                     className={styles.resizableColumn}
-                    style={{ width: "120px" }}
+                    style={{ width: "250px" }}
                   >
-                    {subevent}
+                    {subevent.funcTitle}
                   </th>
                 ))}
               </tr>
@@ -257,13 +262,14 @@ const ManageGuests = ({ event, guests, groups }) => {
         </div>
       )}
 
-      <GuestModal 
+      <GuestModal
         currentGuest={selectedGuest}
         isOpen={showGuestModal}
         onClose={handleCloseModal}
         groups={groups}
         subevents={subevents}
         guestList={guests}
+        eventID={event.id}
       />
     </div>
   );

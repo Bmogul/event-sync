@@ -70,7 +70,8 @@ export async function GET(request, { params }) {
         capacity,
         status_id,
         details,
-        created_at
+        created_at,
+        image_url
       `,
       )
       .eq("event_id", event.id)
@@ -79,7 +80,7 @@ export async function GET(request, { params }) {
     if (subEventsError) {
       console.error("Sub-events fetch error:", subEventsError);
     }
-    console.log(subEvents);
+    console.log("SUBEVENTS", subEvents);
     
     // Get Guest Groups
     const {data: guestGroups, error: guestGroupsError} = await supabase
@@ -92,6 +93,7 @@ export async function GET(request, { params }) {
 
     const transformedEvent = {
       eventID: event.public_id,
+      id: event.id,
       eventTitle: event.title,
       description: event.description,
       startDate: event.start_date,
@@ -117,7 +119,7 @@ export async function GET(request, { params }) {
         acc[`func${index}`] = {
           funcNum: index,
           funcTitle: subEvent.title,
-          cardLink: subEvent.details?.image || null,
+          cardLink: subEvent.image_url || null,
           date: formatDateTime(subEvent.event_date, subEvent.start_time),
           location: subEvent.venue_address,
           capacity: subEvent.capacity,
@@ -127,7 +129,7 @@ export async function GET(request, { params }) {
       }, {}),
     };
 
-    console.log("Transformed Event", transformedEvent);
+   // console.log("Transformed Event", transformedEvent);
 
     return NextResponse.json(transformedEvent);
   } catch (error) {

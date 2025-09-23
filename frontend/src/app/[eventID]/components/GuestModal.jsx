@@ -20,6 +20,8 @@ const GuestModal = ({
   const [showCreateGroup, setCreateGroup] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [editingGuest, setEditingGuest] = useState(null);
+  const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
+  const [pendingPOCChange, setPendingPOCChange] = useState(false);
 
   const defaultGroup = {
     details: {
@@ -45,6 +47,7 @@ const GuestModal = ({
     point_of_contact: false,
     group_id: null,
     id: null,
+    rsvp_status: {},
   };
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
@@ -89,6 +92,57 @@ const GuestModal = ({
     }
   }, [currentGuest, groups, guestList]);
 
+  // Helper function to find POC in a group
+  const getGroupPOC = (groupId) => {
+    return guestlistStaging?.find(
+      (g) => g.group_id === groupId && g.point_of_contact === true,
+    );
+  };
+
+  // Handle POC checkbox change with confirmation logic
+  const handlePOCChange = (checked) => {
+    if (!checked) {
+      // If unchecking POC, no confirmation needed
+      setGuestFormData((prev) => ({
+        ...prev,
+        point_of_contact: false,
+      }));
+      return;
+    }
+
+    // If checking POC, check if there's already a POC in this group
+    const groupId = guestFormData.group_id;
+    const existingPOC = getGroupPOC(groupId);
+
+    // If no existing POC or the existing POC is this same guest, set directly
+    if (!existingPOC || existingPOC.id === guestFormData.id) {
+      setGuestFormData((prev) => ({
+        ...prev,
+        point_of_contact: true,
+      }));
+    } else {
+      // There's another POC, show confirmation
+      setPendingPOCChange(true);
+      setShowPOCConfirmation(true);
+    }
+  };
+
+  // Confirm POC transfer
+  const confirmPOCTransfer = () => {
+    setGuestFormData((prev) => ({
+      ...prev,
+      point_of_contact: true,
+    }));
+    setShowPOCConfirmation(false);
+    setPendingPOCChange(false);
+  };
+
+  // Cancel POC transfer
+  const cancelPOCTransfer = () => {
+    setShowPOCConfirmation(false);
+    setPendingPOCChange(false);
+  };
+
   const createGroup = (group) => {
     // Generate temporary negative ID for new groups
     const tempId = -Date.now();
@@ -127,15 +181,25 @@ const GuestModal = ({
     }
 
     setguestlistStaging((prev) => {
-      const existingIndex = prev.findIndex((g) => g.id === modifiedGuest.id);
+      let updated = [...prev];
+
+      // If this guest is becoming POC, remove POC from other guests in the same group
+      if (modifiedGuest.point_of_contact) {
+        updated = updated.map((g) =>
+          g.group_id === modifiedGuest.group_id && g.id !== modifiedGuest.id
+            ? { ...g, point_of_contact: false }
+            : g,
+        );
+      }
+
+      const existingIndex = updated.findIndex((g) => g.id === modifiedGuest.id);
       if (existingIndex !== -1) {
         // Update existing guest (works for both real IDs and temp IDs)
-        const updated = [...prev];
         updated[existingIndex] = modifiedGuest;
         return updated;
       } else {
         // Add new guest (only for truly new guests with no ID)
-        return [...prev, modifiedGuest];
+        return [...updated, modifiedGuest];
       }
     });
 
@@ -254,7 +318,7 @@ const GuestModal = ({
                         createGroup(newGroup);
                         console.log("Creating new group", newGroup);
                         setCreateGroup(false);
-                        setNewGroup(defaultGroup)
+                        setNewGroup(defaultGroup);
                       }}
                     >
                       Create Group
@@ -307,9 +371,12 @@ const GuestModal = ({
                 className={`${styles.btn} ${styles.btnPrimary}`}
                 onClick={() => {
                   setEditingGuest(null);
+                  // Check if group has existing POC to set default
+                  const existingPOC = getGroupPOC(selectedGroup.id);
                   setGuestFormData({
                     ...defaultGuest,
                     group_id: selectedGroup.id,
+                    point_of_contact: !existingPOC, // Default to POC if no one else is
                   });
                   setShowGuestForm(true);
                 }}
@@ -462,12 +529,7 @@ const GuestModal = ({
                   <input
                     type="checkbox"
                     checked={guestFormData.point_of_contact || false}
-                    onChange={(e) => {
-                      setGuestFormData((prev) => ({
-                        ...prev,
-                        point_of_contact: e.target.checked,
-                      }));
-                    }}
+                    onChange={(e) => handlePOCChange(e.target.checked)}
                   />
                   Point of Contact
                 </label>
@@ -476,6 +538,39 @@ const GuestModal = ({
                   coordinate with their group
                 </div>
               </div>
+              {showPOCConfirmation && (
+                <div className={styles.confirmationOverlay}>
+                  <div className={styles.confirmationDialog}>
+                    <h4 className={styles.confirmationTitle}>
+                      Transfer Point of Contact?
+                    </h4>
+                    <p className={styles.confirmationMessage}>
+                      Another guest in this group is already the Point of
+                      Contact. Making this guest the POC will remove POC status
+                      from the other guest.
+                      <br />
+                      <br />
+                      Do you want to proceed?
+                    </p>
+                    <div className={styles.confirmationActions}>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnSecondary}`}
+                        onClick={cancelPOCTransfer}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        onClick={confirmPOCTransfer}
+                      >
+                        Transfer POC
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className={styles.formActions}>
                 <button
@@ -510,6 +605,8 @@ const GuestModal = ({
               </div>
             </div>
           )}
+
+          {/* POC Confirmation Dialog */}
         </div>
 
         <div className={styles.modalFooter}>

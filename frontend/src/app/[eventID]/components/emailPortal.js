@@ -30,6 +30,7 @@ const EmailPortal = ({
   const [ageGroupFilters, setAgeGroupFilters] = useState([]);
   const [contactFilters, setContactFilters] = useState([]);
   const [groupStatusFilters, setGroupStatusFilters] = useState([]);
+  const [groupContactFilters, setGroupContactFilters] = useState([]);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -172,6 +173,35 @@ const EmailPortal = ({
         FamilyOrder: 1,
       };
     }) || [];
+
+  // Helper function to analyze group contact status
+  const getGroupContactStatus = (groupName) => {
+    const groupMembers = transformedGuestList.filter(guest => guest.group === groupName);
+    if (groupMembers.length === 0) return {};
+    
+    const hasAnyEmail = groupMembers.some(member => member.hasEmail);
+    const hasAllEmails = groupMembers.every(member => member.hasEmail);
+    const hasNoEmails = groupMembers.every(member => !member.hasEmail);
+    
+    const hasAnyPhone = groupMembers.some(member => member.hasPhone);
+    const hasAllPhones = groupMembers.every(member => member.hasPhone);
+    const hasNoPhones = groupMembers.every(member => !member.hasPhone);
+    
+    const hasCompleteContactInfo = groupMembers.every(member => member.hasContactInfo);
+    const hasAnyContactInfo = groupMembers.some(member => member.hasContactInfo);
+    
+    return {
+      hasAnyEmail,
+      hasAllEmails,
+      hasNoEmails,
+      hasAnyPhone,
+      hasAllPhones,
+      hasNoPhones,
+      hasCompleteContactInfo,
+      hasAnyContactInfo,
+      memberCount: groupMembers.length
+    };
+  };
 
   // Get all unique subevents from the guest data
   const getAllSubevents = () => {
@@ -359,6 +389,51 @@ const EmailPortal = ({
       );
     }
 
+    // Apply group contact filters
+    if (groupContactFilters.length > 0) {
+      // Get unique groups from current filtered list
+      const groupsToInclude = new Set();
+      
+      // Check each unique group against group contact filters
+      const uniqueGroups = [...new Set(filtered.map(guest => guest.group).filter(Boolean))];
+      
+      uniqueGroups.forEach(groupName => {
+        const groupContactStatus = getGroupContactStatus(groupName);
+        
+        const shouldIncludeGroup = groupContactFilters.some(filter => {
+          switch (filter) {
+            case "has_any_email":
+              return groupContactStatus.hasAnyEmail;
+            case "has_all_emails":
+              return groupContactStatus.hasAllEmails;
+            case "has_no_emails":
+              return groupContactStatus.hasNoEmails;
+            case "has_any_phone":
+              return groupContactStatus.hasAnyPhone;
+            case "has_all_phones":
+              return groupContactStatus.hasAllPhones;
+            case "has_no_phones":
+              return groupContactStatus.hasNoPhones;
+            case "has_complete_contact":
+              return groupContactStatus.hasCompleteContactInfo;
+            case "has_any_contact":
+              return groupContactStatus.hasAnyContactInfo;
+            default:
+              return false;
+          }
+        });
+        
+        if (shouldIncludeGroup) {
+          groupsToInclude.add(groupName);
+        }
+      });
+      
+      // Filter guests to only include those from qualifying groups
+      filtered = filtered.filter((guest) =>
+        groupsToInclude.has(guest.group) || !guest.group // Include individuals if no group
+      );
+    }
+
     // Apply sorting (default to group-based sorting)
     filtered = sortGuests(filtered, sortBy, sortDirection, secondarySortBy);
 
@@ -401,6 +476,7 @@ const EmailPortal = ({
     setAgeGroupFilters([]);
     setContactFilters([]);
     setGroupStatusFilters([]);
+    setGroupContactFilters([]);
   };
 
   // Handle multi-select filter changes
@@ -412,6 +488,7 @@ const EmailPortal = ({
       ageGroup: setAgeGroupFilters,
       contact: setContactFilters,
       groupStatus: setGroupStatusFilters,
+      groupContact: setGroupContactFilters,
     }[filterType];
 
     if (setFilter) {
@@ -439,7 +516,8 @@ const EmailPortal = ({
       genderFilters.length > 0 ||
       ageGroupFilters.length > 0 ||
       contactFilters.length > 0 ||
-      groupStatusFilters.length > 0
+      groupStatusFilters.length > 0 ||
+      groupContactFilters.length > 0
     );
   };
 
@@ -1606,6 +1684,40 @@ const EmailPortal = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Group Contact Filters */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterGroupLabel}>
+                    Group Contact Info:
+                  </label>
+                  <div className={styles.checkboxGrid}>
+                    {[
+                      { value: "has_any_email", label: "Groups with Any Email" },
+                      { value: "has_all_emails", label: "Groups with All Emails" },
+                      { value: "has_no_emails", label: "Groups with No Emails" },
+                      { value: "has_any_phone", label: "Groups with Any Phone" },
+                      { value: "has_all_phones", label: "Groups with All Phones" },
+                      { value: "has_no_phones", label: "Groups with No Phones" },
+                      { value: "has_complete_contact", label: "Groups with Complete Contact" },
+                      { value: "has_any_contact", label: "Groups with Any Contact Info" },
+                    ].map((option) => (
+                      <label key={option.value} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={groupContactFilters.includes(option.value)}
+                          onChange={(e) =>
+                            handleMultiSelectFilter(
+                              "groupContact",
+                              option.value,
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -1624,6 +1736,16 @@ const EmailPortal = ({
                     setAgeGroupFilters(getFilterOptions().ageGroups);
                     setContactFilters(getFilterOptions().contactStatuses);
                     setGroupStatusFilters(getFilterOptions().groupStatuses);
+                    setGroupContactFilters([
+                      "has_any_email",
+                      "has_all_emails", 
+                      "has_no_emails",
+                      "has_any_phone",
+                      "has_all_phones",
+                      "has_no_phones", 
+                      "has_complete_contact",
+                      "has_any_contact"
+                    ]);
                   }}
                 >
                   Select All
@@ -1637,6 +1759,7 @@ const EmailPortal = ({
                     setAgeGroupFilters([]);
                     setContactFilters([]);
                     setGroupStatusFilters([]);
+                    setGroupContactFilters([]);
                   }}
                 >
                   Clear All

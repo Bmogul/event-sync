@@ -113,8 +113,11 @@ export async function GET(request, { params }) {
 
       // Guest Groups
       guestGroups: guestGroups,
+      //
+      // Sending subevents as strcutured from DB
+      subevents: subEvents,
 
-      // Transform sub-events to legacy format
+      // Transform sub-events to legacy format for legacy code
       ...subEvents?.reduce((acc, subEvent, index) => {
         acc[`func${index}`] = {
           funcNum: index,

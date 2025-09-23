@@ -24,7 +24,7 @@ const ManageGuests = ({ event, guests, groups }) => {
         .map((key) => event[key]);
     };
 
-    setSubevents(getSubevents());
+    setSubevents(event.subevents);
   }, [event]);
 
   // Filter guests based on search term
@@ -148,9 +148,9 @@ const ManageGuests = ({ event, guests, groups }) => {
         <td>{guest.ageGroup || "-"}</td>
         <td>{guest.tag || "-"}</td>
         {subevents.map((subevent) => {
-          const rsvp = guest.rsvp_status?.[subevent.funcTitle];
+          const rsvp = guest.rsvp_status?.[subevent.title];
           return (
-            <td key={subevent.id || subevent.funcTitle}>
+            <td key={subevent.id || subevent.title}>
               {rsvp ? (
                 <div className={styles.rsvpCell}>
                   <span
@@ -279,7 +279,7 @@ const ManageGuests = ({ event, guests, groups }) => {
                     className={styles.resizableColumn}
                     style={{ width: "250px" }}
                   >
-                    {subevent.funcTitle}
+                    {subevent.title}
                   </th>
                 ))}
               </tr>

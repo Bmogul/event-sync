@@ -75,6 +75,19 @@ const ManageGuests = ({ event, guests, groups }) => {
     return sortDirection === "asc" ? "↑" : "↓";
   };
 
+  // Get CSS class for RSVP status
+  const getStatusClass = (statusName) => {
+    const statusMap = {
+      pending: styles.statusPending,
+      opened: styles.statusOpened,
+      attending: styles.statusAttending,
+      not_attending: styles.statusNotAttending,
+      maybe: styles.statusMaybe,
+      no_response: styles.statusNoResponse,
+    };
+    return statusMap[statusName] || styles.statusPending;
+  };
+
   const filteredGuests = getFilteredGuests();
   const sortedGuests = getSortedGuests(filteredGuests);
 
@@ -134,11 +147,31 @@ const ManageGuests = ({ event, guests, groups }) => {
         <td>{guest.gender || "-"}</td>
         <td>{guest.ageGroup || "-"}</td>
         <td>{guest.tag || "-"}</td>
-        {subevents.map((subevent) => (
-          <td key={subevent.id || subevent.funcTitle}>
-            {guest.rsvp_status?.[subevent.funcTitle]?.status_name|| "not invited"}
-          </td>
-        ))}
+        {subevents.map((subevent) => {
+          const rsvp = guest.rsvp_status?.[subevent.funcTitle];
+          return (
+            <td key={subevent.id || subevent.funcTitle}>
+              {rsvp ? (
+                <div className={styles.rsvpCell}>
+                  <span
+                    className={`${styles.statusBadge} ${getStatusClass(rsvp.status_name)}`}
+                  >
+                    {rsvp.status_name}
+                  </span>
+                  {rsvp.response && (
+                    <div className={styles.responseCount}>+{rsvp.response}</div>
+                  )}
+                </div>
+              ) : (
+                <span
+                  className={`${styles.statusBadge} ${styles.statusNotInvited}`}
+                >
+                  Not Invited
+                </span>
+              )}
+            </td>
+          );
+        })}
       </tr>
     );
   };

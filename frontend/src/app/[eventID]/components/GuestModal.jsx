@@ -11,7 +11,7 @@ const GuestModal = ({
   groups,
   subevents,
   guestList,
-  eventID
+  eventID,
 }) => {
   if (!isOpen || !currentGuest) return null;
 
@@ -32,6 +32,7 @@ const GuestModal = ({
     title: "",
   };
   const [newGroup, setNewGroup] = useState(defaultGroup);
+  const [guestlistStaging, setguestlistStaging] = useState(null);
   const [groupsStaging, setGroupsStaging] = useState(null);
 
   const defaultGuest = {
@@ -42,7 +43,8 @@ const GuestModal = ({
     age_group_id: null,
     tag: "",
     point_of_contact: false,
-    group_id: selectedGroup?.id || null,
+    group_id: null,
+    id: null,
   };
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
@@ -65,11 +67,16 @@ const GuestModal = ({
   // Load the current guest's group when modal opens
   useEffect(() => {
     if (groups) {
-      setGroupsStaging([...groups])
-      setGroupOptions(groups.map((group) => ({
-        value: group.id,
-        label: group.title,
-      })))
+      setGroupsStaging([...groups]);
+      setGroupOptions(
+        groups.map((group) => ({
+          value: group.id,
+          label: group.title,
+        })),
+      );
+    }
+    if (guestList) {
+      setguestlistStaging([...guestList]);
     }
     if (currentGuest && currentGuest.group_id) {
       const guestGroup = groups.find((g) => g.id === currentGuest.group_id);
@@ -80,29 +87,73 @@ const GuestModal = ({
         setGuestFormData({ ...currentGuest });
       }
     }
-  }, [currentGuest, groups]);
+  }, [currentGuest, groups, guestList]);
 
-  const createGroup = (group)=>{
+  const createGroup = (group) => {
     // Generate temporary negative ID for new groups
-    const tempId = -Date.now()
-    console.log("EVENT DATA", eventID, subevents)
-    const groupWithTempId = { ...group, id: tempId }
+    const tempId = -Date.now();
+    console.log("EVENT DATA", eventID, subevents);
+    const groupWithTempId = { ...group, id: tempId };
     groupWithTempId.event_id = eventID;
     console.log("new group", groupWithTempId);
-    const newGroupOption = {value: tempId, label: group.title}
-    
-    setGroupsStaging(prev => [...prev, groupWithTempId])
-    setGroupOptions(prev => [...prev, newGroupOption])
+    const newGroupOption = { value: tempId, label: group.title };
 
-    setSelectedGroup(groupWithTempId)
-  }
+    setGroupsStaging((prev) => [...prev, groupWithTempId]);
+    setGroupOptions((prev) => [...prev, newGroupOption]);
 
+    setSelectedGroup(groupWithTempId);
+  };
 
-  const onSave = () => {
-    console.log(guestFormData)
-    console.log(groupsStaging)
-    console.log(groupOptions)
-  }
+  const saveGuest = (guest) => {
+    // Determine if this is a new guest or existing guest
+    const isNewGuest = !guest.id; // Only truly new if no ID at all
+
+    let modifiedGuest;
+
+    if (isNewGuest) {
+      // For brand new guests: assign temp ID and use form's selected group
+      modifiedGuest = {
+        ...guest,
+        id: -Date.now(), // Generate new temporary ID
+        group_id: guest.group_id || null, // Use group from form
+      };
+    } else {
+      // For existing guests (real ID or temp ID): preserve the existing ID
+      modifiedGuest = {
+        ...guest,
+        id: guest.id, // ✅ ALWAYS preserve existing ID (real or temp)
+        group_id: guest.group_id || null, // Use group from form
+      };
+    }
+
+    setguestlistStaging((prev) => {
+      const existingIndex = prev.findIndex((g) => g.id === modifiedGuest.id);
+      if (existingIndex !== -1) {
+        // Update existing guest (works for both real IDs and temp IDs)
+        const updated = [...prev];
+        updated[existingIndex] = modifiedGuest;
+        return updated;
+      } else {
+        // Add new guest (only for truly new guests with no ID)
+        return [...prev, modifiedGuest];
+      }
+    });
+
+    if (guest.group_id !== selectedGroup.id) {
+      console.log(
+        "CHANGE STAGING",
+        groupsStaging.find((item) => item.id === guest.group_id),
+      );
+      setSelectedGroup(
+        groupsStaging.find((item) => item.id === guest.group_id),
+      );
+    }
+    console.log("Modified Guest", modifiedGuest);
+    console.log(groupsStaging);
+    console.log(groupOptions);
+  };
+
+  const onSave = () => { };
 
   return (
     <div className={styles.guestFormOverlay}>
@@ -128,7 +179,9 @@ const GuestModal = ({
                     : null
                 }
                 onChange={(selected) => {
-                  const group = groupsStaging.find((g) => g.id === selected?.value);
+                  const group = groupsStaging.find(
+                    (g) => g.id === selected?.value,
+                  );
                   setSelectedGroup(group || null);
                 }}
                 options={groupOptions}
@@ -201,6 +254,7 @@ const GuestModal = ({
                         createGroup(newGroup);
                         console.log("Creating new group", newGroup);
                         setCreateGroup(false);
+                        setNewGroup(defaultGroup)
                       }}
                     >
                       Create Group
@@ -216,7 +270,7 @@ const GuestModal = ({
             <div className={styles.formSectionGroup}>
               <h4 className={styles.formSectionTitle}>Guests in Group</h4>
               <div className={styles.guestsGrid}>
-                {guestList
+                {guestlistStaging
                   ?.filter((g) => g.group_id === selectedGroup.id)
                   .map((guest) => (
                     <div key={guest.id} className={styles.guestCard}>
@@ -285,6 +339,31 @@ const GuestModal = ({
                       }));
                     }}
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Select Group</label>
+                  <Select
+                    classNamePrefix="react-select"
+                    value={
+                      groupOptions?.find(
+                        (opt) => opt.value === guestFormData.group_id,
+                      ) || null
+                    }
+                    onChange={(selected) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        group_id: selected?.value || null,
+                      }));
+                    }}
+                    options={groupOptions}
+                    placeholder="Select a group..."
+                    isClearable
+                    isSearchable
+                  />
+                  <div className={styles.fieldHelp}>
+                    Choose which group this guest belongs to
+                  </div>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -415,6 +494,8 @@ const GuestModal = ({
                   className={`${styles.btn} ${styles.btnPrimary}`}
                   onClick={() => {
                     // Add save guest logic here
+                    //
+                    saveGuest(guestFormData);
                     console.log(
                       editingGuest ? "Updating guest" : "Creating guest",
                       guestFormData,

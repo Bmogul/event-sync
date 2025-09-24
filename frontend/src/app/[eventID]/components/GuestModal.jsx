@@ -12,7 +12,7 @@ const GuestModal = ({
   subevents,
   guestList,
   eventID,
-  updateGuestList
+  updateGuestList,
 }) => {
   if (!isOpen || !currentGuest) return null;
 
@@ -37,6 +37,8 @@ const GuestModal = ({
   const [newGroup, setNewGroup] = useState(defaultGroup);
   const [guestlistStaging, setguestlistStaging] = useState(null);
   const [groupsStaging, setGroupsStaging] = useState(null);
+  const [updatedGuests, setUpdatedGuests] = useState([]);
+  const [updatedGroups, setUpdatedGroups] = useState([]);
 
   const defaultGuest = {
     name: "",
@@ -49,6 +51,8 @@ const GuestModal = ({
     group_id: null,
     id: null,
     rsvp_status: {},
+    guest_type_id: null,
+    guest_limit: null,
   };
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
@@ -67,6 +71,12 @@ const GuestModal = ({
     { value: 5, label: "Senior (65+ years)" },
     { value: 6, label: "Age not specified" },
   ];
+
+  const guestTypeOptions = [
+    {value: 1, label: "single"},
+    {value: 2, label: "multiple"},
+    {value: 3, label: "variable"},
+  ]
 
   // Load the current guest's group when modal opens
   useEffect(() => {
@@ -153,7 +163,7 @@ const GuestModal = ({
         newRsvpStatus[subeventTitle] = {
           response: 0,
           status_id: 1,
-          status_name: "pending"
+          status_name: "pending",
         };
       } else {
         // Remove invitation
@@ -200,6 +210,19 @@ const GuestModal = ({
       };
     }
 
+    setUpdatedGuests((prev) => {
+      const existingIndex = prev.findIndex((g) => g.id === modifiedGuest.id);
+      if (existingIndex !== -1) {
+        // Replace existing entry
+        const updated = [...prev];
+        updated[existingIndex] = modifiedGuest;
+        return updated;
+      } else {
+        // Add new entry
+        return [...prev, modifiedGuest];
+      }
+    });
+
     setguestlistStaging((prev) => {
       let updated = [...prev];
 
@@ -237,9 +260,9 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
-  const onSave = () => { 
-    console.log("SAVING", "GuestModal.jsx/onSave()")
-    updateGuestList(guestlistStaging, groupsStaging)
+  const onSave = () => {
+    console.log("SAVING", "GuestModal.jsx/onSave()");
+    updateGuestList(updatedGuests, updatedGroups);
   };
 
   return (
@@ -546,6 +569,53 @@ const GuestModal = ({
                 </div>
               </div>
 
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Guest Type</label>
+                <p>Three types of "guest": single, multiple, and variable. single means just the one individual, multiple means a drop down set by guest limit, variable means freefom entry</p>
+                <Select
+                  classNamePrefix="react-select"
+                  value={
+                    guestTypeOptions.find(
+                      (opt) => opt.value === guestFormData.guest_type_id,
+                    ) || null
+                  }
+                  onChange={(selected) => {
+                    setGuestFormData((prev) => ({
+                      ...prev,
+                      guest_type_id: selected?.value || null,
+                      guest_limit: null, // Reset guest limit when changing type
+                    }));
+                  }}
+                  options={guestTypeOptions}
+                  placeholder="Select guest type..."
+                  isClearable
+                  isSearchable
+                />
+              </div>
+
+              {/* Conditional Guest Limit Field */}
+              {guestFormData.guest_type_id === 2 && (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Guest Limit</label>
+                  <input
+                    type="number"
+                    className={styles.formInput}
+                    min="1"
+                    value={guestFormData.guest_limit || ""}
+                    onChange={(e) => {
+                      setGuestFormData((prev) => ({
+                        ...prev,
+                        guest_limit: e.target.value ? parseInt(e.target.value) : null,
+                      }));
+                    }}
+                    placeholder="Enter maximum number of guests..."
+                  />
+                  <div className={styles.fieldHelp}>
+                    Maximum number of guests for this multiple guest entry
+                  </div>
+                </div>
+              )}
+
               {/* Point of Contact Section */}
               <div className={styles.pointOfContactSection}>
                 <label className={styles.pointOfContactLabel}>
@@ -573,10 +643,19 @@ const GuestModal = ({
                           <input
                             type="checkbox"
                             className={styles.checkboxInput}
-                            checked={!!guestFormData.rsvp_status[subevent.title]}
-                            onChange={(e) => handleSubeventChange(subevent.title, e.target.checked)}
+                            checked={
+                              !!guestFormData.rsvp_status[subevent.title]
+                            }
+                            onChange={(e) =>
+                              handleSubeventChange(
+                                subevent.title,
+                                e.target.checked,
+                              )
+                            }
                           />
-                          <span className={styles.checkboxText}>{subevent.title}</span>
+                          <span className={styles.checkboxText}>
+                            {subevent.title}
+                          </span>
                         </label>
                       </div>
                     ))}

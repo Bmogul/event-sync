@@ -179,6 +179,7 @@ export async function GET(request, { params }) {
         ageGroup: guest.guest_age_group?.state,
         age_group_id: guest.guest_age_group?.id,
         guest_type: guest.guest_type?.name,
+        guest_type_id: guest.guest_type?.id,
         guest_limit: guest.guest_limit,
         rsvp_status:
           guest.rsvps?.reduce((acc, rsvp) => {

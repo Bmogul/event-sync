@@ -133,6 +133,7 @@ export async function GET(request, { params }) {
         ),
         rsvps (
           subevent_id,
+          guest_id,
           status_id,
           response,
           subevents (
@@ -183,6 +184,7 @@ export async function GET(request, { params }) {
           guest.rsvps?.reduce((acc, rsvp) => {
             if (rsvp.subevents) {
               acc[rsvp.subevents.title] = {
+                subevent_id: rsvp.subevent_id,
                 status_id: rsvp.status_id,
                 status_name: getStatusName(rsvp.status_id),
                 response: rsvp.response,

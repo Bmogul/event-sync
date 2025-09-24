@@ -9,7 +9,7 @@ const EmailPortal = ({
   guestList,
   session,
   getGuestList,
-  updateGuestList,
+  setGuestList,
   setCurrentView,
 }) => {
   const [reminderDate, setReminderDate] = useState();
@@ -861,7 +861,12 @@ const EmailPortal = ({
         `Mail sent! ${result.results.successful} successful, ${result.results.failed} did not have emails`,
       );
       if (result.guestList) {
-        updateGuestList(result.guestList);
+        // Merge updated guests with existing guest list
+        const updatedGuestList = guestList.map(guest => {
+          const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+          return updatedGuest || guest;
+        });
+        setGuestList(updatedGuestList);
       }
     } else {
       console.log(res.status, result);
@@ -890,7 +895,12 @@ const EmailPortal = ({
 
     if (res.status === 200 && result.validated) {
       toast("Reminders sent!");
-      updateGuestList(result.guestList);
+      // Merge updated guests with existing guest list
+      const updatedGuestList = guestList.map(guest => {
+        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+        return updatedGuest || guest;
+      });
+      setGuestList(updatedGuestList);
     } else {
       console.log(res.status, result.validated);
       toast("Failed to send invites, try again");
@@ -919,7 +929,12 @@ const EmailPortal = ({
 
     if (res.status === 200 && result.validated) {
       toast("Reminders sent!");
-      updateGuestList(result.guestList);
+      // Merge updated guests with existing guest list
+      const updatedGuestList = guestList.map(guest => {
+        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+        return updatedGuest || guest;
+      });
+      setGuestList(updatedGuestList);
     } else {
       console.log(res.status, result.validated);
       toast("Failed to send invites, try again");
@@ -948,7 +963,12 @@ const EmailPortal = ({
 
     if (res.status === 200 && result.validated) {
       toast("Updates sent!");
-      updateGuestList(result.guestList);
+      // Merge updated guests with existing guest list
+      const updatedGuestList = guestList.map(guest => {
+        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+        return updatedGuest || guest;
+      });
+      setGuestList(updatedGuestList);
     } else {
       console.log(res.status, result.validated);
       toast("Failed to send invites, try again");

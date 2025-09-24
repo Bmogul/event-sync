@@ -12,6 +12,7 @@ const GuestModal = ({
   subevents,
   guestList,
   eventID,
+  updateGuestList
 }) => {
   if (!isOpen || !currentGuest) return null;
 
@@ -143,6 +144,25 @@ const GuestModal = ({
     setPendingPOCChange(false);
   };
 
+  // Handle subevent checkbox change
+  const handleSubeventChange = (subeventTitle, checked) => {
+    setGuestFormData((prev) => {
+      const newRsvpStatus = { ...prev.rsvp_status };
+      if (checked) {
+        // Add invitation with default values
+        newRsvpStatus[subeventTitle] = {
+          response: 0,
+          status_id: 1,
+          status_name: "pending"
+        };
+      } else {
+        // Remove invitation
+        delete newRsvpStatus[subeventTitle];
+      }
+      return { ...prev, rsvp_status: newRsvpStatus };
+    });
+  };
+
   const createGroup = (group) => {
     // Generate temporary negative ID for new groups
     const tempId = -Date.now();
@@ -175,7 +195,7 @@ const GuestModal = ({
       // For existing guests (real ID or temp ID): preserve the existing ID
       modifiedGuest = {
         ...guest,
-        id: guest.id, // ✅ ALWAYS preserve existing ID (real or temp)
+        id: guest.id, // ALWAYS preserve existing ID (real or temp)
         group_id: guest.group_id || null, // Use group from form
       };
     }
@@ -217,7 +237,10 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
-  const onSave = () => { };
+  const onSave = () => { 
+    console.log("SAVING", "GuestModal.jsx/onSave()")
+    updateGuestList(guestlistStaging, groupsStaging)
+  };
 
   return (
     <div className={styles.guestFormOverlay}>
@@ -538,6 +561,31 @@ const GuestModal = ({
                   coordinate with their group
                 </div>
               </div>
+
+              {/* Subevent Invitations Section */}
+              {subevents && subevents.length > 0 && (
+                <div className={styles.formSectionGroup}>
+                  <h4 className="">Event Invitations</h4>
+                  <div className={styles.formGrid}>
+                    {subevents.map((subevent) => (
+                      <div key={subevent.id} className={styles.formGroup}>
+                        <label className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            className={styles.checkboxInput}
+                            checked={!!guestFormData.rsvp_status[subevent.title]}
+                            onChange={(e) => handleSubeventChange(subevent.title, e.target.checked)}
+                          />
+                          <span className={styles.checkboxText}>{subevent.title}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.fieldHelp}>
+                    Select which events this guest should be invited to
+                  </div>
+                </div>
+              )}
               {showPOCConfirmation && (
                 <div className={styles.confirmationOverlay}>
                   <div className={styles.confirmationDialog}>

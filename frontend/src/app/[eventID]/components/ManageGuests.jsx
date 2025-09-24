@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import styles from "../styles/portal.module.css";
 import GuestModal from "./GuestModal";
 
-const ManageGuests = ({ event, guests, groups }) => {
+const ManageGuests = ({ event, guests, groups, updateGuestList}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("group");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -303,6 +303,7 @@ const ManageGuests = ({ event, guests, groups }) => {
         subevents={subevents}
         guestList={guests}
         eventID={event.id}
+        updateGuestList={updateGuestList}
       />
     </div>
   );

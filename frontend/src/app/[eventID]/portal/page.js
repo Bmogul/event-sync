@@ -110,15 +110,22 @@ const Page = () => {
     }
   }, [params.eventID, session, authLoading, router, getGuestList]);
 
-  const updateGuestList = async (usersToUpdate) => {
+  const updateGuestList = async (usersToUpdate, groupsToUpdate) => {
+    console.log("SAVING", "portal/page.js/updateGuestList()" )
+
+    console.log("SAVING", "usersToUpdate", usersToUpdate)
+    console.log("SAVING", "exisitng guest list", guestList)
+
+    console.log("SAVING", "groupsToUpdate", groupsToUpdate)
+    console.log("SAVING", "exisitng groups", groups)
     let guests = guestList;
     for (const userUpdate of usersToUpdate) {
       guests = guests.map((guest) =>
         guest.UID === userUpdate.UID ? userUpdate : guest,
       );
     }
-
-    try {
+    
+    /*try {
       if (!session?.access_token) throw new Error("User not authenticated");
 
       const res = await fetch(`/api/${params.eventID}/guestList`, {
@@ -135,7 +142,7 @@ const Page = () => {
     } catch (error) {
       console.error(error);
       toast("Failed to update guest list");
-    }
+    }*/
   };
 
   const handleCustomizeRSVP = () => {
@@ -348,7 +355,7 @@ const Page = () => {
               guestList={guestList}
               session={session}
               getGuestList={getGuestList}
-              updateGuestList={updateGuestList}
+              setGuestList={setGuestList}
               setCurrentView={setCurrentView}
               permissions={{
                 canSendEmails,
@@ -374,7 +381,7 @@ const Page = () => {
           ) : currentView === "manage-team" ? (
             <ManageTeam eventPublicId={event?.eventID} />
           ) : currentView === "manage-guests" ? (
-            <ManageGuests event={event} guests={guestList} groups={groups}/>
+            <ManageGuests event={event} guests={guestList} groups={groups} updateGuestList={updateGuestList}/>
           ) : null}
         </div>
       </main>

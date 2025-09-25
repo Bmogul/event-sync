@@ -286,9 +286,12 @@ const RsvpForm = ({
         );
         if (!isInvited) return false;
 
+        const response = responses[guest.id]?.[subEvent.id];
         return (
-          !responses[guest.id]?.[subEvent.id] ||
-          responses[guest.id][subEvent.id] === "pending"
+          response === undefined ||
+          response === null ||
+          response === "pending" ||
+          response === ""
         );
       });
     });
@@ -400,32 +403,45 @@ const RsvpForm = ({
     }
   };
 
-  const openGoogleCalendar = (subEvent) => {
-    console.log(subEvent);
-    if (!subEvent.event_date) return;
 
-    const eventDate = new Date(subEvent.event_date);
-    if (subEvent.start_time) {
-      const [hours, minutes] = subEvent.start_time.split(":");
-      eventDate.setHours(parseInt(hours), parseInt(minutes));
-    }
+// Usage: supply subEvent.event_date = "2025-11-20", subEvent.start_time = "18:30",
+//        subEvent.timezone = "America/Chicago", subEvent.title, subEvent.venue_address, etc.
 
-    const formatDate = (date) =>
-      date.toISOString().replace(/-|:|\.\d\d\d/g, "");
 
-    const startDate = formatDate(eventDate);
-    const endDate = formatDate(
-      new Date(eventDate.getTime() + 2 * 60 * 60 * 1000),
-    ); // 2 hours duration
 
-    const encodedTitle = encodeURIComponent(subEvent.title);
-    const encodedLocation = subEvent.venue_address
-      ? encodeURIComponent(subEvent.venue_address)
-      : "";
+const pad = (n) => n.toString().padStart(2, "0");
 
-    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodedTitle}&dates=${startDate}/${endDate}&details=Event%20created%20from%20RSVP&location=${encodedLocation}&sf=true&output=xml`;
-    window.open(calendarUrl, "_blank");
-  };
+// Take "YYYY-MM-DD" and "HH:mm", return "YYYYMMDDTHHmmss"
+function formatForGoogle(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm] = timeStr.split(":").map(Number);
+  return `${y}${pad(m)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+}
+
+const openGoogleCalendar = (subEvent) => {
+  if (!subEvent?.event_date || !subEvent?.start_time) return;
+
+  // Start time
+  const start = formatForGoogle(subEvent.event_date, subEvent.start_time);
+
+  // End time (manual add 2 hours, not using Date())
+  const [y, m, d] = subEvent.event_date.split("-").map(Number);
+  const [hh, mm] = subEvent.start_time.split(":").map(Number);
+  const startDate = new Date(y, m - 1, d, hh, mm);
+  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+  const end = `${endDate.getFullYear()}${pad(endDate.getMonth() + 1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`;
+
+  const title = encodeURIComponent(subEvent.title || "Event");
+  const location = subEvent.venue_address ? encodeURIComponent(subEvent.venue_address) : "";
+  const details = encodeURIComponent("Event created from RSVP");
+  const ctz = encodeURIComponent(subEvent.timezone || "America/Chicago");
+
+  const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&ctz=${ctz}&details=${details}&location=${location}`;
+
+  window.open(url, "_blank");
+};
+
+
 
   return (
     <dialog open className={styles.modal}>

@@ -286,9 +286,12 @@ const RsvpForm = ({
         );
         if (!isInvited) return false;
 
+        const response = responses[guest.id]?.[subEvent.id];
         return (
-          !responses[guest.id]?.[subEvent.id] ||
-          responses[guest.id][subEvent.id] === "pending"
+          response === undefined ||
+          response === null ||
+          response === "pending" ||
+          response === ""
         );
       });
     });

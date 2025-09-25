@@ -25,7 +25,7 @@ const EmailPortal = ({
   const [sortDirection, setSortDirection] = useState("asc");
   const [secondarySortBy, setSecondarySortBy] = useState("name");
   const [groupFilters, setGroupFilters] = useState([]);
-  const [statusFilters, setStatusFilters] = useState([]);
+  const [statusFilters, setStatusFilters] = useState({});
   const [genderFilters, setGenderFilters] = useState([]);
   const [ageGroupFilters, setAgeGroupFilters] = useState([]);
   const [contactFilters, setContactFilters] = useState([]);
@@ -343,24 +343,21 @@ const EmailPortal = ({
       );
     }
 
-    if (statusFilters.length > 0) {
+    if (Object.keys(statusFilters).length > 0) {
       filtered = filtered.filter((guest) => {
-        const isInvited = guest.total_rsvps > 0;
-        const hasResponded = Object.keys(guest.rsvpStatus || {}).length > 0;
-
-        return statusFilters.some((status) => {
-          switch (status) {
-            case "invited":
-              return isInvited;
-            case "not_invited":
-              return !isInvited;
-            case "responded":
-              return hasResponded;
-            case "pending":
-              return isInvited && !hasResponded;
-            default:
-              return false;
+        // Check if guest matches any of the selected subevent status filters
+        return Object.entries(statusFilters).some(([subeventName, selectedStatuses]) => {
+          if (!selectedStatuses || selectedStatuses.length === 0) return false;
+          
+          const rsvpForSubevent = guest.rsvpStatus?.[subeventName];
+          if (!rsvpForSubevent) {
+            // Guest has no RSVP entry for this subevent - they are not invited
+            // Check if "not invited" status (0) is selected
+            return selectedStatuses.includes(0);
           }
+          
+          // Check if the guest's status for this subevent matches any selected status
+          return selectedStatuses.includes(rsvpForSubevent.status_id);
         });
       });
     }
@@ -471,7 +468,7 @@ const EmailPortal = ({
     setFilterBy("all");
     setFilterValue("");
     setGroupFilters([]);
-    setStatusFilters([]);
+    setStatusFilters({});
     setGenderFilters([]);
     setAgeGroupFilters([]);
     setContactFilters([]);
@@ -483,7 +480,6 @@ const EmailPortal = ({
   const handleMultiSelectFilter = (filterType, value, checked) => {
     const setFilter = {
       group: setGroupFilters,
-      status: setStatusFilters,
       gender: setGenderFilters,
       ageGroup: setAgeGroupFilters,
       contact: setContactFilters,
@@ -502,6 +498,28 @@ const EmailPortal = ({
     }
   };
 
+  // Handle per-subevent status filter changes
+  const handleSubeventStatusFilter = (subeventName, statusId, checked) => {
+    setStatusFilters((prev) => {
+      const updated = { ...prev };
+      if (!updated[subeventName]) {
+        updated[subeventName] = [];
+      }
+      
+      if (checked) {
+        updated[subeventName] = [...updated[subeventName], statusId];
+      } else {
+        updated[subeventName] = updated[subeventName].filter((id) => id !== statusId);
+        // Remove the subevent key if no statuses are selected
+        if (updated[subeventName].length === 0) {
+          delete updated[subeventName];
+        }
+      }
+      
+      return updated;
+    });
+  };
+
   // Get sorting indicator for table headers
   const getSortIndicator = (column) => {
     if (sortBy !== column) return "↕️";
@@ -512,7 +530,7 @@ const EmailPortal = ({
   const hasAdvancedFilters = () => {
     return (
       groupFilters.length > 0 ||
-      statusFilters.length > 0 ||
+      Object.values(statusFilters).some(filters => filters && filters.length > 0) ||
       genderFilters.length > 0 ||
       ageGroupFilters.length > 0 ||
       contactFilters.length > 0 ||
@@ -1555,35 +1573,46 @@ const EmailPortal = ({
                   </div>
                 </div>
 
-                {/* Status Filters */}
+                {/* Per-Subevent Status Filters */}
                 <div className={styles.filterGroup}>
-                  <label className={styles.filterGroupLabel}>Status:</label>
-                  <div className={styles.checkboxGrid}>
-                    {[
-                      { value: "invited", label: "Invited" },
-                      { value: "not_invited", label: "Not Invited" },
-                      { value: "responded", label: "Responded" },
-                      { value: "pending", label: "Pending Response" },
-                    ].map((status) => (
-                      <label
-                        key={status.value}
-                        className={styles.checkboxLabel}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={statusFilters.includes(status.value)}
-                          onChange={(e) =>
-                            handleMultiSelectFilter(
-                              "status",
-                              status.value,
-                              e.target.checked,
-                            )
-                          }
-                        />
-                        <span>{status.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <label className={styles.filterGroupLabel}>Status by Sub-Event:</label>
+                  {subevents.length === 0 ? (
+                    <div style={{ color: "#666", fontStyle: "italic" }}>
+                      No sub-events available
+                    </div>
+                  ) : (
+                    subevents.map((subeventName) => (
+                      <div key={subeventName} className={styles.subEventFilterGroup}>
+                        <div className={styles.subEventLabel}>{subeventName}:</div>
+                        <div className={styles.checkboxGrid}>
+                          {[
+                            { id: 0, label: "Not Invited" },
+                            { id: 1, label: "Pending" },
+                            { id: 3, label: "Attending" },
+                            { id: 4, label: "Not Attending" },
+                          ].map((status) => (
+                            <label
+                              key={`${subeventName}-${status.id}`}
+                              className={styles.checkboxLabel}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={statusFilters[subeventName]?.includes(status.id) || false}
+                                onChange={(e) =>
+                                  handleSubeventStatusFilter(
+                                    subeventName,
+                                    status.id,
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                              <span>{status.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Gender Filters */}
@@ -1754,7 +1783,7 @@ const EmailPortal = ({
                   className={styles.btnOutlineSmall}
                   onClick={() => {
                     setGroupFilters([]);
-                    setStatusFilters([]);
+                    setStatusFilters({});
                     setGenderFilters([]);
                     setAgeGroupFilters([]);
                     setContactFilters([]);

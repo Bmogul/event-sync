@@ -51,7 +51,7 @@ const GuestModal = ({
     group_id: null,
     id: null,
     rsvp_status: {},
-    guest_type_id: null,
+    guest_type_id: 1,
     guest_limit: null,
   };
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
@@ -73,10 +73,10 @@ const GuestModal = ({
   ];
 
   const guestTypeOptions = [
-    {value: 1, label: "single"},
-    {value: 2, label: "multiple"},
-    {value: 3, label: "variable"},
-  ]
+    { value: 1, label: "single" },
+    { value: 2, label: "multiple" },
+    { value: 3, label: "variable" },
+  ];
 
   // Load the current guest's group when modal opens
   useEffect(() => {
@@ -186,6 +186,19 @@ const GuestModal = ({
     setGroupOptions((prev) => [...prev, newGroupOption]);
 
     setSelectedGroup(groupWithTempId);
+
+    setUpdatedGroups((prev) => {
+      const existingIndex = prev.findIndex((g) => g.id === groupWithTempId.id);
+      if (existingIndex !== -1) {
+        // Replace existing entry
+        const updated = [...prev];
+        updated[existingIndex] = groupWithTempId;
+        return updated;
+      } else {
+        // Add new entry
+        return [...prev, groupWithTempId];
+      }
+    });
   };
 
   const saveGuest = (guest) => {
@@ -567,69 +580,70 @@ const GuestModal = ({
                     }}
                   />
                 </div>
-              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Guest Type</label>
-                <p>Three types of "guest": single, multiple, and variable. single means just the one individual, multiple means a drop down set by guest limit, variable means freefom entry</p>
-                <Select
-                  classNamePrefix="react-select"
-                  value={
-                    guestTypeOptions.find(
-                      (opt) => opt.value === guestFormData.guest_type_id,
-                    ) || null
-                  }
-                  onChange={(selected) => {
-                    setGuestFormData((prev) => ({
-                      ...prev,
-                      guest_type_id: selected?.value || null,
-                      guest_limit: null, // Reset guest limit when changing type
-                    }));
-                  }}
-                  options={guestTypeOptions}
-                  placeholder="Select guest type..."
-                  isClearable
-                  isSearchable
-                />
-              </div>
-
-              {/* Conditional Guest Limit Field */}
-              {guestFormData.guest_type_id === 2 && (
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Guest Limit</label>
-                  <input
-                    type="number"
-                    className={styles.formInput}
-                    min="1"
-                    value={guestFormData.guest_limit || ""}
-                    onChange={(e) => {
-                      setGuestFormData((prev) => ({
-                        ...prev,
-                        guest_limit: e.target.value ? parseInt(e.target.value) : null,
-                      }));
+                  <label className={styles.formLabel}>Guest Type</label>
+
+                  <div style={{ maxWidth: "300px" }}>
+                    <Select
+                      classNamePrefix="react-select"
+                      value={
+                        guestTypeOptions.find(
+                          (opt) => opt.value === guestFormData.guest_type_id,
+                        ) || null
+                      }
+                      onChange={(selected) => {
+                        setGuestFormData((prev) => ({
+                          ...prev,
+                          guest_type_id: selected?.value || null,
+                          guest_limit: null, // Reset guest limit when changing type
+                        }));
+                      }}
+                      options={guestTypeOptions}
+                      placeholder="Select guest type..."
+                      isClearable
+                      isSearchable
+                    />
+                  </div>
+                  <div
+                    className={styles.fieldHelp}
+                    style={{
+                      marginBottom: "8px",
+                      fontSize: "0.85em",
+                      color: "#666",
                     }}
-                    placeholder="Enter maximum number of guests..."
-                  />
-                  <div className={styles.fieldHelp}>
-                    Maximum number of guests for this multiple guest entry
+                  >
+                    <strong>Single:</strong> Just one individual •{" "}
+                    <strong>Multiple:</strong> Fixed number with dropdown •{" "}
+                    <strong>Variable:</strong> Free-form entry
                   </div>
                 </div>
-              )}
-
-              {/* Point of Contact Section */}
-              <div className={styles.pointOfContactSection}>
-                <label className={styles.pointOfContactLabel}>
-                  <input
-                    type="checkbox"
-                    checked={guestFormData.point_of_contact || false}
-                    onChange={(e) => handlePOCChange(e.target.checked)}
-                  />
-                  Point of Contact
-                </label>
-                <div className={styles.pointOfContactHelp}>
-                  Point of contact receives important updates and can help
-                  coordinate with their group
-                </div>
+                {/* Conditional Guest Limit Field */}
+                {guestFormData.guest_type_id === 2 && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Guest Limit</label>
+                    <div style={{ maxWidth: "150px" }}>
+                      <input
+                        type="number"
+                        className={styles.formInput}
+                        min="1"
+                        value={guestFormData.guest_limit || ""}
+                        onChange={(e) => {
+                          setGuestFormData((prev) => ({
+                            ...prev,
+                            guest_limit: e.target.value
+                              ? parseInt(e.target.value)
+                              : null,
+                          }));
+                        }}
+                        placeholder="e.g. 4"
+                      />
+                    </div>
+                    <div className={styles.fieldHelp}>
+                      Maximum number of guests for this entry
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Subevent Invitations Section */}
@@ -665,6 +679,23 @@ const GuestModal = ({
                   </div>
                 </div>
               )}
+
+              {/* Point of Contact Section */}
+              <div className={styles.pointOfContactSection}>
+                <label className={styles.pointOfContactLabel}>
+                  <input
+                    type="checkbox"
+                    checked={guestFormData.point_of_contact || false}
+                    onChange={(e) => handlePOCChange(e.target.checked)}
+                  />
+                  Point of Contact
+                </label>
+                <div className={styles.pointOfContactHelp}>
+                  Point of contact receives important updates and can help
+                  coordinate with their group
+                </div>
+              </div>
+
               {showPOCConfirmation && (
                 <div className={styles.confirmationOverlay}>
                   <div className={styles.confirmationDialog}>

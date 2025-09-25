@@ -110,22 +110,16 @@ const Page = () => {
     }
   }, [params.eventID, session, authLoading, router, getGuestList]);
 
-  const updateGuestList = async (usersToUpdate, groupsToUpdate) => {
-    console.log("SAVING", "portal/page.js/updateGuestList()" )
+  const updateGuestList = async (guestsToUpdate, groupsToUpdate) => {
+    console.log("SAVING", "portal/page.js/updateGuestList()");
 
-    console.log("SAVING", "usersToUpdate", usersToUpdate)
-    console.log("SAVING", "exisitng guest list", guestList)
+    console.log("SAVING", "usersToUpdate", guestsToUpdate);
+    console.log("SAVING", "exisitng guest list", guestList);
 
-    console.log("SAVING", "groupsToUpdate", groupsToUpdate)
-    console.log("SAVING", "exisitng groups", groups)
-    let guests = guestList;
-    for (const userUpdate of usersToUpdate) {
-      guests = guests.map((guest) =>
-        guest.UID === userUpdate.UID ? userUpdate : guest,
-      );
-    }
-    
-    /*try {
+    console.log("SAVING", "groupsToUpdate", groupsToUpdate);
+    console.log("SAVING", "exisitng groups", groups);
+
+    try {
       if (!session?.access_token) throw new Error("User not authenticated");
 
       const res = await fetch(`/api/${params.eventID}/guestList`, {
@@ -134,15 +128,22 @@ const Page = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ event, guestList: guests }),
+        body: JSON.stringify({
+          event,
+          guestList: guestsToUpdate,
+          groups: groupsToUpdate,
+        }),
       });
 
       const result = await res.json();
-      if (res.status === 200 && result.validated) setGuestList(guests);
+      if (res.status === 200 && result.validated){ 
+        //console.log(res) 
+        //setGuestList(guests);
+      }
     } catch (error) {
       console.error(error);
       toast("Failed to update guest list");
-    }*/
+    }
   };
 
   const handleCustomizeRSVP = () => {
@@ -251,7 +252,9 @@ const Page = () => {
                 )}
                 {canEditEvent && (
                   <button
-                    onClick={()=>{setCurrentView("manage-guests")}}
+                    onClick={() => {
+                      setCurrentView("manage-guests");
+                    }}
                     className={styles.btnOutline}
                   >
                     Manage Guests
@@ -381,7 +384,12 @@ const Page = () => {
           ) : currentView === "manage-team" ? (
             <ManageTeam eventPublicId={event?.eventID} />
           ) : currentView === "manage-guests" ? (
-            <ManageGuests event={event} guests={guestList} groups={groups} updateGuestList={updateGuestList}/>
+            <ManageGuests
+              event={event}
+              guests={guestList}
+              groups={groups}
+              updateGuestList={updateGuestList}
+            />
           ) : null}
         </div>
       </main>

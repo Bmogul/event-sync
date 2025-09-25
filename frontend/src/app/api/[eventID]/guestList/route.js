@@ -159,7 +159,6 @@ export async function GET(request, { params }) {
       );
     }
 
-
     // Transform guests
     const transformedUsers =
       allGuests?.map((guest) => ({
@@ -225,7 +224,7 @@ export async function POST(request, { params }) {
   try {
     const supabase = createClient();
     const body = await request.json();
-    const { event, guestList } = body;
+    const { event, guestList, groups } = body;
 
     // Get auth token from request headers
     const authHeader = request.headers.get("Authorization");
@@ -240,13 +239,42 @@ export async function POST(request, { params }) {
 
     // Get the current user from Supabase
     const {
-      data: { user },
-      error: userError,
+      data: { user: supaUser },
+      error: supaUserError,
     } = await supabase.auth.getUser(token);
 
-    if (userError || !user) {
+    if (supaUserError || !supaUser) {
+    console.log(
+      Date.now(),
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "SUPAUSER ERROR",
+      supaUserError,
+    );
       return NextResponse.json(
         { validated: false, message: "Invalid user" },
+        { status: 401 },
+      );
+    }
+
+    // Fetch user
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("supa_id", supaUser.id)
+      .single();
+    if (userError || !user) {
+    // Check access permissions
+    console.log(
+      Date.now(),
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "USER ERROR",
+      userError,
+    );
+      return NextResponse.json(
+        
+        { validated: false, message: "Invalid user: Profile not created" },
         { status: 401 },
       );
     }
@@ -263,6 +291,20 @@ export async function POST(request, { params }) {
     }
 
     // Check access permissions
+    console.log(
+      Date.now(),
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "eventData.id:",
+      eventData.id,
+    );
+    console.log(
+      Date.now(),
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "user.id",
+      user.id,
+    );
     const { data: managers, error: managerError } = await supabase
       .from("event_managers")
       .select("*")
@@ -271,6 +313,13 @@ export async function POST(request, { params }) {
       .limit(1);
 
     if (managerError || !managers || managers.length === 0) {
+      console.log(
+        Date.now(),
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "ACCESS DENIED",
+        managerError,
+      );
       return NextResponse.json(
         { validated: false, message: "Access denied" },
         { status: 403 },
@@ -279,6 +328,25 @@ export async function POST(request, { params }) {
 
     // Here you would implement the guest list update logic
     // For now, just return success
+    //
+    console.log(
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "GUESTS TO UPDATE / CREATE",
+    );
+    console.log(guestList);
+    console.log(
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "GROUPS TO UPDATE / CREATE",
+    );
+    console.log(groups);
+    /*console.log(
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "GUESTS TO UPDATE",
+    );
+    console.log(guestList);*/
     return NextResponse.json(
       {
         validated: true,

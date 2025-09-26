@@ -52,6 +52,8 @@ const GuestModal = ({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [pendingSaveAction, setPendingSaveAction] = useState(null);
+  const [originalGuestRsvpStatus, setOriginalGuestRsvpStatus] = useState({});
+  const [rsvpsToDelete, setRsvpsToDelete] = useState([]);
 
   const guestFormRef = useRef(null);
   const reviewModalRef = useRef(null);
@@ -186,7 +188,12 @@ const GuestModal = ({
         setShowGuestForm(true);
         setEditingGuest(true);
         setGuestFormData({ ...currentGuest });
+        // Store original RSVP status for tracking deletions
+        setOriginalGuestRsvpStatus({ ...currentGuest.rsvp_status || {} });
       }
+    } else {
+      // Reset for new guests
+      setOriginalGuestRsvpStatus({});
     }
   }, [currentGuest, groups, guestList]);
 
@@ -289,6 +296,27 @@ const GuestModal = ({
     });
   };
 
+  // Function to calculate which RSVPs need to be deleted
+  const calculateRsvpDeletions = (originalRsvps, currentRsvps, guestId) => {
+    const deletions = [];
+    
+    // Find RSVPs that existed originally but are no longer in current
+    Object.keys(originalRsvps).forEach(subeventTitle => {
+      if (!currentRsvps[subeventTitle]) {
+        // This RSVP was removed
+        const originalRsvp = originalRsvps[subeventTitle];
+        if (originalRsvp.subevent_id) {
+          deletions.push({
+            guest_id: guestId,
+            subevent_id: originalRsvp.subevent_id
+          });
+        }
+      }
+    });
+    
+    return deletions;
+  };
+
   const saveGuest = (guest) => {
     // Determine if this is a new guest or existing guest
     const isNewGuest = !guest.id; // Only truly new if no ID at all
@@ -356,6 +384,23 @@ const GuestModal = ({
         groupsStaging.find((item) => item.id === guest.group_id),
       );
     }
+    // Track RSVP deletions for existing guests that are being edited
+    if (!isNewGuest && editingGuest && originalGuestRsvpStatus) {
+      const deletions = calculateRsvpDeletions(
+        originalGuestRsvpStatus,
+        modifiedGuest.rsvp_status || {},
+        modifiedGuest.id
+      );
+      
+      if (deletions.length > 0) {
+        setRsvpsToDelete(prev => {
+          // Remove any existing deletions for this guest and add new ones
+          const filtered = prev.filter(d => d.guest_id !== modifiedGuest.id);
+          return [...filtered, ...deletions];
+        });
+      }
+    }
+
     console.log("Modified Guest", modifiedGuest);
     console.log(groupsStaging);
     console.log(groupOptions);
@@ -453,7 +498,8 @@ const GuestModal = ({
         body: JSON.stringify({
           guestList: updatedGuests,
           groups: updatedGroups,
-          event: { id: eventID }
+          event: { id: eventID },
+          rsvpsToDelete: rsvpsToDelete
         })
       });
       
@@ -465,6 +511,7 @@ const GuestModal = ({
         // Clear staging data
         setUpdatedGuests([]);
         setUpdatedGroups([]);
+        setRsvpsToDelete([]);
         
         // Refresh data from server
         if (onDataRefresh) {
@@ -628,6 +675,7 @@ const GuestModal = ({
                           onClick={() => {
                             setEditingGuest(guest);
                             setGuestFormData(guest);
+                            setOriginalGuestRsvpStatus({ ...guest.rsvp_status || {} });
                             setShowGuestForm(true);
                             
                             // Scroll to guest form section after state updates
@@ -659,6 +707,7 @@ const GuestModal = ({
                     group_id: selectedGroup.id,
                     point_of_contact: !existingPOC, // Default to POC if no one else is
                   });
+                  setOriginalGuestRsvpStatus({}); // Reset for new guest
                   setShowGuestForm(true);
                   
                   // Scroll to guest form section after state updates
@@ -1025,6 +1074,7 @@ const GuestModal = ({
                     setShowGuestForm(false);
                     setEditingGuest(null);
                     setGuestFormData(defaultGuest);
+                    setOriginalGuestRsvpStatus({});
                   }}
                 >
                   Cancel
@@ -1043,6 +1093,7 @@ const GuestModal = ({
                     setShowGuestForm(false);
                     setEditingGuest(null);
                     setGuestFormData(defaultGuest);
+                    setOriginalGuestRsvpStatus({});
                   }}
                 >
                   {editingGuest ? "Update Guest" : "Save Guest"}
@@ -1147,7 +1198,36 @@ const GuestModal = ({
                   </div>
                 )}
 
-                {updatedGroups.length === 0 && updatedGuests.length === 0 && (
+                {/* RSVP Deletions */}
+                {rsvpsToDelete.length > 0 && (
+                  <div className={styles.reviewSection}>
+                    <h5 
+                      className={styles.reviewSectionTitle}
+                      id="rsvp-deletions-section"
+                    >
+                      RSVP Invitations to Remove ({rsvpsToDelete.length}):
+                    </h5>
+                    <ul 
+                      className={styles.reviewList}
+                      aria-labelledby="rsvp-deletions-section"
+                    >
+                      {rsvpsToDelete.map((rsvp, index) => {
+                        const guest = guestlistStaging?.find(g => g.id === rsvp.guest_id);
+                        const subevent = subevents?.find(s => s.id === rsvp.subevent_id);
+                        return (
+                          <li key={index} className={styles.reviewItem}>
+                            <strong>{guest?.name || 'Unknown Guest'}</strong>
+                            <div className={styles.reviewSubtext}>
+                              Will no longer be invited to: {subevent?.title || 'Unknown Event'}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {updatedGroups.length === 0 && updatedGuests.length === 0 && rsvpsToDelete.length === 0 && (
                   <p 
                     className={styles.noChanges}
                     role="status"
@@ -1163,15 +1243,21 @@ const GuestModal = ({
                   aria-live="polite"
                   aria-atomic="true"
                 >
-                  {updatedGroups.length > 0 && updatedGuests.length > 0 && 
-                    `Ready to save ${updatedGroups.length} group${updatedGroups.length === 1 ? '' : 's'} and ${updatedGuests.length} guest${updatedGuests.length === 1 ? '' : 's'}`
-                  }
-                  {updatedGroups.length > 0 && updatedGuests.length === 0 && 
-                    `Ready to save ${updatedGroups.length} group${updatedGroups.length === 1 ? '' : 's'}`
-                  }
-                  {updatedGroups.length === 0 && updatedGuests.length > 0 && 
-                    `Ready to save ${updatedGuests.length} guest${updatedGuests.length === 1 ? '' : 's'}`
-                  }
+                  {(updatedGroups.length > 0 || updatedGuests.length > 0 || rsvpsToDelete.length > 0) && (
+                    (() => {
+                      const parts = [];
+                      if (updatedGroups.length > 0) {
+                        parts.push(`${updatedGroups.length} group${updatedGroups.length === 1 ? '' : 's'}`);
+                      }
+                      if (updatedGuests.length > 0) {
+                        parts.push(`${updatedGuests.length} guest${updatedGuests.length === 1 ? '' : 's'}`);
+                      }
+                      if (rsvpsToDelete.length > 0) {
+                        parts.push(`${rsvpsToDelete.length} RSVP invitation${rsvpsToDelete.length === 1 ? '' : 's'} to remove`);
+                      }
+                      return `Ready to save ${parts.join(' and ')}`;
+                    })()
+                  )}
                 </div>
               </div>
               

@@ -224,7 +224,7 @@ export async function POST(request, { params }) {
   try {
     const supabase = createClient();
     const body = await request.json();
-    const { event, guestList, groups } = body;
+    const { event, guestList, groups, rsvpsToDelete } = body;
 
     // Get auth token from request headers
     const authHeader = request.headers.get("Authorization");
@@ -489,6 +489,64 @@ export async function POST(request, { params }) {
 
     // Merge results
     const updatedGuests = [...insertedGuests, ...upsertedGuests];
+
+    // DELETE RSVPS that are no longer needed
+    if (rsvpsToDelete && rsvpsToDelete.length > 0) {
+      console.log(
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "DELETING RSVPs",
+        rsvpsToDelete
+      );
+
+      // Build guest tempId → realId map for deletions
+      const guestIdMapForDeletion = {};
+      updatedGuests.forEach((guest) => {
+        if (guest.details?.tempId !== undefined) {
+          guestIdMapForDeletion[guest.details.tempId] = guest.id;
+        }
+      });
+
+      for (const rsvpToDelete of rsvpsToDelete) {
+        // Map temp guest ID to real guest ID if needed
+        const realGuestId = guestIdMapForDeletion[rsvpToDelete.guest_id] ?? rsvpToDelete.guest_id;
+        
+        // Only attempt deletion if we have a valid (non-negative) guest ID
+        if (realGuestId >= 0) {
+          const { data: deletedRsvp, error: deleteError } = await supabase
+            .from("rsvps")
+            .delete()
+            .eq("guest_id", realGuestId)
+            .eq("subevent_id", rsvpToDelete.subevent_id);
+
+          if (deleteError) {
+            console.log(
+              Date.now(),
+              "POST",
+              `api/${eventID}/guestList/route.js`,
+              "FAILED TO DELETE RSVP",
+              deleteError,
+              { ...rsvpToDelete, realGuestId }
+            );
+            // Continue with other deletions even if one fails
+          } else {
+            console.log(
+              "POST",
+              `api/${eventID}/guestList/route.js`,
+              "SUCCESSFULLY DELETED RSVP",
+              { ...rsvpToDelete, realGuestId }
+            );
+          }
+        } else {
+          console.log(
+            "POST",
+            `api/${eventID}/guestList/route.js`,
+            "SKIPPING RSVP DELETION - invalid guest ID",
+            rsvpToDelete
+          );
+        }
+      }
+    }
 
     // CREATE / UPDATE RSVPS
     // Build guest tempId → realId map

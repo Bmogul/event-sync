@@ -5,13 +5,24 @@ import { useAuth } from "../../contexts/AuthContext";
 import styles from "../styles/portal.module.css";
 import GuestModal from "./GuestModal";
 
-const ManageGuests = ({ event, guests, groups, updateGuestList, onDataRefresh, session}) => {
+import { useParams } from "next/navigation";
+
+const ManageGuests = ({
+  event,
+  guests,
+  groups,
+  updateGuestList,
+  onDataRefresh,
+  session,
+  toast,
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("group");
   const [sortDirection, setSortDirection] = useState("asc");
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [subevents, setSubevents] = useState([]);
+  const params = useParams();
 
   useEffect(() => {
     // Get subevents from event object (all items starting with func)
@@ -107,6 +118,32 @@ const ManageGuests = ({ event, guests, groups, updateGuestList, onDataRefresh, s
     setShowGuestModal(false);
     setSelectedGuest(null);
   };
+  // Handle copying RSVP link to clipboard
+  const handleCopyRSVPLink = async (guest) => {
+    const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
+
+    try {
+      await navigator.clipboard.writeText(rsvpLink);
+      toast(`RSVP link copied for ${guest.name}`);
+    } catch (error) {
+      console.error("Failed to copy RSVP link:", error);
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement("textarea");
+      textArea.value = rsvpLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        toast(`RSVP link copied for ${guest.name}`);
+      } catch (fallbackError) {
+        console.error("Fallback copy failed:", fallbackError);
+        toast("Failed to copy RSVP link. Please copy manually.");
+        // Show the link in a prompt as final fallback
+        prompt("Copy this RSVP link:", rsvpLink);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   const renderGuestRow = (guest) => {
     const isPointOfContact = guest.point_of_contact === true;
@@ -128,11 +165,19 @@ const ManageGuests = ({ event, guests, groups, updateGuestList, onDataRefresh, s
             </button>
             <button
               type="button"
+              className={`${styles.btnGhost} ${styles.btnIcon}`}
+              onClick={() => handleCopyRSVPLink(guest)}
+              title="Copy RSVP link"
+            >
+              📋
+            </button>
+            {/*<button
+              type="button"
               className={`${styles.actionButton} ${styles.btnGhost} ${styles.btnIcon}`}
               title="Delete guest"
             >
               🗑️
-            </button>
+            </button>*/}
           </div>
         </td>
         <td>

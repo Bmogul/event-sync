@@ -26,7 +26,7 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState("manage-guests"); // "email", "template-editor", or "manage-team"
+  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
   const [groups, setGroups] = useState();
 
   const {
@@ -393,6 +393,7 @@ const Page = () => {
               updateGuestList={updateGuestList}
               onDataRefresh={() => getGuestList()}
               session={session}
+              toast={toast}
             />
           ) : null}
         </div>

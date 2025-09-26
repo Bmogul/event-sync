@@ -21,8 +21,9 @@ const GuestModal = ({
   onDataRefresh,
   session,
 }) => {
-  if (!isOpen || !currentGuest) return null;
-
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL LOGIC
+  
+  // useState hooks
   const [groupOptions, setGroupOptions] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setCreateGroup] = useState(false);
@@ -30,9 +31,7 @@ const GuestModal = ({
   const [editingGuest, setEditingGuest] = useState(null);
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pendingPOCChange, setPendingPOCChange] = useState(false);
-
-  const params = useParams();
-
+  
   const defaultGroup = {
     details: {
       description: "",
@@ -55,10 +54,6 @@ const GuestModal = ({
   const [originalGuestRsvpStatus, setOriginalGuestRsvpStatus] = useState({});
   const [rsvpsToDelete, setRsvpsToDelete] = useState([]);
 
-  const guestFormRef = useRef(null);
-  const reviewModalRef = useRef(null);
-  const unsavedChangesModalRef = useRef(null);
-
   const defaultGuest = {
     name: "",
     email: "",
@@ -75,28 +70,26 @@ const GuestModal = ({
   };
   const [guestFormData, setGuestFormData] = useState(defaultGuest);
 
-  const genderOptions = [
-    { value: 1, label: "Male" },
-    { value: 2, label: "Female" },
-    { value: 3, label: "Other/Prefer not to say" },
-    { value: 4, label: "Not specified" },
-  ];
+  // useRef hooks
+  const guestFormRef = useRef(null);
+  const reviewModalRef = useRef(null);
+  const unsavedChangesModalRef = useRef(null);
 
-  const ageGroupOptions = [
-    { value: 1, label: "Infant (0-2 years)" },
-    { value: 2, label: "Child (3-12 years)" },
-    { value: 3, label: "Teenager (13-17 years)" },
-    { value: 4, label: "Adult (18-64 years)" },
-    { value: 5, label: "Senior (65+ years)" },
-    { value: 6, label: "Age not specified" },
-  ];
+  // useParams hook
+  const params = useParams();
 
-  const guestTypeOptions = [
-    { value: 1, label: "single" },
-    { value: 2, label: "multiple" },
-    { value: 3, label: "variable" },
-  ];
+  // Helper functions needed by useEffect hooks
+  const cancelPOCTransfer = () => {
+    setShowPOCConfirmation(false);
+    setPendingPOCChange(false);
+  };
 
+  const cancelSave = () => {
+    setShowReviewModal(false);
+    setPendingSaveAction(null);
+  };
+
+  // useEffect hooks
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -139,34 +132,6 @@ const GuestModal = ({
     }
   }, [showUnsavedChangesDialog]);
 
-  // Focus trap for modals
-  const handleModalKeyDown = (event, modalRef) => {
-    if (event.key !== 'Tab') return;
-
-    const focusableElements = modalRef.current?.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    
-    if (!focusableElements || focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey) {
-      // Shift + Tab
-      if (document.activeElement === firstElement) {
-        lastElement.focus();
-        event.preventDefault();
-      }
-    } else {
-      // Tab
-      if (document.activeElement === lastElement) {
-        firstElement.focus();
-        event.preventDefault();
-      }
-    }
-  };
-
   // Load the current guest's group when modal opens
   useEffect(() => {
     if (groups) {
@@ -196,6 +161,60 @@ const GuestModal = ({
       setOriginalGuestRsvpStatus({});
     }
   }, [currentGuest, groups, guestList]);
+
+  // CONDITIONAL EARLY RETURN AFTER ALL HOOKS
+  if (!isOpen || !currentGuest) return null;
+
+  // Static data arrays (not hooks)
+  const genderOptions = [
+    { value: 1, label: "Male" },
+    { value: 2, label: "Female" },
+    { value: 3, label: "Other/Prefer not to say" },
+    { value: 4, label: "Not specified" },
+  ];
+
+  const ageGroupOptions = [
+    { value: 1, label: "Infant (0-2 years)" },
+    { value: 2, label: "Child (3-12 years)" },
+    { value: 3, label: "Teenager (13-17 years)" },
+    { value: 4, label: "Adult (18-64 years)" },
+    { value: 5, label: "Senior (65+ years)" },
+    { value: 6, label: "Age not specified" },
+  ];
+
+  const guestTypeOptions = [
+    { value: 1, label: "single" },
+    { value: 2, label: "multiple" },
+    { value: 3, label: "variable" },
+  ];
+
+  // Focus trap for modals
+  const handleModalKeyDown = (event, modalRef) => {
+    if (event.key !== 'Tab') return;
+
+    const focusableElements = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (!focusableElements || focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        lastElement.focus();
+        event.preventDefault();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        firstElement.focus();
+        event.preventDefault();
+      }
+    }
+  };
 
   // Helper function to find POC in a group
   const getGroupPOC = (groupId) => {
@@ -242,11 +261,6 @@ const GuestModal = ({
     setPendingPOCChange(false);
   };
 
-  // Cancel POC transfer
-  const cancelPOCTransfer = () => {
-    setShowPOCConfirmation(false);
-    setPendingPOCChange(false);
-  };
 
   // Handle subevent checkbox change
   const handleSubeventChange = (subeventTitle, checked, subeventId) => {
@@ -532,11 +546,6 @@ const GuestModal = ({
       setIsSaving(false);
       setPendingSaveAction(null);
     }
-  };
-
-  const cancelSave = () => {
-    setShowReviewModal(false);
-    setPendingSaveAction(null);
   };
 
   return (

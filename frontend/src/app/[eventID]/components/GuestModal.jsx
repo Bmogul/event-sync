@@ -49,8 +49,13 @@ const GuestModal = ({
   const [updatedGuests, setUpdatedGuests] = useState([]);
   const [updatedGroups, setUpdatedGroups] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [pendingSaveAction, setPendingSaveAction] = useState(null);
 
   const guestFormRef = useRef(null);
+  const reviewModalRef = useRef(null);
+  const unsavedChangesModalRef = useRef(null);
 
   const defaultGuest = {
     name: "",
@@ -89,6 +94,76 @@ const GuestModal = ({
     { value: 2, label: "multiple" },
     { value: 3, label: "variable" },
   ];
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        if (showReviewModal) {
+          cancelSave();
+        } else if (showUnsavedChangesDialog) {
+          setShowUnsavedChangesDialog(false);
+        } else if (showPOCConfirmation) {
+          cancelPOCTransfer();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showReviewModal, showUnsavedChangesDialog, showPOCConfirmation]);
+
+  // Focus management for review modal
+  useEffect(() => {
+    if (showReviewModal && reviewModalRef.current) {
+      const focusableElements = reviewModalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    }
+  }, [showReviewModal]);
+
+  // Focus management for unsaved changes modal
+  useEffect(() => {
+    if (showUnsavedChangesDialog && unsavedChangesModalRef.current) {
+      const focusableElements = unsavedChangesModalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    }
+  }, [showUnsavedChangesDialog]);
+
+  // Focus trap for modals
+  const handleModalKeyDown = (event, modalRef) => {
+    if (event.key !== 'Tab') return;
+
+    const focusableElements = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (!focusableElements || focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        lastElement.focus();
+        event.preventDefault();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        firstElement.focus();
+        event.preventDefault();
+      }
+    }
+  };
 
   // Load the current guest's group when modal opens
   useEffect(() => {
@@ -286,10 +361,78 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
-  const onSave = async () => {
+  // Check if there are unsaved changes in forms
+  const hasUnsavedGuestChanges = () => {
+    return showGuestForm && (editingGuest || 
+      guestFormData.name || 
+      guestFormData.email || 
+      guestFormData.phone ||
+      guestFormData.group_id ||
+      Object.keys(guestFormData.rsvp_status || {}).length > 0
+    );
+  };
+
+  const hasUnsavedGroupChanges = () => {
+    return showCreateGroup && (newGroup.title || newGroup.details.description);
+  };
+
+  const handleSaveCurrentChanges = () => {
+    // Save current guest if there are changes
+    if (hasUnsavedGuestChanges()) {
+      saveGuest(guestFormData);
+      setShowGuestForm(false);
+      setEditingGuest(null);
+      setGuestFormData(defaultGuest);
+    }
+    
+    // Save current group if there are changes
+    if (hasUnsavedGroupChanges()) {
+      createGroup(newGroup);
+      setCreateGroup(false);
+      setNewGroup(defaultGroup);
+    }
+    
+    // Close dialogs
+    setShowUnsavedChangesDialog(false);
+    
+    // Proceed with the pending save action
+    if (pendingSaveAction === 'save') {
+      setShowReviewModal(true);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    // Reset form states
+    setShowGuestForm(false);
+    setEditingGuest(null);
+    setGuestFormData(defaultGuest);
+    setCreateGroup(false);
+    setNewGroup(defaultGroup);
+    setShowUnsavedChangesDialog(false);
+    
+    // Proceed with the pending save action
+    if (pendingSaveAction === 'save') {
+      setShowReviewModal(true);
+    }
+  };
+
+  const onSave = () => {
+    // Check for unsaved changes
+    if (hasUnsavedGuestChanges() || hasUnsavedGroupChanges()) {
+      setPendingSaveAction('save');
+      setShowUnsavedChangesDialog(true);
+      return;
+    }
+    
+    // No unsaved changes, proceed to review
+    setShowReviewModal(true);
+  };
+
+  const confirmSave = async () => {
     if (isSaving) return;
     
     setIsSaving(true);
+    setShowReviewModal(false);
     
     try {
       console.log("SAVING", "GuestModal.jsx/onSave()");
@@ -340,7 +483,13 @@ const GuestModal = ({
       toast.error('An error occurred while saving. Please try again.');
     } finally {
       setIsSaving(false);
+      setPendingSaveAction(null);
     }
+  };
+
+  const cancelSave = () => {
+    setShowReviewModal(false);
+    setPendingSaveAction(null);
   };
 
   return (
@@ -812,6 +961,62 @@ const GuestModal = ({
                 </div>
               )}
 
+              {/* Unsaved Changes Dialog */}
+              {showUnsavedChangesDialog && (
+                <div 
+                  className={styles.confirmationOverlay}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="unsaved-changes-title"
+                  aria-describedby="unsaved-changes-desc"
+                >
+                  <div 
+                    className={styles.confirmationDialog}
+                    ref={unsavedChangesModalRef}
+                    onKeyDown={(e) => handleModalKeyDown(e, unsavedChangesModalRef)}
+                  >
+                    <h4 
+                      className={styles.confirmationTitle}
+                      id="unsaved-changes-title"
+                    >
+                      Unsaved Changes Detected
+                    </h4>
+                    <p 
+                      className={styles.confirmationMessage}
+                      id="unsaved-changes-desc"
+                    >
+                      You have unsaved changes in the current form. What would you like to do?
+                    </p>
+                    <div className={styles.confirmationActions}>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnSecondary}`}
+                        onClick={() => setShowUnsavedChangesDialog(false)}
+                        aria-label="Cancel and return to form"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnOutline}`}
+                        onClick={handleDiscardChanges}
+                        aria-label="Discard unsaved changes and proceed to review"
+                      >
+                        Discard Changes
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        onClick={handleSaveCurrentChanges}
+                        aria-label="Save current changes and proceed to review"
+                      >
+                        Save & Continue
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className={styles.formActions}>
                 <button
                   type="button"
@@ -846,8 +1051,152 @@ const GuestModal = ({
             </div>
           )}
 
-          {/* POC Confirmation Dialog */}
         </div>
+
+        {/* Review Changes Modal */}
+        {showReviewModal && (
+          <div 
+            className={styles.confirmationOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-modal-title"
+            aria-describedby="review-modal-desc"
+          >
+            <div 
+              className={styles.reviewModal}
+              ref={reviewModalRef}
+              onKeyDown={(e) => handleModalKeyDown(e, reviewModalRef)}
+            >
+              <div className={styles.confirmationContent}>
+                <h4 
+                  className={styles.confirmationTitle}
+                  id="review-modal-title"
+                >
+                  Review Changes
+                </h4>
+                <p 
+                  className={styles.confirmationMessage}
+                  id="review-modal-desc"
+                >
+                  Please review the changes that will be saved:
+                </p>
+              </div>
+              
+              <div className={styles.reviewContent}>
+                {/* Updated Groups */}
+                {updatedGroups.length > 0 && (
+                  <div className={styles.reviewSection}>
+                    <h5 
+                      className={styles.reviewSectionTitle}
+                      id="groups-section"
+                    >
+                      Groups ({updatedGroups.length}):
+                    </h5>
+                    <ul 
+                      className={styles.reviewList}
+                      aria-labelledby="groups-section"
+                    >
+                      {updatedGroups.map((group, index) => (
+                        <li key={group.id || index} className={styles.reviewItem}>
+                          <strong>{group.title || 'Untitled Group'}</strong>
+                          {group.id < 0 ? ' (New)' : ' (Updated)'}
+                          {group.details?.description && (
+                            <div className={styles.reviewSubtext}>
+                              {group.details.description}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Updated Guests */}
+                {updatedGuests.length > 0 && (
+                  <div className={styles.reviewSection}>
+                    <h5 
+                      className={styles.reviewSectionTitle}
+                      id="guests-section"
+                    >
+                      Guests ({updatedGuests.length}):
+                    </h5>
+                    <ul 
+                      className={styles.reviewList}
+                      aria-labelledby="guests-section"
+                    >
+                      {updatedGuests.map((guest, index) => (
+                        <li key={guest.id || index} className={styles.reviewItem}>
+                          <strong>{guest.name || 'Unnamed Guest'}</strong>
+                          {guest.id < 0 ? ' (New)' : ' (Updated)'}
+                          <div className={styles.reviewSubtext}>
+                            {guest.email && `Email: ${guest.email}`}
+                            {guest.phone && `, Phone: ${guest.phone}`}
+                            {guest.point_of_contact && ', POC'}
+                            {guest.group_id && (
+                              `, Group: ${groupsStaging?.find(g => g.id === guest.group_id)?.title || 'Unknown'}`
+                            )}
+                          </div>
+                          {Object.keys(guest.rsvp_status || {}).length > 0 && (
+                            <div className={styles.reviewSubtext}>
+                              Invited to: {Object.keys(guest.rsvp_status).join(', ')}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {updatedGroups.length === 0 && updatedGuests.length === 0 && (
+                  <p 
+                    className={styles.noChanges}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    No changes to save.
+                  </p>
+                )}
+                
+                {/* Screen reader summary */}
+                <div 
+                  className={styles.srOnly}
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {updatedGroups.length > 0 && updatedGuests.length > 0 && 
+                    `Ready to save ${updatedGroups.length} group${updatedGroups.length === 1 ? '' : 's'} and ${updatedGuests.length} guest${updatedGuests.length === 1 ? '' : 's'}`
+                  }
+                  {updatedGroups.length > 0 && updatedGuests.length === 0 && 
+                    `Ready to save ${updatedGroups.length} group${updatedGroups.length === 1 ? '' : 's'}`
+                  }
+                  {updatedGroups.length === 0 && updatedGuests.length > 0 && 
+                    `Ready to save ${updatedGuests.length} guest${updatedGuests.length === 1 ? '' : 's'}`
+                  }
+                </div>
+              </div>
+              
+              <div className={styles.confirmationActions}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  onClick={cancelSave}
+                  aria-label="Cancel save operation and return to modal"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={confirmSave}
+                  disabled={isSaving}
+                  aria-label={isSaving ? 'Currently saving changes to server' : 'Confirm and save all changes to server'}
+                >
+                  {isSaving ? 'Saving...' : 'Confirm & Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className={styles.modalFooter}>
           <button
@@ -863,7 +1212,7 @@ const GuestModal = ({
             onClick={onSave}
             disabled={isSaving}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? 'Saving...' : 'Save All Changes'}
           </button>
         </div>
       </div>

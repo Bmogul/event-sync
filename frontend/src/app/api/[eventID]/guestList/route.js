@@ -396,64 +396,99 @@ export async function POST(request, { params }) {
       }
     });
 
+    const guestsToUpsert = guestList.map((g) => {
+      const payload = {
+        group_id: idMap[g.group_id] ?? g.group_id,
+        user_id: g.user_id ?? null,
+        name: g.name,
+        email: g.email || null,
+        phone: g.phone || null,
+        tag: g.tag || null,
+        gender_id: g.gender_id ?? null,
+        age_group_id: g.age_group_id ?? null,
+        point_of_contact: g.point_of_contact ?? false,
+        public_id: g.public_id ? g.public_id : crypto.randomUUID(),
+        guest_type_id: g.guest_type_id ?? null,
+        guest_limit: g.guest_limit ?? null,
+        details: {
+          ...(g.details || {}),
+          tempId: g.id, // keep tempId for reconciliation
+        },
+      };
 
-const guestsToUpsert = guestList.map((g) => {
-  // pull off fields that don't belong in the DB
-  const { 
-    id, 
-    rsvp_status,   // handled separately
-    group,         // not part of schema
-    group_status_id, 
-    group_invite_sent_at, 
-    guest_type, 
-    total_rsvps, 
-    ...rest 
-  } = g;
+      // include id ONLY if valid (non-negative, existing DB id)
+      if (g.id >= 0) {
+        payload.id = g.id;
+      }
 
-  return {
-    // required
-    name: g.name,
-    group_id: idMap[g.group_id] ?? g.group_id, // replace temp with real
-    // optional / nullable
-    user_id: g.user_id ?? null,
-    email: g.email ?? null,
-    phone: g.phone ?? null,
-    tag: g.tag ?? null,
-    gender_id: g.gender_id ?? null,
-    age_group_id: g.age_group_id ?? null,
-    point_of_contact: g.point_of_contact ?? false,
-    guest_type_id: g.guest_type_id ?? null,
-    guest_limit: g.guest_limit ?? null,
-    // ids
-    ...(id >= 0 ? { id } : {}),  // only include real id
-    public_id: g.public_id ? g.public_id : crypto.randomUUID(),
-    // metadata
-    details: {
-      ...(g.details ?? {}),
-      tempId: id, // keep original temp id for mapping
-    },
-  };
-});
+      return payload;
+    });
 
+    const newGuests = guestsToUpsert.filter((g) => !g.id);
+    const existingGuests = guestsToUpsert.filter((g) => g.id);
 
-    const { data: updatedGuests, error: updatedGuestsError } = await supabase
-      .from("guests")
-      .upsert(guestsToUpsert)
-      .select();
+    console.log(
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "guests to insert",
+      newGuests,
+    );
+    console.log(
+      "POST",
+      `api/${eventID}/guestList/route.js`,
+      "guests to upsert",
+      existingGuests,
+    );
 
-    if (updatedGuestsError || !updatedGuests) {
-      console.log(
-        Date.now(),
-        "POST",
-        `api/${eventID}/guestList/route.js`,
-        "FAILED TO CEATE Guests",
-        updatedGuestsError,
-      );
-      return NextResponse.json(
-        { validated: false, message: "Failed to create guest" },
-        { status: 403 },
-      );
+    let insertedGuests = [];
+    let upsertedGuests = [];
+
+    // Insert new guests
+    if (newGuests.length) {
+      const { data, error } = await supabase
+        .from("guests")
+        .insert(newGuests)
+        .select();
+      if (error) {
+        console.log(
+          Date.now(),
+          "POST",
+          `api/${eventID}/guestList/route.js`,
+          "FAILED TO INSERT Guests",
+          error,
+        );
+        return NextResponse.json(
+          { validated: false, message: "Failed to insert guests", error },
+          { status: 403 },
+        );
+      }
+      insertedGuests = data || [];
     }
+
+    // Upsert existing guests
+    if (existingGuests.length) {
+      const { data, error } = await supabase
+        .from("guests")
+        .upsert(existingGuests)
+        .select();
+      if (error) {
+        console.log(
+          Date.now(),
+          "POST",
+          `api/${eventID}/guestList/route.js`,
+          "FAILED TO UPSERT Guests",
+          error,
+        );
+        return NextResponse.json(
+          { validated: false, message: "Failed to upsert guests", error },
+          { status: 403 },
+        );
+      }
+      upsertedGuests = data || [];
+    }
+
+    // Merge results
+    const updatedGuests = [...insertedGuests, ...upsertedGuests];
 
     // CREATE / UPDATE RSVPS
     // Build guest tempId → realId map

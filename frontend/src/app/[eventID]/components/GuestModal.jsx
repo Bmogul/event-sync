@@ -155,12 +155,13 @@ const GuestModal = ({
   };
 
   // Handle subevent checkbox change
-  const handleSubeventChange = (subeventTitle, checked) => {
+  const handleSubeventChange = (subeventTitle, checked, subeventId) => {
     setGuestFormData((prev) => {
       const newRsvpStatus = { ...prev.rsvp_status };
       if (checked) {
         // Add invitation with default values
         newRsvpStatus[subeventTitle] = {
+          subevent_id: subeventId,
           response: 0,
           status_id: 1,
           status_name: "pending",
@@ -664,6 +665,7 @@ const GuestModal = ({
                               handleSubeventChange(
                                 subevent.title,
                                 e.target.checked,
+                                subevent.id
                               )
                             }
                           />

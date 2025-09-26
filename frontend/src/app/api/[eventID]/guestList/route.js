@@ -244,13 +244,13 @@ export async function POST(request, { params }) {
     } = await supabase.auth.getUser(token);
 
     if (supaUserError || !supaUser) {
-    console.log(
-      Date.now(),
-      "POST",
-      `api/${eventID}/guestList/route.js`,
-      "SUPAUSER ERROR",
-      supaUserError,
-    );
+      console.log(
+        Date.now(),
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "SUPAUSER ERROR",
+        supaUserError,
+      );
       return NextResponse.json(
         { validated: false, message: "Invalid user" },
         { status: 401 },
@@ -264,16 +264,15 @@ export async function POST(request, { params }) {
       .eq("supa_id", supaUser.id)
       .single();
     if (userError || !user) {
-    // Check access permissions
-    console.log(
-      Date.now(),
-      "POST",
-      `api/${eventID}/guestList/route.js`,
-      "USER ERROR",
-      userError,
-    );
+      // Check access permissions
+      console.log(
+        Date.now(),
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "USER ERROR",
+        userError,
+      );
       return NextResponse.json(
-        
         { validated: false, message: "Invalid user: Profile not created" },
         { status: 401 },
       );
@@ -335,18 +334,173 @@ export async function POST(request, { params }) {
       "GUESTS TO UPDATE / CREATE",
     );
     console.log(guestList);
+
+    // sanatizing groups
+
+    const groupsToUpsert = groups.map((g) => {
+      const { id, details = {}, ...rest } = g;
+      return {
+        ...rest,
+        ...(id >= 0 ? { id } : {}), // only include id if it's real
+        event_id: eventData.id,
+        details: {
+          ...details,
+          tempId: id, // store the original id (even if negative)
+        },
+      };
+    });
+
     console.log(
       "POST",
       `api/${eventID}/guestList/route.js`,
       "GROUPS TO UPDATE / CREATE",
     );
-    console.log(groups);
+    console.log(groupsToUpsert);
     /*console.log(
       "POST",
       `api/${eventID}/guestList/route.js`,
       "GUESTS TO UPDATE",
     );
     console.log(guestList);*/
+
+    // CREATE / UPDATE GROUPS
+    const { data: updatedGroups, error: updatedGroupsError } = await supabase
+      .from("guest_groups")
+      .upsert(groupsToUpsert)
+      .select();
+
+    console.log("POST", `api/${eventID}/guestList/route.js`, "UPDATED VALUES");
+    console.log(updatedGroups);
+
+    if (updatedGroupsError || !updatedGroups) {
+      console.log(
+        Date.now(),
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "FAILED TO CEATE GROUP",
+        updatedGroupsError,
+      );
+      return NextResponse.json(
+        { validated: false, message: "Failed to create group" },
+        { status: 403 },
+      );
+    }
+
+    // CREATE / UPDATE GUESTS
+    //
+    // mapping temp id with db id to map guests to groups
+    const idMap = {};
+    updatedGroups.forEach((g) => {
+      if (g.details?.tempId !== undefined) {
+        idMap[g.details.tempId] = g.id;
+      }
+    });
+
+
+const guestsToUpsert = guestList.map((g) => {
+  // pull off fields that don't belong in the DB
+  const { 
+    id, 
+    rsvp_status,   // handled separately
+    group,         // not part of schema
+    group_status_id, 
+    group_invite_sent_at, 
+    guest_type, 
+    total_rsvps, 
+    ...rest 
+  } = g;
+
+  return {
+    // required
+    name: g.name,
+    group_id: idMap[g.group_id] ?? g.group_id, // replace temp with real
+    // optional / nullable
+    user_id: g.user_id ?? null,
+    email: g.email ?? null,
+    phone: g.phone ?? null,
+    tag: g.tag ?? null,
+    gender_id: g.gender_id ?? null,
+    age_group_id: g.age_group_id ?? null,
+    point_of_contact: g.point_of_contact ?? false,
+    guest_type_id: g.guest_type_id ?? null,
+    guest_limit: g.guest_limit ?? null,
+    // ids
+    ...(id >= 0 ? { id } : {}),  // only include real id
+    public_id: g.public_id ? g.public_id : crypto.randomUUID(),
+    // metadata
+    details: {
+      ...(g.details ?? {}),
+      tempId: id, // keep original temp id for mapping
+    },
+  };
+});
+
+
+    const { data: updatedGuests, error: updatedGuestsError } = await supabase
+      .from("guests")
+      .upsert(guestsToUpsert)
+      .select();
+
+    if (updatedGuestsError || !updatedGuests) {
+      console.log(
+        Date.now(),
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "FAILED TO CEATE Guests",
+        updatedGuestsError,
+      );
+      return NextResponse.json(
+        { validated: false, message: "Failed to create guest" },
+        { status: 403 },
+      );
+    }
+
+    // CREATE / UPDATE RSVPS
+    // Build guest tempId → realId map
+    const guestIdMap = {};
+    updatedGuests.forEach((guest) => {
+      if (guest.details?.tempId !== undefined) {
+        guestIdMap[guest.details.tempId] = guest.id;
+      }
+    });
+
+    const rsvpsToUpsert = [];
+
+    guestList.forEach((g) => {
+      const realGuestId = guestIdMap[g.id] ?? g.id; // map temp guest id → real
+      if (!g.rsvp_status) return;
+
+      Object.values(g.rsvp_status).forEach((status) => {
+        rsvpsToUpsert.push({
+          guest_id: realGuestId,
+          subevent_id: status.subevent_id,
+          response: status.response,
+          status_id: status.status_id,
+        });
+      });
+    });
+
+    if (rsvpsToUpsert.length > 0) {
+      const { data: updatedRsvps, error: rsvpsError } = await supabase
+        .from("rsvps")
+        .upsert(rsvpsToUpsert)
+        .select();
+
+      if (rsvpsError) {
+        console.log(
+          Date.now(),
+          "POST",
+          `api/${eventID}/guestList/route.js`,
+          "FAILED TO CEATE rsvps",
+          rsvpsError,
+        );
+        return NextResponse.json(
+          { validated: false, message: "Failed to create rsvps" },
+          { status: 403 },
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         validated: true,

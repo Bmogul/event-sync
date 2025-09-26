@@ -122,6 +122,7 @@ const Page = () => {
     try {
       if (!session?.access_token) throw new Error("User not authenticated");
 
+    console.log(params.eventID)
       const res = await fetch(`/api/${params.eventID}/guestList`, {
         method: "POST",
         headers: {
@@ -255,7 +256,8 @@ const Page = () => {
                     onClick={() => {
                       setCurrentView("manage-guests");
                     }}
-                    className={styles.btnOutline}
+                    className={currentView === "manage-guests"
+                       ? styles.btnPrimary : styles.btnOutline}
                   >
                     Manage Guests
                   </button>
@@ -389,6 +391,8 @@ const Page = () => {
               guests={guestList}
               groups={groups}
               updateGuestList={updateGuestList}
+              onDataRefresh={() => getGuestList()}
+              session={session}
             />
           ) : null}
         </div>

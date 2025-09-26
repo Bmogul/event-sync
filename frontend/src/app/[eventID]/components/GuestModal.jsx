@@ -2,7 +2,11 @@
 
 import styles from "../styles/portal.module.css";
 import Select from "react-select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef} from "react";
+
+import { useRouter, useParams } from "next/navigation";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const GuestModal = ({
   currentGuest,
@@ -12,7 +16,10 @@ const GuestModal = ({
   subevents,
   guestList,
   eventID,
+  eventPubID,
   updateGuestList,
+  onDataRefresh,
+  session,
 }) => {
   if (!isOpen || !currentGuest) return null;
 
@@ -23,6 +30,8 @@ const GuestModal = ({
   const [editingGuest, setEditingGuest] = useState(null);
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
   const [pendingPOCChange, setPendingPOCChange] = useState(false);
+
+  const params = useParams();
 
   const defaultGroup = {
     details: {
@@ -39,6 +48,9 @@ const GuestModal = ({
   const [groupsStaging, setGroupsStaging] = useState(null);
   const [updatedGuests, setUpdatedGuests] = useState([]);
   const [updatedGroups, setUpdatedGroups] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const guestFormRef = useRef(null);
 
   const defaultGuest = {
     name: "",
@@ -274,9 +286,61 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
-  const onSave = () => {
-    console.log("SAVING", "GuestModal.jsx/onSave()");
-    updateGuestList(updatedGuests, updatedGroups);
+  const onSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    
+    try {
+      console.log("SAVING", "GuestModal.jsx/onSave()");
+      
+      // Get auth token from session
+      if (!session?.access_token) {
+        toast.error('Authentication required. Please log in again.');
+        setIsSaving(false);
+        return;
+      }
+      
+      const response = await fetch(`/api/${params.eventID}/guestList`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          guestList: updatedGuests,
+          groups: updatedGroups,
+          event: { id: eventID }
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.validated) {
+        toast.success('Guest list updated successfully!');
+        
+        // Clear staging data
+        setUpdatedGuests([]);
+        setUpdatedGroups([]);
+        
+        // Refresh data from server
+        if (onDataRefresh) {
+          await onDataRefresh();
+        }
+        
+        // Close modal after successful save
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        toast.error(result.message || 'Failed to update guest list');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('An error occurred while saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -416,6 +480,14 @@ const GuestModal = ({
                             setEditingGuest(guest);
                             setGuestFormData(guest);
                             setShowGuestForm(true);
+                            
+                            // Scroll to guest form section after state updates
+                            setTimeout(() => {
+                              guestFormRef.current?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                              });
+                            }, 100);
                           }}
                         >
                           ✏️
@@ -439,6 +511,14 @@ const GuestModal = ({
                     point_of_contact: !existingPOC, // Default to POC if no one else is
                   });
                   setShowGuestForm(true);
+                  
+                  // Scroll to guest form section after state updates
+                  setTimeout(() => {
+                    guestFormRef.current?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }, 100);
                 }}
               >
                 Add Guest
@@ -448,7 +528,7 @@ const GuestModal = ({
 
           {/* Guest Form */}
           {showGuestForm && (
-            <div className={styles.formSectionGroup}>
+            <div ref={guestFormRef} className={styles.formSectionGroup}>
               <h4 className={styles.formSectionTitle}>
                 {editingGuest ? "Edit Guest" : "Add New Guest"}
               </h4>
@@ -781,8 +861,9 @@ const GuestModal = ({
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
             onClick={onSave}
+            disabled={isSaving}
           >
-            Save
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>

@@ -7,6 +7,21 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
   const [tablesPerGuest, setTablesPerGuest] = useState(8);
   const [selectedSubevent, setSelectedSubevent] = useState(null); // Will be set to most popular subevent
 
+  // Table planning filters
+
+  const [isTableFiltersOpen, setIsTableFiltersOpen] = useState(true);
+  const [includeInfants, setIncludeInfants] = useState(false);
+  const [includeChildren, setIncludeChildren] = useState(true);
+  const [includeTeens, setIncludeTeens] = useState(true);
+  const [includeAdults, setIncludeAdults] = useState(true);
+  const [includeSeniors, setIncludeSeniors] = useState(true);
+  const [childSeatWeight, setChildSeatWeight] = useState(1); // 1 = full seat, 0.5 = half seat
+
+  // Gender filters for table planning
+  const [includeMales, setIncludeMales] = useState(true);
+  const [includeFemales, setIncludeFemales] = useState(true);
+  const [includeOthers, setIncludeOthers] = useState(true);
+
   // Calculate analytics data
   const analyticsData = useMemo(() => {
     if (!guestList || !Array.isArray(guestList)) {
@@ -17,9 +32,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
         pendingResponses: 0,
         estimatedTables: 0,
         genderBreakdown: { male: 0, female: 0, other: 0, children: 0 },
+        ageGroupBreakdown: {
+          infant: 0,
+          child: 0,
+          teen: 0,
+          adult: 0,
+          senior: 0,
+          unknown: 0,
+        },
         subeventData: {},
         availableSubevents: [],
         mostPopularSubevent: null,
+        weightedAttendeeCount: 0,
         rsvpStatusBreakdown: {
           attending: 0,
           notAttending: 0,
@@ -107,7 +131,6 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
       currentSubevent.maybe
       : 0;
     const pendingResponses = totalInvited - totalResponses;
-    const estimatedTables = Math.ceil(subeventAttending / tablesPerGuest);
 
     // Gender breakdown for selected subevent attendees
     const genderBreakdown = guestList.reduce(
@@ -136,6 +159,122 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
       { male: 0, female: 0, other: 0, children: 0 },
     );
 
+    // Age group breakdown for selected subevent attendees
+    const ageGroupBreakdown = guestList.reduce(
+      (acc, guest) => {
+        // Only count guests attending the selected subevent
+        if (currentSubevent && guest.rsvp_status) {
+          const subeventRsvp = Object.values(guest.rsvp_status).find(
+            (rsvp) => rsvp.subevent_id === currentSubevent.id,
+          );
+
+          // Only include if guest is attending (status_id 3) or maybe (status_id 5)
+          if (subeventRsvp && [3, 5].includes(subeventRsvp.status_id)) {
+            const ageGroup = guest.ageGroup?.toLowerCase();
+            console.log(
+              Date.UTC(),
+              "ANALYTICS",
+              "GUEST AGE GROUP",
+              guest,
+              ageGroup,
+            );
+
+            if (ageGroup === "infant") acc.infant++;
+            else if (ageGroup === "child") acc.child++;
+            else if (ageGroup === "teen") acc.teen++;
+            else if (ageGroup === "adult") acc.adult++;
+            else if (ageGroup === "senior") acc.senior++;
+            else acc.unknown++;
+          }
+        }
+        return acc;
+      },
+      { infant: 0, child: 0, teen: 0, adult: 0, senior: 0, unknown: 0 },
+    );
+
+    console.log(
+      Date.UTC(),
+      "ANALYTICS",
+      "AGE GROUP BREAKDOWN",
+      ageGroupBreakdown,
+    );
+
+    // Calculate weighted attendee count for table planning
+    const weightedAttendeeCount = guestList.reduce((total, guest) => {
+      if (currentSubevent && guest.rsvp_status) {
+        const subeventRsvp = Object.values(guest.rsvp_status).find(
+          (rsvp) => rsvp.subevent_id === currentSubevent.id,
+        );
+
+        // Only include if guest is attending (status_id 3) or maybe (status_id 5)
+        if (subeventRsvp && [3, 5].includes(subeventRsvp.status_id)) {
+          const ageGroup = guest.ageGroup?.toLowerCase();
+          const gender = guest.gender?.toLowerCase();
+          const responseCount = parseInt(subeventRsvp.response) || 1;
+
+          console.log(
+            Date.UTC(),
+            "ANALYTICS",
+            "WEIGHTED CALC",
+            guest.name,
+            "AGE GROUP:",
+            ageGroup,
+            "GENDER:",
+            gender,
+            "RESPONSE:",
+            responseCount,
+          );
+
+          // Check if gender should be included
+          let includeByGender = false;
+          if (gender === "male" && includeMales) includeByGender = true;
+          else if (gender === "female" && includeFemales)
+            includeByGender = true;
+          else if (gender !== "male" && gender !== "female" && includeOthers)
+            includeByGender = true;
+
+          // Apply weights based on age group and user preferences (only if gender is included)
+          let weight = 0;
+          if (includeByGender) {
+            if (ageGroup === "infant" && includeInfants)
+              weight = 0; // Infants don't need seats
+            else if (ageGroup === "child" && includeChildren)
+              weight = childSeatWeight;
+            else if (ageGroup === "teen" && includeTeens) weight = 1;
+            else if (ageGroup === "adult" && includeAdults) weight = 1;
+            else if (ageGroup === "senior" && includeSeniors) weight = 1;
+            else if (ageGroup === "unknown" && includeAdults) weight = 1; // Default unknown to adult
+          }
+
+          console.log(
+            Date.UTC(),
+            "ANALYTICS",
+            "INCLUDE BY GENDER:",
+            includeByGender,
+            "WEIGHT APPLIED:",
+            weight,
+            "TOTAL CONTRIBUTION:",
+            responseCount * weight,
+          );
+
+          return total + responseCount * weight;
+        }
+      }
+      return total;
+    }, 0);
+
+    console.log(
+      Date.UTC(),
+      "ANALYTICS",
+      "WEIGHTED ATTENDEES",
+      weightedAttendeeCount,
+      "TABLES PER GUEST",
+      tablesPerGuest,
+    );
+
+    // Calculate estimated tables using weighted count
+    const estimatedTables = Math.ceil(weightedAttendeeCount / tablesPerGuest);
+
     // RSVP status breakdown for selected subevent
     const rsvpStatusBreakdown = currentSubevent
       ? {
@@ -153,13 +292,28 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
       pendingResponses,
       estimatedTables,
       genderBreakdown,
+      ageGroupBreakdown,
       subeventData,
       availableSubevents,
       mostPopularSubevent,
       currentSubevent,
+      weightedAttendeeCount,
       rsvpStatusBreakdown,
     };
-  }, [guestList, tablesPerGuest, selectedSubevent]);
+  }, [
+    guestList,
+    tablesPerGuest,
+    selectedSubevent,
+    includeInfants,
+    includeChildren,
+    includeTeens,
+    includeAdults,
+    includeSeniors,
+    childSeatWeight,
+    includeMales,
+    includeFemales,
+    includeOthers,
+  ]);
 
   // Set default subevent to most popular when data loads
   React.useEffect(() => {
@@ -273,6 +427,165 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
               female: "Female",
               children: "Children (Under 12)",
               other: "Other",
+            };
+
+            return (
+              <div
+                key={key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    background: colors[key],
+                  }}
+                />
+                <span style={{ flex: 1, fontSize: "14px", color: "#374151" }}>
+                  {labels[key]}
+                </span>
+                <span style={{ fontWeight: 600, color: "#111827" }}>
+                  {count}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAgeGroupChart = () => {
+    const { ageGroupBreakdown } = analyticsData;
+    const total = Object.values(ageGroupBreakdown).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
+    if (total === 0) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
+          No age group data available
+        </div>
+      );
+    }
+
+    const generateAgeGradient = (
+      infant,
+      child,
+      teen,
+      adult,
+      senior,
+      unknown,
+    ) => {
+      let gradientStops = [];
+      let currentAngle = 0;
+
+      if (infant > 0) {
+        const infantAngle = (infant / total) * 360;
+        gradientStops.push(
+          `#f59e0b ${currentAngle}deg ${currentAngle + infantAngle}deg`,
+        );
+        currentAngle += infantAngle;
+      }
+
+      if (child > 0) {
+        const childAngle = (child / total) * 360;
+        gradientStops.push(
+          `#10b981 ${currentAngle}deg ${currentAngle + childAngle}deg`,
+        );
+        currentAngle += childAngle;
+      }
+
+      if (teen > 0) {
+        const teenAngle = (teen / total) * 360;
+        gradientStops.push(
+          `#3b82f6 ${currentAngle}deg ${currentAngle + teenAngle}deg`,
+        );
+        currentAngle += teenAngle;
+      }
+
+      if (adult > 0) {
+        const adultAngle = (adult / total) * 360;
+        gradientStops.push(
+          `#8b5cf6 ${currentAngle}deg ${currentAngle + adultAngle}deg`,
+        );
+        currentAngle += adultAngle;
+      }
+
+      if (senior > 0) {
+        const seniorAngle = (senior / total) * 360;
+        gradientStops.push(
+          `#ec4899 ${currentAngle}deg ${currentAngle + seniorAngle}deg`,
+        );
+        currentAngle += seniorAngle;
+      }
+
+      if (unknown > 0) {
+        const unknownAngle = (unknown / total) * 360;
+        gradientStops.push(
+          `#6b7280 ${currentAngle}deg ${currentAngle + unknownAngle}deg`,
+        );
+      }
+
+      return `conic-gradient(${gradientStops.join(", ")})`;
+    };
+
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+        <div
+          style={{
+            width: "200px",
+            height: "200px",
+            borderRadius: "50%",
+            background: generateAgeGradient(
+              ageGroupBreakdown.infant,
+              ageGroupBreakdown.child,
+              ageGroupBreakdown.teen,
+              ageGroupBreakdown.adult,
+              ageGroupBreakdown.senior,
+              ageGroupBreakdown.unknown,
+            ),
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "100px",
+              height: "100px",
+              background: "white",
+              borderRadius: "50%",
+            }}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          {Object.entries(ageGroupBreakdown).map(([key, count]) => {
+            if (count === 0) return null;
+            const colors = {
+              infant: "#f59e0b",
+              child: "#10b981",
+              teen: "#3b82f6",
+              adult: "#8b5cf6",
+              senior: "#ec4899",
+              unknown: "#6b7280",
+            };
+            const labels = {
+              infant: "Infant (0-2 years)",
+              child: "Child (3-12 years)",
+              teen: "Teen (13-17 years)",
+              adult: "Adult (18-64 years)",
+              senior: "Senior (65+ years)",
+              unknown: "Age Unknown",
             };
 
             return (
@@ -425,6 +738,97 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           Comprehensive insights and planning tools for{" "}
           {event?.eventTitle || "your event"}
         </p>
+        {/* Detailed Breakdown */}
+        <div style={{ marginBottom: "64px" }}>
+          <div
+            style={{
+              background: "white",
+              border: "2px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "48px",
+              boxShadow: "0 10px 15px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: "#581c87",
+                marginBottom: "32px",
+              }}
+            >
+              Subevent Analysis
+            </h3>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "32px",
+              }}
+            >
+              {Object.entries(analyticsData.subeventData).map(([id, data]) => (
+                <div
+                  key={id}
+                  style={{
+                    textAlign: "center",
+                    padding: "32px",
+                    background: "#f9fafb",
+                    borderRadius: "16px",
+                    border: "2px solid #e5e7eb",
+                    transition: "all 0.3s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#7c3aed";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "28px",
+                      fontWeight: 800,
+                      color: "#581c87",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {data.totalAttendeeCount}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#6b7280",
+                      fontWeight: 600,
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {data.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#10b981",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {data.totalInvited > 0
+                      ? (
+                        ((data.attending + data.notAttending + data.maybe) /
+                          data.totalInvited) *
+                        100
+                      ).toFixed(1)
+                      : 0}
+                    % response rate
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Subevent Selector */}
         {analyticsData.availableSubevents.length > 0 && (
@@ -695,7 +1099,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           </div>
         </div>
 
-        <div
+        {/*<div
           style={{
             background: "white",
             border: "2px solid #e5e7eb",
@@ -763,65 +1167,294 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           >
             Based on {tablesPerGuest} per table
           </div>
-        </div>
-      </div>
+        </div>*/}
 
-      {/* Charts Section */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "48px",
-          marginBottom: "64px",
-        }}
-      >
-        {/* Gender Breakdown */}
+        {/* Age-Related Analytics Cards */}
+        {/*<div
+          style={{
+            background: "white",
+            border: "2px solid #e5e7eb",
+            borderRadius: "24px",
+            padding: "48px",
+            textAlign: "center",
+            transition: "all 0.3s ease",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              content: "",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "4px",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            }}
+          />
+          <div
+            style={{
+              width: "60px",
+              height: "60px",
+              borderRadius: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "24px",
+              margin: "0 auto 24px",
+              background: "#f0fdf4",
+              color: "#10b981",
+            }}
+          >
+            👶
+          </div>
+          <div
+            style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: "#111827",
+              marginBottom: "8px",
+            }}
+          >
+            {analyticsData.ageGroupBreakdown.infant +
+              analyticsData.ageGroupBreakdown.child +
+              analyticsData.ageGroupBreakdown.teen}
+          </div>
+          <div
+            style={{
+              color: "#4b5563",
+              fontSize: "16px",
+              fontWeight: 600,
+            }}
+          >
+            Under 18 Years
+          </div>
+          <div
+            style={{
+              fontSize: "14px",
+              marginTop: "8px",
+              fontWeight: 500,
+              color: "#10b981",
+            }}
+          >
+            {analyticsData.ageGroupBreakdown.infant +
+              analyticsData.ageGroupBreakdown.child +
+              analyticsData.ageGroupBreakdown.teen +
+              analyticsData.ageGroupBreakdown.adult +
+              analyticsData.ageGroupBreakdown.senior +
+              analyticsData.ageGroupBreakdown.unknown >
+              0
+              ? (
+                ((analyticsData.ageGroupBreakdown.infant +
+                  analyticsData.ageGroupBreakdown.child +
+                  analyticsData.ageGroupBreakdown.teen) /
+                  (analyticsData.ageGroupBreakdown.infant +
+                    analyticsData.ageGroupBreakdown.child +
+                    analyticsData.ageGroupBreakdown.teen +
+                    analyticsData.ageGroupBreakdown.adult +
+                    analyticsData.ageGroupBreakdown.senior +
+                    analyticsData.ageGroupBreakdown.unknown)) *
+                100
+              ).toFixed(1)
+              : 0}
+            % of attendees
+          </div>
+        </div>
+
         <div
           style={{
             background: "white",
             border: "2px solid #e5e7eb",
             borderRadius: "24px",
             padding: "48px",
-            boxShadow: "0 10px 15px rgba(0, 0, 0, 0.1)",
+            textAlign: "center",
+            transition: "all 0.3s ease",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div
             style={{
+              content: "",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "4px",
+              background: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+            }}
+          />
+          <div
+            style={{
+              width: "60px",
+              height: "60px",
+              borderRadius: "20px",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "48px",
-              paddingBottom: "32px",
-              borderBottom: "2px solid #f3f4f6",
+              justifyContent: "center",
+              fontSize: "24px",
+              margin: "0 auto 24px",
+              background: "#fdf2f8",
+              color: "#ec4899",
             }}
           >
-            <div>
-              <h3
-                style={{
-                  fontSize: "24px",
-                  fontWeight: 700,
-                  color: "#111827",
-                  margin: 0,
-                }}
-              >
-                Gender Distribution
-              </h3>
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginTop: "8px",
-                  margin: 0,
-                }}
-              >
-                Breakdown of attendees by gender for{" "}
-                {analyticsData.currentSubevent?.title || "selected event"}
-              </p>
-            </div>
+            🧓
           </div>
-          {renderGenderChart()}
+          <div
+            style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: "#111827",
+              marginBottom: "8px",
+            }}
+          >
+            {analyticsData.ageGroupBreakdown.senior}
+          </div>
+          <div
+            style={{
+              color: "#4b5563",
+              fontSize: "16px",
+              fontWeight: 600,
+            }}
+          >
+            Seniors (65+)
+          </div>
+          <div
+            style={{
+              fontSize: "14px",
+              marginTop: "8px",
+              fontWeight: 500,
+              color: "#ec4899",
+            }}
+          >
+            May need accessibility support
+          </div>
+        </div>*/}
+      </div>
+
+      {/* Demographics Section */}
+      <div style={{ marginBottom: "64px" }}>
+        <h2
+          style={{
+            fontSize: "32px",
+            fontWeight: 700,
+            color: "#581c87",
+            textAlign: "center",
+            marginBottom: "48px",
+          }}
+        >
+          Demographics Analysis
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
+            gap: "48px",
+            marginBottom: "48px",
+          }}
+        >
+          {/* Gender Breakdown */}
+          <div
+            style={{
+              background: "white",
+              border: "2px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "48px",
+              boxShadow: "0 10px 15px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "48px",
+                paddingBottom: "32px",
+                borderBottom: "2px solid #f3f4f6",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    color: "#111827",
+                    margin: 0,
+                  }}
+                >
+                  Gender Distribution
+                </h3>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#6b7280",
+                    marginTop: "8px",
+                    margin: 0,
+                  }}
+                >
+                  Breakdown of attendees by gender for{" "}
+                  {analyticsData.currentSubevent?.title || "selected event"}
+                </p>
+              </div>
+            </div>
+            {renderGenderChart()}
+          </div>
+
+          {/* Age Group Breakdown */}
+          <div
+            style={{
+              background: "white",
+              border: "2px solid #e5e7eb",
+              borderRadius: "24px",
+              padding: "48px",
+              boxShadow: "0 10px 15px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "48px",
+                paddingBottom: "32px",
+                borderBottom: "2px solid #f3f4f6",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    color: "#111827",
+                    margin: 0,
+                  }}
+                >
+                  Age Group Distribution
+                </h3>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#6b7280",
+                    marginTop: "8px",
+                    margin: 0,
+                  }}
+                >
+                  Breakdown of attendees by age group for{" "}
+                  {analyticsData.currentSubevent?.title || "selected event"}
+                </p>
+              </div>
+            </div>
+            {renderAgeGroupChart()}
+          </div>
         </div>
 
+        {/* Subevent Comparison Chart */}
+      </div>
+
+      {/* Charts Section - Remove old section */}
+      <div style={{ display: "none" }}>
         {/* Response Timeline */}
         <div
           style={{
@@ -998,6 +1631,292 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
               </div>
             </div>
 
+            {/* Age Group Filters */}
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "2px solid #bbf7d0",
+                borderRadius: "16px",
+                padding: "16px 24px",
+                marginBottom: "32px",
+              }}
+            >
+              {/* Header with toggle button */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => setIsTableFiltersOpen(!isTableFiltersOpen)}
+              >
+                <h4
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 600,
+                    color: "#059669",
+                    margin: 0,
+                  }}
+                >
+                  Guest Type Filters
+                </h4>
+                <span style={{ fontSize: "18px", color: "#059669" }}>
+                  {isTableFiltersOpen ? "▲" : "▼"}
+                </span>
+              </div>
+
+              {/* Collapsible content */}
+              {isTableFiltersOpen && (
+                <>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: "#065f46",
+                      margin: "16px 0 24px 0",
+                    }}
+                  >
+                    Select which age groups to include in table calculations:
+                  </p>
+
+                  {/* Checkboxes grid */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(250px, 1fr))",
+                      gap: "16px",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    {/* Example checkbox */}
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #d1fae5",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={includeInfants}
+                        onChange={(e) => setIncludeInfants(e.target.checked)}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          accentColor: "#059669",
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#065f46",
+                        }}
+                      >
+                        Infants (0-2 years) - No seat needed
+                      </span>
+                    </label>
+                    {/* Repeat your other checkboxes here (children, teens, adults, seniors) */}
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #d1fae5",
+                      }}
+                    >
+                      {" "}
+                      <input
+                        type="checkbox"
+                        checked={includeChildren}
+                        onChange={(e) => setIncludeChildren(e.target.checked)}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          accentColor: "#059669",
+                        }}
+                      />{" "}
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#065f46",
+                        }}
+                      >
+                        {" "}
+                        Children (3-12 years){" "}
+                      </span>{" "}
+                    </label>{" "}
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #d1fae5",
+                      }}
+                    >
+                      {" "}
+                      <input
+                        type="checkbox"
+                        checked={includeTeens}
+                        onChange={(e) => setIncludeTeens(e.target.checked)}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          accentColor: "#059669",
+                        }}
+                      />{" "}
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#065f46",
+                        }}
+                      >
+                        {" "}
+                        Teenagers (13-17 years){" "}
+                      </span>{" "}
+                    </label>{" "}
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #d1fae5",
+                      }}
+                    >
+                      {" "}
+                      <input
+                        type="checkbox"
+                        checked={includeAdults}
+                        onChange={(e) => setIncludeAdults(e.target.checked)}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          accentColor: "#059669",
+                        }}
+                      />{" "}
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#065f46",
+                        }}
+                      >
+                        {" "}
+                        Adults (18-64 years){" "}
+                      </span>{" "}
+                    </label>{" "}
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #d1fae5",
+                      }}
+                    >
+                      {" "}
+                      <input
+                        type="checkbox"
+                        checked={includeSeniors}
+                        onChange={(e) => setIncludeSeniors(e.target.checked)}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          accentColor: "#059669",
+                        }}
+                      />{" "}
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#065f46",
+                        }}
+                      >
+                        {" "}
+                        Seniors (65+ years){" "}
+                      </span>{" "}
+                    </label>
+                  </div>
+
+                  {/* Conditional child seat weight option */}
+                  {includeChildren && (
+                    <div
+                      style={{
+                        background: "#fef3c7",
+                        border: "1px solid #fbbf24",
+                        borderRadius: "8px",
+                        padding: "16px",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "#92400e",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        Child seating:
+                        <select
+                          value={childSeatWeight}
+                          onChange={(e) =>
+                            setChildSeatWeight(parseFloat(e.target.value))
+                          }
+                          style={{
+                            padding: "8px 12px",
+                            border: "1px solid #fbbf24",
+                            borderRadius: "6px",
+                            background: "white",
+                            color: "#92400e",
+                            fontWeight: 500,
+                          }}
+                        >
+                          <option value={0.5}>Half seat (0.5)</option>
+                          <option value={1}>Full seat (1.0)</option>
+                        </select>
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#a16207",
+                          margin: 0,
+                        }}
+                      >
+                        Some venues count children as half seats for table
+                        planning.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             <div style={{ marginBottom: "32px" }}>
               <div
                 style={{
@@ -1016,7 +1935,8 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                     color: "#6b7280",
                   }}
                 >
-                  Attending {analyticsData.currentSubevent?.title || "event"}
+                  Total attending{" "}
+                  {analyticsData.currentSubevent?.title || "event"}
                 </span>
                 <span
                   style={{
@@ -1024,7 +1944,37 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                     color: "#111827",
                   }}
                 >
-                  {analyticsData.subeventAttending}
+                  {analyticsData.subeventAttending} people
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "24px",
+                  background: "#f0f9ff",
+                  borderRadius: "12px",
+                  marginBottom: "8px",
+                  border: "1px solid #bfdbfe",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "14px",
+                    color: "#1e40af",
+                  }}
+                >
+                  Weighted seats needed
+                </span>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: "#1e40af",
+                  }}
+                >
+                  {analyticsData.weightedAttendeeCount} seats
                 </span>
               </div>
 
@@ -1251,98 +2201,6 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Detailed Breakdown */}
-      <div style={{ marginBottom: "64px" }}>
-        <div
-          style={{
-            background: "white",
-            border: "2px solid #e5e7eb",
-            borderRadius: "24px",
-            padding: "48px",
-            boxShadow: "0 10px 15px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "24px",
-              fontWeight: 700,
-              color: "#581c87",
-              marginBottom: "32px",
-            }}
-          >
-            Subevent Analysis
-          </h3>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "32px",
-            }}
-          >
-            {Object.entries(analyticsData.subeventData).map(([id, data]) => (
-              <div
-                key={id}
-                style={{
-                  textAlign: "center",
-                  padding: "32px",
-                  background: "#f9fafb",
-                  borderRadius: "16px",
-                  border: "2px solid #e5e7eb",
-                  transition: "all 0.3s ease",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#7c3aed";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: 800,
-                    color: "#581c87",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {data.totalAttendeeCount}
-                </div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    color: "#6b7280",
-                    fontWeight: 600,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {data.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#10b981",
-                    fontWeight: 500,
-                  }}
-                >
-                  {data.totalInvited > 0
-                    ? (
-                      ((data.attending + data.notAttending + data.maybe) /
-                        data.totalInvited) *
-                      100
-                    ).toFixed(1)
-                    : 0}
-                  % response rate
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

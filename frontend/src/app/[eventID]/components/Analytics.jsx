@@ -31,7 +31,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
         subeventAttending: 0,
         pendingResponses: 0,
         estimatedTables: 0,
-        genderBreakdown: { male: 0, female: 0, other: 0, children: 0 },
+        genderBreakdown: { male: 0, female: 0, other: 0 },
         ageGroupBreakdown: {
           infant: 0,
           child: 0,
@@ -50,6 +50,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           maybe: 0,
           noResponse: 0,
         },
+        estimatedTablesByGender: { male: 0, female: 0, other: 0 },
       };
     }
 
@@ -147,10 +148,6 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
             console.log(Date.UTC(), "ANALYTICS", "GUEST GENDER", guest, gender);
             if (gender === "male") acc.male++;
             else if (gender === "female") acc.female++;
-            else if (
-              guest.guest_age_group?.state?.toLowerCase().includes("child")
-            )
-              acc.children++;
             else acc.other++;
           }
         }
@@ -275,6 +272,61 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
     // Calculate estimated tables using weighted count
     const estimatedTables = Math.ceil(weightedAttendeeCount / tablesPerGuest);
 
+    // Calculate estimated tables by gender
+    const estimatedTablesByGender = ["male", "female", "other"].reduce(
+      (acc, genderKey) => {
+        const genderCount = guestList.reduce((total, guest) => {
+          if (currentSubevent && guest.rsvp_status) {
+            const subeventRsvp = Object.values(guest.rsvp_status).find(
+              (rsvp) => rsvp.subevent_id === currentSubevent.id,
+            );
+
+            if (subeventRsvp && [3, 5].includes(subeventRsvp.status_id)) {
+              const gender = guest.gender?.toLowerCase();
+              const ageGroup = guest.ageGroup?.toLowerCase();
+              const responseCount = parseInt(subeventRsvp.response) || 1;
+
+              // Only count if gender matches this bucket and is enabled in filters
+              let include = false;
+              if (genderKey === "male" && gender === "male" && includeMales)
+                include = true;
+              else if (
+                genderKey === "female" &&
+                gender === "female" &&
+                includeFemales
+              )
+                include = true;
+              else if (
+                genderKey === "other" &&
+                gender !== "male" &&
+                gender !== "female" &&
+                includeOthers
+              )
+                include = true;
+
+              if (include) {
+                let weight = 0;
+                if (ageGroup === "infant" && includeInfants) weight = 0;
+                else if (ageGroup === "child" && includeChildren)
+                  weight = childSeatWeight;
+                else if (ageGroup === "teen" && includeTeens) weight = 1;
+                else if (ageGroup === "adult" && includeAdults) weight = 1;
+                else if (ageGroup === "senior" && includeSeniors) weight = 1;
+                else if (ageGroup === "unknown" && includeAdults) weight = 1;
+
+                total += responseCount * weight;
+              }
+            }
+          }
+          return total;
+        }, 0);
+
+        acc[genderKey] = Math.ceil(genderCount / tablesPerGuest);
+        return acc;
+      },
+      {},
+    );
+
     // RSVP status breakdown for selected subevent
     const rsvpStatusBreakdown = currentSubevent
       ? {
@@ -299,6 +351,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
       currentSubevent,
       weightedAttendeeCount,
       rsvpStatusBreakdown,
+      estimatedTablesByGender,
     };
   }, [
     guestList,
@@ -880,6 +933,9 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
           gap: "32px",
           marginBottom: "64px",
+          maxWidth: "814px", // ensures 3 cards max (3 × 250px + gaps)
+          marginLeft: "auto", // centers the grid horizontally
+          marginRight: "auto",
         }}
       >
         <div
@@ -1098,6 +1154,197 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
             Need follow-up
           </div>
         </div>
+
+        {/* Estimated Tables by Gender */}
+        {analyticsData.estimatedTablesByGender && (
+          <>
+            {/* Male Tables */}
+            <div
+              style={{
+                background: "white",
+                border: "2px solid #e5e7eb",
+                borderRadius: "24px",
+                padding: "48px",
+                textAlign: "center",
+                transition: "all 0.3s ease",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  content: "",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "4px",
+                  background:
+                    "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                }}
+              />
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "24px",
+                  margin: "0 auto 24px",
+                  background: "#eff6ff",
+                  color: "#3b82f6",
+                }}
+              >
+                👨
+              </div>
+              <div
+                style={{
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                {analyticsData.estimatedTablesByGender.male}
+              </div>
+              <div
+                style={{
+                  color: "#4b5563",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                }}
+              >
+                Tables Needed (Male)
+              </div>
+            </div>
+
+            {/* Female Tables */}
+            <div
+              style={{
+                background: "white",
+                border: "2px solid #e5e7eb",
+                borderRadius: "24px",
+                padding: "48px",
+                textAlign: "center",
+                transition: "all 0.3s ease",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  content: "",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "4px",
+                  background:
+                    "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+                }}
+              />
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "24px",
+                  margin: "0 auto 24px",
+                  background: "#fdf2f8",
+                  color: "#ec4899",
+                }}
+              >
+                👩
+              </div>
+              <div
+                style={{
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                {analyticsData.estimatedTablesByGender.female}
+              </div>
+              <div
+                style={{
+                  color: "#4b5563",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                }}
+              >
+                Tables Needed (Female)
+              </div>
+            </div>
+
+            {/* Other Tables */}
+            <div
+              style={{
+                background: "white",
+                border: "2px solid #e5e7eb",
+                borderRadius: "24px",
+                padding: "48px",
+                textAlign: "center",
+                transition: "all 0.3s ease",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  content: "",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "4px",
+                  background:
+                    "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                }}
+              />
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "24px",
+                  margin: "0 auto 24px",
+                  background: "#f5f3ff",
+                  color: "#8b5cf6",
+                }}
+              >
+                🍽️
+              </div>
+              <div
+                style={{
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  marginBottom: "8px",
+                }}
+              >
+                {analyticsData.estimatedTablesByGender.other}
+              </div>
+              <div
+                style={{
+                  color: "#4b5563",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                }}
+              >
+                Tables Needed (Other)
+              </div>
+            </div>
+          </>
+        )}
 
         {/*<div
           style={{

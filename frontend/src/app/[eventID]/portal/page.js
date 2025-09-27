@@ -15,6 +15,7 @@ import Email from "../components/emailPortal";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import ManageTeam from "../components/ManageTeam";
 import ManageGuests from "../components/ManageGuests";
+import Analytics from "../components/Analytics";
 
 import styles from "../styles/portal.module.css";
 
@@ -26,7 +27,7 @@ const Page = () => {
   const [guestList, setGuestList] = useState();
   const [password, setPassword] = useState(Cookies.get("auth"));
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", or "manage-team"
+  const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", "manage-team", "analytics", or "manage-guests"
   const [groups, setGroups] = useState();
 
   const {
@@ -238,7 +239,14 @@ const Page = () => {
                 )}
 
                 {canViewAnalytics && (
-                  <button className={styles.btnOutline}>
+                  <button 
+                    className={
+                      currentView === "analytics"
+                        ? styles.btnPrimary
+                        : styles.btnOutline
+                    }
+                    onClick={() => setCurrentView("analytics")}
+                  >
                     📊 View Analytics
                   </button>
                 )}
@@ -392,6 +400,14 @@ const Page = () => {
               groups={groups}
               updateGuestList={updateGuestList}
               onDataRefresh={() => getGuestList()}
+              session={session}
+              toast={toast}
+            />
+          ) : currentView === "analytics" ? (
+            <Analytics
+              event={event}
+              guestList={guestList}
+              groups={groups}
               session={session}
               toast={toast}
             />

@@ -2,10 +2,18 @@
 
 import React, { useState, useMemo } from "react";
 import styles from "../styles/portal.module.css";
+import GuestListModal from "./GuestListModal";
 
 const Analytics = ({ event, guestList, groups, session, toast }) => {
   const [tablesPerGuest, setTablesPerGuest] = useState(8);
   const [selectedSubevent, setSelectedSubevent] = useState(null); // Will be set to most popular subevent
+  
+  // Guest list modal state
+  const [guestListModal, setGuestListModal] = useState({
+    isOpen: false,
+    category: null,
+    guests: []
+  });
 
   // Table planning filters
 
@@ -382,6 +390,55 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
 
   const handleSubeventChange = (e) => {
     setSelectedSubevent(e.target.value);
+  };
+
+  // Function to filter guests by RSVP status for the current subevent
+  const filterGuestsByRsvpStatus = (status) => {
+    if (!guestList || !analyticsData.currentSubevent) return [];
+
+    return guestList.filter((guest) => {
+      if (!guest.rsvp_status) return status === 'noResponse';
+
+      const subeventRsvp = Object.values(guest.rsvp_status).find(
+        (rsvp) => rsvp.subevent_id === analyticsData.currentSubevent.id,
+      );
+
+      if (!subeventRsvp) return status === 'noResponse';
+
+      const statusId = subeventRsvp.status_id;
+      
+      switch (status) {
+        case 'attending':
+          return statusId === 3;
+        case 'notAttending':
+          return statusId === 4;
+        case 'maybe':
+          return statusId === 5;
+        case 'noResponse':
+          return !statusId || statusId === 1 || statusId === 2;
+        default:
+          return false;
+      }
+    });
+  };
+
+  // Function to handle RSVP card clicks
+  const handleRsvpCardClick = (category) => {
+    const filteredGuests = filterGuestsByRsvpStatus(category);
+    setGuestListModal({
+      isOpen: true,
+      category,
+      guests: filteredGuests
+    });
+  };
+
+  // Function to close the guest list modal
+  const closeGuestListModal = () => {
+    setGuestListModal({
+      isOpen: false,
+      category: null,
+      guests: []
+    });
   };
 
   const renderGenderChart = () => {
@@ -2332,6 +2389,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('attending')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#10b981";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2363,6 +2432,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('notAttending')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ef4444";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2394,6 +2475,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('maybe')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#f59e0b";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2425,6 +2518,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('noResponse')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#6b7280";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(107, 114, 128, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2451,6 +2556,15 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           </div>
         </div>
       </div>
+
+      {/* Guest List Modal */}
+      <GuestListModal
+        isOpen={guestListModal.isOpen}
+        onClose={closeGuestListModal}
+        guests={guestListModal.guests}
+        category={guestListModal.category}
+        subeventTitle={analyticsData.currentSubevent?.title}
+      />
     </div>
   );
 };

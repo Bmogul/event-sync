@@ -42,6 +42,8 @@ const EmailPortal = ({
   const [areaCodeModalData, setAreaCodeModalData] = useState(null);
   const [areaCodeInput, setAreaCodeInput] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [whatsappTemplates, setWhatsappTemplates] = useState([]);
+  const [selectedWhatsappTemplateId, setSelectedWhatsappTemplateId] = useState("");
 
   // Color palette for groups
   const groupColors = [
@@ -62,6 +64,40 @@ const EmailPortal = ({
       guestType,
       guestLimit: guestType === "multiple" ? 1 : null, // Set default limit for multiple type
     }));
+  };
+
+  // Function to replace variables in WhatsApp templates
+  const replaceWhatsAppVariables = (message, guest, rsvpLink, eventData) => {
+    let processedMessage = message;
+    
+    // Replace basic variables
+    processedMessage = processedMessage
+      .replace(/{rsvp_link}/g, rsvpLink)
+      .replace(/{event_title}/g, eventData?.eventTitle || "Your Event")
+      .replace(/{guest_name}/g, guest?.name || "Guest");
+    
+    // Replace subevent-specific variables
+    if (eventData?.subevents) {
+      eventData.subevents.forEach(subevent => {
+        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces/special chars
+        if (cleanTitle) {
+          processedMessage = processedMessage
+            .replace(new RegExp(`{${cleanTitle}_title}`, 'g'), subevent.title || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_date}`, 'g'), subevent.event_date || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_location}`, 'g'), subevent.venue_address || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_time}`, 'g'), subevent.start_time || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_endtime}`, 'g'), subevent.end_time || "TBD");
+        }
+      });
+    }
+    
+    // Keep old variables for backward compatibility
+    const firstSubevent = eventData?.subevents?.[0];
+    processedMessage = processedMessage
+      .replace(/{event_date}/g, firstSubevent?.event_date || eventData?.startDate || "Event Date")
+      .replace(/{event_location}/g, firstSubevent?.venue_address || eventData?.location || "Event Location");
+    
+    return processedMessage;
   };
 
   // Fetch available email templates for this event
@@ -97,6 +133,37 @@ const EmailPortal = ({
     fetchEmailTemplates();
   }, [event?.public_id, session?.access_token]);
 
+  // Fetch WhatsApp templates
+  useEffect(() => {
+    const fetchWhatsAppTemplates = async () => {
+      if (!event?.eventID || !session?.access_token) return;
+
+      try {
+        const response = await fetch(`/api/events?public_id=${event.eventID}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.event?.whatsappTemplates) {
+            setWhatsappTemplates(data.event.whatsappTemplates);
+            // Set default template as selected
+            const defaultTemplate = data.event.whatsappTemplates.find(t => t.is_default) || data.event.whatsappTemplates[0];
+            if (defaultTemplate) {
+              setSelectedWhatsappTemplateId(defaultTemplate.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching WhatsApp templates:", error);
+      }
+    };
+
+    fetchWhatsAppTemplates();
+  }, [event?.eventID, session?.access_token]);
+  
   // Apply initial filters when passed from Analytics
   useEffect(() => {
     if (initialFilters) {
@@ -1184,8 +1251,20 @@ const EmailPortal = ({
       // Build the RSVP link
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
       
-      // Set initial message
-      const initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+      // Get the selected template or default
+      const selectedTemplate = whatsappTemplates.find(t => t.id === selectedWhatsappTemplateId) || 
+                              whatsappTemplates.find(t => t.is_default) || 
+                              whatsappTemplates[0];
+      
+      // Set initial message with template variables replaced
+      let initialMessage = "You are invited!";
+      if (selectedTemplate) {
+        initialMessage = replaceWhatsAppVariables(selectedTemplate.message, guest, rsvpLink, event);
+      } else {
+        // Fallback to old method if no templates
+        initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+      }
+      
       setWhatsappMessage(initialMessage);
 
       // Clean the phone number (remove non-digits)
@@ -2771,6 +2850,41 @@ const EmailPortal = ({
               </div>
 
               <div className={styles.areaCodeForm}>
+                {/* Template Selection Section */}
+                {whatsappTemplates.length > 0 && (
+                  <div className={styles.templateSection}>
+                    <label className={styles.inputLabel}>Choose Template</label>
+                    <select
+                      className={styles.formInput}
+                      value={selectedWhatsappTemplateId}
+                      onChange={(e) => {
+                        setSelectedWhatsappTemplateId(e.target.value);
+                        const template = whatsappTemplates.find(t => t.id === e.target.value);
+                        if (template && areaCodeModalData) {
+                          const rsvpLink = areaCodeModalData.rsvpLink;
+                          const replacedMessage = replaceWhatsAppVariables(template.message, areaCodeModalData.guest, rsvpLink, event);
+                          setWhatsappMessage(replacedMessage);
+                        }
+                      }}
+                      style={{ marginBottom: "8px" }}
+                    >
+                      {whatsappTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                          {template.is_default && " (Default)"}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{
+                      fontSize: "12px",
+                      color: "#6b7280",
+                      marginBottom: "16px"
+                    }}>
+                      Templates can be managed in the "Edit Templates" section
+                    </div>
+                  </div>
+                )}
+
                 {/* Message Preview Section */}
                 <div className={styles.messageSection}>
                   <label className={styles.inputLabel}>Message Preview</label>
@@ -2790,6 +2904,21 @@ const EmailPortal = ({
                       <span className={styles.characterCount}>
                         {whatsappMessage.length} characters
                       </span>
+                      <div style={{
+                        fontSize: "11px",
+                        color: "#9ca3af",
+                        marginTop: "4px"
+                      }}>
+                        <div>Basic: {"{rsvp_link}"}, {"{event_title}"}, {"{guest_name}"}</div>
+                        {event?.subEvents && event.subEvents.length > 0 && (
+                          <div style={{ marginTop: "2px" }}>
+                            Subevents: {event.subEvents.map(se => {
+                              const cleanTitle = se.title.replace(/[^a-zA-Z0-9]/g, '');
+                              return cleanTitle ? `{${cleanTitle}_date}, {${cleanTitle}_location}, {${cleanTitle}_time}` : '';
+                            }).filter(Boolean).join(', ')}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

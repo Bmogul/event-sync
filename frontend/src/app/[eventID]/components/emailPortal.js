@@ -40,6 +40,8 @@ const EmailPortal = ({
   const [areaCodeModalData, setAreaCodeModalData] = useState(null);
   const [areaCodeInput, setAreaCodeInput] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [whatsappTemplates, setWhatsappTemplates] = useState([]);
+  const [selectedWhatsappTemplateId, setSelectedWhatsappTemplateId] = useState("");
 
   // Color palette for groups
   const groupColors = [
@@ -60,6 +62,16 @@ const EmailPortal = ({
       guestType,
       guestLimit: guestType === "multiple" ? 1 : null, // Set default limit for multiple type
     }));
+  };
+
+  // Function to replace variables in WhatsApp templates
+  const replaceWhatsAppVariables = (message, guest, rsvpLink) => {
+    return message
+      .replace(/{rsvp_link}/g, rsvpLink)
+      .replace(/{event_title}/g, event?.eventTitle || "Your Event")
+      .replace(/{guest_name}/g, guest?.name || "Guest")
+      .replace(/{event_date}/g, event?.startDate || "Event Date")
+      .replace(/{event_location}/g, event?.location || "Event Location");
   };
 
   // Fetch available email templates for this event
@@ -94,6 +106,37 @@ const EmailPortal = ({
 
     fetchEmailTemplates();
   }, [event?.public_id, session?.access_token]);
+
+  // Fetch WhatsApp templates
+  useEffect(() => {
+    const fetchWhatsAppTemplates = async () => {
+      if (!event?.eventID || !session?.access_token) return;
+
+      try {
+        const response = await fetch(`/api/events?public_id=${event.eventID}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.event?.whatsappTemplates) {
+            setWhatsappTemplates(data.event.whatsappTemplates);
+            // Set default template as selected
+            const defaultTemplate = data.event.whatsappTemplates.find(t => t.is_default) || data.event.whatsappTemplates[0];
+            if (defaultTemplate) {
+              setSelectedWhatsappTemplateId(defaultTemplate.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching WhatsApp templates:", error);
+      }
+    };
+
+    fetchWhatsAppTemplates();
+  }, [event?.eventID, session?.access_token]);
 
   // Transform guest list to match API response structure
   const transformedGuestList =
@@ -1131,8 +1174,20 @@ const EmailPortal = ({
       // Build the RSVP link
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
       
-      // Set initial message
-      const initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+      // Get the selected template or default
+      const selectedTemplate = whatsappTemplates.find(t => t.id === selectedWhatsappTemplateId) || 
+                              whatsappTemplates.find(t => t.is_default) || 
+                              whatsappTemplates[0];
+      
+      // Set initial message with template variables replaced
+      let initialMessage = "You are invited!";
+      if (selectedTemplate) {
+        initialMessage = replaceWhatsAppVariables(selectedTemplate.message, guest, rsvpLink);
+      } else {
+        // Fallback to old method if no templates
+        initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+      }
+      
       setWhatsappMessage(initialMessage);
 
       // Clean the phone number (remove non-digits)
@@ -2718,6 +2773,41 @@ const EmailPortal = ({
               </div>
 
               <div className={styles.areaCodeForm}>
+                {/* Template Selection Section */}
+                {whatsappTemplates.length > 0 && (
+                  <div className={styles.templateSection}>
+                    <label className={styles.inputLabel}>Choose Template</label>
+                    <select
+                      className={styles.formInput}
+                      value={selectedWhatsappTemplateId}
+                      onChange={(e) => {
+                        setSelectedWhatsappTemplateId(e.target.value);
+                        const template = whatsappTemplates.find(t => t.id === e.target.value);
+                        if (template && areaCodeModalData) {
+                          const rsvpLink = areaCodeModalData.rsvpLink;
+                          const replacedMessage = replaceWhatsAppVariables(template.message, areaCodeModalData.guest, rsvpLink);
+                          setWhatsappMessage(replacedMessage);
+                        }
+                      }}
+                      style={{ marginBottom: "8px" }}
+                    >
+                      {whatsappTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                          {template.is_default && " (Default)"}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{
+                      fontSize: "12px",
+                      color: "#6b7280",
+                      marginBottom: "16px"
+                    }}>
+                      Templates can be managed in the "Edit Templates" section
+                    </div>
+                  </div>
+                )}
+
                 {/* Message Preview Section */}
                 <div className={styles.messageSection}>
                   <label className={styles.inputLabel}>Message Preview</label>
@@ -2737,6 +2827,13 @@ const EmailPortal = ({
                       <span className={styles.characterCount}>
                         {whatsappMessage.length} characters
                       </span>
+                      <div style={{
+                        fontSize: "11px",
+                        color: "#9ca3af",
+                        marginTop: "4px"
+                      }}>
+                        Variables: {"{rsvp_link}"}, {"{event_title}"}, {"{guest_name}"}, {"{event_date}"}, {"{event_location}"}
+                      </div>
                     </div>
                   </div>
                 </div>

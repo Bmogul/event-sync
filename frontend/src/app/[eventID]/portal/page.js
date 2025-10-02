@@ -12,7 +12,7 @@ import useEventPermissions from "../../hooks/useEventPermissions";
 
 import Loading from "../components/loading";
 import Email from "../components/emailPortal";
-import EmailTemplateEditor from "../components/EmailTemplateEditor";
+import TemplateEditor from "../components/TemplateEditor";
 import ManageTeam from "../components/ManageTeam";
 import ManageGuests from "../components/ManageGuests";
 import Analytics from "../components/Analytics";
@@ -379,17 +379,12 @@ const Page = () => {
               }}
             />
           ) : currentView === "template-editor" ? (
-            <EmailTemplateEditor
-              toast={toast}
+            <TemplateEditor
               event={event}
-              params={params}
               session={session}
               setCurrentView={setCurrentView}
-              permissions={{
-                canEditTemplates,
-                hasPermission,
-                userRole,
-              }}
+              toast={toast}
+              params={params}
             />
           ) : currentView === "manage-team" ? (
             <ManageTeam eventPublicId={event?.eventID} />

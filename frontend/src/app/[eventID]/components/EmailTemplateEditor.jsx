@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import styles from "../../create-event/components/sections/EmailTemplateCreator.module.css";
 
-const EmailTemplateEditor = ({ event, session, setCurrentView }) => {
+const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0);
   const [previewDevice, setPreviewDevice] = useState("desktop");
   const [errors, setErrors] = useState({});

@@ -331,6 +331,34 @@ export async function GET(request) {
         secondary_color: template.secondary_color || "#e1c0b7",
         text_color: template.font_color || "#333333",
       })) || [],
+
+      // Transform WhatsApp templates - migrate from whatsapp_msg if needed
+      whatsappTemplates: (() => {
+        // Check if we have new whatsapp_templates structure
+        if (event.details?.whatsapp_templates && Array.isArray(event.details.whatsapp_templates)) {
+          return event.details.whatsapp_templates;
+        }
+        
+        // Migration: Convert old whatsapp_msg to new structure
+        if (event.details?.whatsapp_msg && typeof event.details.whatsapp_msg === 'string') {
+          return [{
+            id: "migrated_default",
+            name: "Default Message",
+            message: event.details.whatsapp_msg,
+            created_at: new Date().toISOString(),
+            is_default: true
+          }];
+        }
+        
+        // Default template if nothing exists
+        return [{
+          id: "default_invitation",
+          name: "Default Invitation",
+          message: "You're invited to our special event! Please RSVP: {rsvp_link}",
+          created_at: new Date().toISOString(),
+          is_default: true
+        }];
+      })(),
     };
 
     console.log("✓ Event data loaded successfully");
@@ -822,6 +850,16 @@ export async function POST(request) {
         require_rsvp: eventData.requireRSVP || false,
         allow_plus_ones: eventData.allowPlusOnes || false,
         rsvp_deadline: eventData.rsvpDeadline || null,
+        // Handle WhatsApp templates - migrate and store in new format
+        ...(eventData.whatsappTemplates && Array.isArray(eventData.whatsappTemplates) && {
+          whatsapp_templates: eventData.whatsappTemplates.map(template => ({
+            id: template.id || `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: template.name || "Untitled Template",
+            message: template.message || "",
+            created_at: template.created_at || new Date().toISOString(),
+            is_default: template.is_default || false
+          }))
+        }),
       },
     };
 

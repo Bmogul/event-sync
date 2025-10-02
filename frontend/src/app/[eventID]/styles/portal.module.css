@@ -1131,6 +1131,7 @@
   padding: 24px 32px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
 .modalTitle {
@@ -1921,6 +1922,9 @@
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   animation: slideInModal 0.3s ease-out;
@@ -1928,6 +1932,10 @@
 
 .areaCodeContent {
   padding: 24px 32px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scroll-behavior: smooth;
 }
 
 .guestInfo {
@@ -2063,6 +2071,7 @@
   padding: 20px 32px;
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .areaCodeActions .btnSecondary {

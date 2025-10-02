@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "../styles/portal.module.css";
 
-const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle }) => {
+const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle, onSendEmail }) => {
   const modalRef = useRef(null);
 
   // Handle keyboard events
@@ -40,15 +40,21 @@ const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle }) =>
     }
   };
 
+  const handleSendEmailClick = () => {
+    if (onSendEmail) {
+      onSendEmail(category, subeventTitle, guests);
+    }
+  };
+
   const getCategoryColor = () => {
     switch (category) {
       case 'attending':
         return '#10b981';
-      case 'notAttending':
+      case 'not_attending':
         return '#ef4444';
       case 'maybe':
         return '#f59e0b';
-      case 'noResponse':
+      case 'pending':
         return '#6b7280';
       default:
         return '#6b7280';
@@ -59,11 +65,11 @@ const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle }) =>
     switch (category) {
       case 'attending':
         return 'Attending';
-      case 'notAttending':
+      case 'not_attending':
         return 'Not Attending';
       case 'maybe':
         return 'Maybe';
-      case 'noResponse':
+      case 'pending':
         return 'No Response';
       default:
         return 'Guests';
@@ -74,11 +80,11 @@ const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle }) =>
     switch (category) {
       case 'attending':
         return '✅';
-      case 'notAttending':
+      case 'not_attending':
         return '❌';
       case 'maybe':
         return '❓';
-      case 'noResponse':
+      case 'pending':
         return '⏳';
       default:
         return '👥';
@@ -265,11 +271,25 @@ const GuestListModal = ({ isOpen, onClose, guests, category, subeventTitle }) =>
         </div>
 
         <div className={styles.modalFooter}>
+          {onSendEmail && guests.length > 0 && (
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={handleSendEmailClick}
+              style={{ 
+                background: getCategoryColor(),
+                borderColor: getCategoryColor(),
+                marginRight: 'auto'
+              }}
+            >
+              📧 Go to Email ({guests.length} {getCategoryLabel()})
+            </button>
+          )}
           <button
             type="button"
-            className={`${styles.btn} ${styles.btnPrimary}`}
+            className={`${styles.btn} ${styles.btnSecondary}`}
             onClick={onClose}
-            style={{ marginLeft: 'auto' }}
+            style={{ marginLeft: onSendEmail && guests.length > 0 ? '16px' : 'auto' }}
           >
             Close
           </button>

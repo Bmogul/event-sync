@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import styles from "../styles/portal.module.css";
 import GuestListModal from "./GuestListModal";
 
-const Analytics = ({ event, guestList, groups, session, toast }) => {
+const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, setEmailFilters }) => {
   const [tablesPerGuest, setTablesPerGuest] = useState(8);
   const [selectedSubevent, setSelectedSubevent] = useState(null); // Will be set to most popular subevent
   
@@ -397,24 +397,32 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
     if (!guestList || !analyticsData.currentSubevent) return [];
 
     return guestList.filter((guest) => {
-      if (!guest.rsvp_status) return status === 'noResponse';
+      // Check if guest has any RSVP status
+      if (!guest.rsvp_status || Object.keys(guest.rsvp_status).length === 0) {
+        // Guest has no RSVP status at all - they're not invited to any subevents
+        return false;
+      }
 
+      // Find RSVP for the current subevent
       const subeventRsvp = Object.values(guest.rsvp_status).find(
         (rsvp) => rsvp.subevent_id === analyticsData.currentSubevent.id,
       );
 
-      if (!subeventRsvp) return status === 'noResponse';
+      // If no RSVP for this subevent, guest is not invited to this specific subevent
+      if (!subeventRsvp) {
+        return false;
+      }
 
       const statusId = subeventRsvp.status_id;
       
       switch (status) {
         case 'attending':
           return statusId === 3;
-        case 'notAttending':
+        case 'not_attending':
           return statusId === 4;
         case 'maybe':
           return statusId === 5;
-        case 'noResponse':
+        case 'pending':
           return !statusId || statusId === 1 || statusId === 2;
         default:
           return false;
@@ -439,6 +447,50 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
       category: null,
       guests: []
     });
+  };
+
+  // Function to handle send email redirect with filters
+  const handleSendEmailRedirect = (category, subeventTitle, filteredGuests) => {
+    if (!setCurrentView || !setEmailFilters || !analyticsData.currentSubevent) return;
+
+    // Map RSVP category to status IDs for email portal filters
+    const getStatusIdsForCategory = (category) => {
+      switch (category) {
+        case 'attending':
+          return [3]; // status_id 3 = attending
+        case 'not_attending':
+          return [4]; // status_id 4 = not attending
+        case 'maybe':
+          return [5]; // status_id 5 = maybe
+        case 'pending':
+          return [1, 2]; // status_id 1,2 = pending/no response
+        default:
+          return [];
+      }
+    };
+
+    // Create status filters object for the current subevent
+    const statusFilters = {};
+    if (subeventTitle) {
+      statusFilters[subeventTitle] = getStatusIdsForCategory(category);
+    }
+
+    // Set the email filters
+    setEmailFilters({
+      statusFilters,
+      groupFilters: [],
+      genderFilters: [],
+      ageGroupFilters: [],
+      contactFilters: [],
+      groupStatusFilters: [],
+      groupContactFilters: []
+    });
+
+    // Close the modal
+    closeGuestListModal();
+
+    // Switch to email view
+    setCurrentView('email');
   };
 
   const renderGenderChart = () => {
@@ -2434,7 +2486,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   transition: "all 0.3s ease",
                   cursor: "pointer",
                 }}
-                onClick={() => handleRsvpCardClick('notAttending')}
+                onClick={() => handleRsvpCardClick('not_attending')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#ef4444";
                   e.currentTarget.style.transform = "translateY(-2px)";
@@ -2520,7 +2572,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   transition: "all 0.3s ease",
                   cursor: "pointer",
                 }}
-                onClick={() => handleRsvpCardClick('noResponse')}
+                onClick={() => handleRsvpCardClick('pending')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#6b7280";
                   e.currentTarget.style.transform = "translateY(-2px)";
@@ -2564,6 +2616,7 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
         guests={guestListModal.guests}
         category={guestListModal.category}
         subeventTitle={analyticsData.currentSubevent?.title}
+        onSendEmail={setCurrentView ? handleSendEmailRedirect : null}
       />
     </div>
   );

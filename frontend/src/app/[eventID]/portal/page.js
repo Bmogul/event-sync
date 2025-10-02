@@ -29,6 +29,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState("email"); // "email", "template-editor", "manage-team", "analytics", or "manage-guests"
   const [groups, setGroups] = useState();
+  const [emailFilters, setEmailFilters] = useState(null); // Filters to pass to email component
 
   const {
     session,
@@ -370,6 +371,8 @@ const Page = () => {
               getGuestList={getGuestList}
               setGuestList={setGuestList}
               setCurrentView={setCurrentView}
+              initialFilters={emailFilters}
+              clearInitialFilters={() => setEmailFilters(null)}
               permissions={{
                 canSendEmails,
                 canEditTemplates,
@@ -410,6 +413,8 @@ const Page = () => {
               groups={groups}
               session={session}
               toast={toast}
+              setCurrentView={setCurrentView}
+              setEmailFilters={setEmailFilters}
             />
           ) : null}
         </div>

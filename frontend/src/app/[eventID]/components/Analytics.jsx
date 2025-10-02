@@ -2,10 +2,18 @@
 
 import React, { useState, useMemo } from "react";
 import styles from "../styles/portal.module.css";
+import GuestListModal from "./GuestListModal";
 
-const Analytics = ({ event, guestList, groups, session, toast }) => {
+const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, setEmailFilters }) => {
   const [tablesPerGuest, setTablesPerGuest] = useState(8);
   const [selectedSubevent, setSelectedSubevent] = useState(null); // Will be set to most popular subevent
+  
+  // Guest list modal state
+  const [guestListModal, setGuestListModal] = useState({
+    isOpen: false,
+    category: null,
+    guests: []
+  });
 
   // Table planning filters
 
@@ -382,6 +390,107 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
 
   const handleSubeventChange = (e) => {
     setSelectedSubevent(e.target.value);
+  };
+
+  // Function to filter guests by RSVP status for the current subevent
+  const filterGuestsByRsvpStatus = (status) => {
+    if (!guestList || !analyticsData.currentSubevent) return [];
+
+    return guestList.filter((guest) => {
+      // Check if guest has any RSVP status
+      if (!guest.rsvp_status || Object.keys(guest.rsvp_status).length === 0) {
+        // Guest has no RSVP status at all - they're not invited to any subevents
+        return false;
+      }
+
+      // Find RSVP for the current subevent
+      const subeventRsvp = Object.values(guest.rsvp_status).find(
+        (rsvp) => rsvp.subevent_id === analyticsData.currentSubevent.id,
+      );
+
+      // If no RSVP for this subevent, guest is not invited to this specific subevent
+      if (!subeventRsvp) {
+        return false;
+      }
+
+      const statusId = subeventRsvp.status_id;
+      
+      switch (status) {
+        case 'attending':
+          return statusId === 3;
+        case 'not_attending':
+          return statusId === 4;
+        case 'maybe':
+          return statusId === 5;
+        case 'pending':
+          return !statusId || statusId === 1 || statusId === 2;
+        default:
+          return false;
+      }
+    });
+  };
+
+  // Function to handle RSVP card clicks
+  const handleRsvpCardClick = (category) => {
+    const filteredGuests = filterGuestsByRsvpStatus(category);
+    setGuestListModal({
+      isOpen: true,
+      category,
+      guests: filteredGuests
+    });
+  };
+
+  // Function to close the guest list modal
+  const closeGuestListModal = () => {
+    setGuestListModal({
+      isOpen: false,
+      category: null,
+      guests: []
+    });
+  };
+
+  // Function to handle send email redirect with filters
+  const handleSendEmailRedirect = (category, subeventTitle, filteredGuests) => {
+    if (!setCurrentView || !setEmailFilters || !analyticsData.currentSubevent) return;
+
+    // Map RSVP category to status IDs for email portal filters
+    const getStatusIdsForCategory = (category) => {
+      switch (category) {
+        case 'attending':
+          return [3]; // status_id 3 = attending
+        case 'not_attending':
+          return [4]; // status_id 4 = not attending
+        case 'maybe':
+          return [5]; // status_id 5 = maybe
+        case 'pending':
+          return [1, 2]; // status_id 1,2 = pending/no response
+        default:
+          return [];
+      }
+    };
+
+    // Create status filters object for the current subevent
+    const statusFilters = {};
+    if (subeventTitle) {
+      statusFilters[subeventTitle] = getStatusIdsForCategory(category);
+    }
+
+    // Set the email filters
+    setEmailFilters({
+      statusFilters,
+      groupFilters: [],
+      genderFilters: [],
+      ageGroupFilters: [],
+      contactFilters: [],
+      groupStatusFilters: [],
+      groupContactFilters: []
+    });
+
+    // Close the modal
+    closeGuestListModal();
+
+    // Switch to email view
+    setCurrentView('email');
   };
 
   const renderGenderChart = () => {
@@ -2332,6 +2441,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('attending')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#10b981";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2363,6 +2484,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('not_attending')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ef4444";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2394,6 +2527,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('maybe')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#f59e0b";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2425,6 +2570,18 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
                   borderRadius: "16px",
                   border: "2px solid #e5e7eb",
                   transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleRsvpCardClick('pending')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#6b7280";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(107, 114, 128, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <div
@@ -2451,6 +2608,16 @@ const Analytics = ({ event, guestList, groups, session, toast }) => {
           </div>
         </div>
       </div>
+
+      {/* Guest List Modal */}
+      <GuestListModal
+        isOpen={guestListModal.isOpen}
+        onClose={closeGuestListModal}
+        guests={guestListModal.guests}
+        category={guestListModal.category}
+        subeventTitle={analyticsData.currentSubevent?.title}
+        onSendEmail={setCurrentView ? handleSendEmailRedirect : null}
+      />
     </div>
   );
 };

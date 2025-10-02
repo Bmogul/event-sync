@@ -11,6 +11,8 @@ const EmailPortal = ({
   getGuestList,
   setGuestList,
   setCurrentView,
+  initialFilters,
+  clearInitialFilters,
 }) => {
   const [reminderDate, setReminderDate] = useState();
   const [selectedRows, setSelectedRows] = useState([]);
@@ -161,6 +163,57 @@ const EmailPortal = ({
 
     fetchWhatsAppTemplates();
   }, [event?.eventID, session?.access_token]);
+  
+  // Apply initial filters when passed from Analytics
+  useEffect(() => {
+    if (initialFilters) {
+      console.log("Applying initial filters:", initialFilters);
+      
+      // Apply filters
+      if (initialFilters.statusFilters) {
+        setStatusFilters(initialFilters.statusFilters);
+      }
+      if (initialFilters.groupFilters) {
+        setGroupFilters(initialFilters.groupFilters);
+      }
+      if (initialFilters.genderFilters) {
+        setGenderFilters(initialFilters.genderFilters);
+      }
+      if (initialFilters.ageGroupFilters) {
+        setAgeGroupFilters(initialFilters.ageGroupFilters);
+      }
+      if (initialFilters.contactFilters) {
+        setContactFilters(initialFilters.contactFilters);
+      }
+      if (initialFilters.groupStatusFilters) {
+        setGroupStatusFilters(initialFilters.groupStatusFilters);
+      }
+      if (initialFilters.groupContactFilters) {
+        setGroupContactFilters(initialFilters.groupContactFilters);
+      }
+
+      // Show advanced filters if any filters are applied
+      const hasFilters = Object.keys(initialFilters.statusFilters || {}).length > 0 ||
+                        initialFilters.groupFilters?.length > 0 ||
+                        initialFilters.genderFilters?.length > 0 ||
+                        initialFilters.ageGroupFilters?.length > 0 ||
+                        initialFilters.contactFilters?.length > 0 ||
+                        initialFilters.groupStatusFilters?.length > 0 ||
+                        initialFilters.groupContactFilters?.length > 0;
+      
+      if (hasFilters) {
+        setShowAdvancedFilters(true);
+      }
+
+      // Clear the initial filters after applying
+      if (clearInitialFilters) {
+        clearInitialFilters();
+      }
+
+      // Show toast notification (reduced verbosity to avoid multiple toasts)
+      toast.info("Filters applied", { autoClose: 1000 });
+    }
+  }, [initialFilters, clearInitialFilters, toast]);
 
   // Transform guest list to match API response structure
   const transformedGuestList =

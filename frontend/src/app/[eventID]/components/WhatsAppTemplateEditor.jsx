@@ -11,14 +11,43 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Common WhatsApp variables
-  const availableVariables = [
-    { key: "{rsvp_link}", description: "RSVP link for the guest" },
-    { key: "{event_title}", description: "Name of the event" },
-    { key: "{guest_name}", description: "Name of the guest" },
-    { key: "{event_date}", description: "Date of the event" },
-    { key: "{event_location}", description: "Location of the event" },
-  ];
+  // Generate available variables based on event subevents
+  const getAvailableVariables = () => {
+    const allVariables = [
+      { key: "{rsvp_link}", description: "RSVP link for the guest" },
+      { key: "{event_title}", description: "Name of the event" },
+      { key: "{guest_name}", description: "Name of the guest" },
+    ];
+
+    // Add subevent-specific variables if they have the respective data
+    if (event?.subevents) {
+      event.subevents.forEach(subevent => {
+        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanTitle) {
+          // Always add title variable since every subevent has a title
+          allVariables.push({ key: `{${cleanTitle}_title}`, description: `Title of ${subevent.title}` });
+          
+          // Only add variables for data that exists
+          if (subevent.event_date) {
+            allVariables.push({ key: `{${cleanTitle}_date}`, description: `Date of ${subevent.title}` });
+          }
+          if (subevent.start_time) {
+            allVariables.push({ key: `{${cleanTitle}_time}`, description: `Start time of ${subevent.title}` });
+          }
+          if (subevent.end_time) {
+            allVariables.push({ key: `{${cleanTitle}_endtime}`, description: `End time of ${subevent.title}` });
+          }
+          if (subevent.venue_address) {
+            allVariables.push({ key: `{${cleanTitle}_location}`, description: `Location of ${subevent.title}` });
+          }
+        }
+      });
+    }
+    
+    return { allVariables };
+  };
+
+  const { allVariables } = getAvailableVariables();
 
   // Fetch WhatsApp templates from database
   useEffect(() => {
@@ -240,12 +269,33 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
 
   const getPreviewMessage = () => {
     const message = currentTemplate.message || "";
-    return message
+    let previewMessage = message
       .replace(/{rsvp_link}/g, "https://event-sync.com/ABC123/rsvp")
       .replace(/{event_title}/g, event.eventTitle || "Your Event")
-      .replace(/{guest_name}/g, "John Doe")
-      .replace(/{event_date}/g, "December 25, 2024")
-      .replace(/{event_location}/g, "Beautiful Venue");
+      .replace(/{guest_name}/g, "John Doe");
+    
+    // Replace subevent variables with sample data
+    if (event?.subevents) {
+      event.subevents.forEach(subevent => {
+        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanTitle) {
+          previewMessage = previewMessage
+            .replace(new RegExp(`{${cleanTitle}_title}`, 'g'), subevent.title || "Subevent Title")
+            .replace(new RegExp(`{${cleanTitle}_date}`, 'g'), subevent.event_date || "Dec 25, 2024")
+            .replace(new RegExp(`{${cleanTitle}_location}`, 'g'), subevent.venue_address || "Beautiful Venue")
+            .replace(new RegExp(`{${cleanTitle}_time}`, 'g'), subevent.start_time || "14:00")
+            .replace(new RegExp(`{${cleanTitle}_endtime}`, 'g'), subevent.end_time || "16:00");
+        }
+      });
+    }
+    
+    // Handle old variables for backward compatibility
+    const firstSubevent = event?.subevents?.[0];
+    previewMessage = previewMessage
+      .replace(/{event_date}/g, firstSubevent?.event_date || "December 25, 2024")
+      .replace(/{event_location}/g, firstSubevent?.venue_address || "Beautiful Venue");
+    
+    return previewMessage;
   };
 
   const getCharacterCount = () => {
@@ -468,6 +518,31 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                   </button>
                 )}
               </div>
+
+              {/* Variable Usage Help */}
+              {event?.subEvents && event.subEvents.length > 0 && (
+                <div style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  padding: "12px",
+                  marginBottom: "16px",
+                  fontSize: "12px"
+                }}>
+                  <div style={{ fontWeight: 600, color: "#374151", marginBottom: "6px" }}>
+                    📝 Variable Usage Guide:
+                  </div>
+                  <div style={{ color: "#6b7280", lineHeight: "1.4" }}>
+                    <div><strong>Basic:</strong> {"{guest_name}, {event_title}, {rsvp_link}"}</div>
+                    <div><strong>Subevent-specific:</strong> Use {"{SubeventName_property}"} format</div>
+                    <div><strong>Available properties:</strong> _date, _location, _time, _endtime</div>
+                    <div style={{ marginTop: "4px" }}>
+                      <strong>Example:</strong> For "{event.subEvents[0]?.title || "Ceremony"}" → 
+                      {" " + `{${event.subEvents[0]?.title.replace(/[^a-zA-Z0-9]/g, '') || "Ceremony"}_date}, {${event.subEvents[0]?.title.replace(/[^a-zA-Z0-9]/g, '') || "Ceremony"}_location}`}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Variable Helper */}
@@ -480,38 +555,50 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
               }}>
                 Insert Variables
               </label>
-              <div style={{ 
-                display: "flex", 
-                gap: "8px", 
-                flexWrap: "wrap",
-                marginBottom: "8px"
-              }}>
-                {availableVariables.map((variable) => (
-                  <button
-                    key={variable.key}
-                    onClick={() => insertVariable(variable.key)}
-                    style={{
-                      background: "#f3f4f6",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      color: "#374151",
-                    }}
-                    title={variable.description}
-                  >
-                    {variable.key}
-                  </button>
-                ))}
+              
+              {/* All Variables */}
+              <div style={{ marginBottom: "12px" }}>
+                <div style={{ 
+                  display: "flex", 
+                  gap: "6px", 
+                  flexWrap: "wrap"
+                }}>
+                  {allVariables.map((variable) => (
+                    <button
+                      key={variable.key}
+                      onClick={() => insertVariable(variable.key)}
+                      style={{
+                        background: "#f3f4f6",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "4px",
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        color: "#374151",
+                      }}
+                      title={variable.description}
+                    >
+                      {variable.key}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p style={{ 
+              
+              <div style={{ 
                 fontSize: "12px", 
                 color: "#6b7280", 
-                margin: 0 
+                margin: 0,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "4px",
+                padding: "8px"
               }}>
-                Click to insert variables that will be replaced with actual values when sending
-              </p>
+                <p style={{ margin: "0 0 4px 0", fontWeight: 600 }}>💡 Variable Usage Tips:</p>
+                <p style={{ margin: "0 0 2px 0" }}>• Click any button above to insert that variable</p>
+                <p style={{ margin: "0 0 2px 0" }}>• Basic variables: {"{rsvp_link}, {guest_name}, {event_title}"}</p>
+                <p style={{ margin: "0 0 2px 0" }}>• Subevent variables: {"{SubeventName_date}, {SubeventName_time}, {SubeventName_location}"}</p>
+                <p style={{ margin: "0" }}>• Only shows variables for subevents that have the respective data</p>
+              </div>
             </div>
 
             {/* Message Editor */}
@@ -528,7 +615,7 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                 id="whatsapp-message"
                 value={currentTemplate.message || ""}
                 onChange={(e) => updateCurrentTemplate("message", e.target.value)}
-                placeholder="Enter your WhatsApp message here. Use variables like {rsvp_link} to personalize messages."
+                placeholder="Enter your WhatsApp message here. Use variables like {rsvp_link}, {guest_name}, and {event_title} for basic info, or {SubeventName_date}, {SubeventName_location} for specific subevent details."
                 style={{
                   width: "100%",
                   height: "200px",

@@ -65,13 +65,37 @@ const EmailPortal = ({
   };
 
   // Function to replace variables in WhatsApp templates
-  const replaceWhatsAppVariables = (message, guest, rsvpLink) => {
-    return message
+  const replaceWhatsAppVariables = (message, guest, rsvpLink, eventData) => {
+    let processedMessage = message;
+    
+    // Replace basic variables
+    processedMessage = processedMessage
       .replace(/{rsvp_link}/g, rsvpLink)
-      .replace(/{event_title}/g, event?.eventTitle || "Your Event")
-      .replace(/{guest_name}/g, guest?.name || "Guest")
-      .replace(/{event_date}/g, event?.startDate || "Event Date")
-      .replace(/{event_location}/g, event?.location || "Event Location");
+      .replace(/{event_title}/g, eventData?.eventTitle || "Your Event")
+      .replace(/{guest_name}/g, guest?.name || "Guest");
+    
+    // Replace subevent-specific variables
+    if (eventData?.subevents) {
+      eventData.subevents.forEach(subevent => {
+        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces/special chars
+        if (cleanTitle) {
+          processedMessage = processedMessage
+            .replace(new RegExp(`{${cleanTitle}_title}`, 'g'), subevent.title || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_date}`, 'g'), subevent.event_date || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_location}`, 'g'), subevent.venue_address || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_time}`, 'g'), subevent.start_time || "TBD")
+            .replace(new RegExp(`{${cleanTitle}_endtime}`, 'g'), subevent.end_time || "TBD");
+        }
+      });
+    }
+    
+    // Keep old variables for backward compatibility
+    const firstSubevent = eventData?.subevents?.[0];
+    processedMessage = processedMessage
+      .replace(/{event_date}/g, firstSubevent?.event_date || eventData?.startDate || "Event Date")
+      .replace(/{event_location}/g, firstSubevent?.venue_address || eventData?.location || "Event Location");
+    
+    return processedMessage;
   };
 
   // Fetch available email templates for this event
@@ -1182,7 +1206,7 @@ const EmailPortal = ({
       // Set initial message with template variables replaced
       let initialMessage = "You are invited!";
       if (selectedTemplate) {
-        initialMessage = replaceWhatsAppVariables(selectedTemplate.message, guest, rsvpLink);
+        initialMessage = replaceWhatsAppVariables(selectedTemplate.message, guest, rsvpLink, event);
       } else {
         // Fallback to old method if no templates
         initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
@@ -2785,7 +2809,7 @@ const EmailPortal = ({
                         const template = whatsappTemplates.find(t => t.id === e.target.value);
                         if (template && areaCodeModalData) {
                           const rsvpLink = areaCodeModalData.rsvpLink;
-                          const replacedMessage = replaceWhatsAppVariables(template.message, areaCodeModalData.guest, rsvpLink);
+                          const replacedMessage = replaceWhatsAppVariables(template.message, areaCodeModalData.guest, rsvpLink, event);
                           setWhatsappMessage(replacedMessage);
                         }
                       }}
@@ -2832,7 +2856,15 @@ const EmailPortal = ({
                         color: "#9ca3af",
                         marginTop: "4px"
                       }}>
-                        Variables: {"{rsvp_link}"}, {"{event_title}"}, {"{guest_name}"}, {"{event_date}"}, {"{event_location}"}
+                        <div>Basic: {"{rsvp_link}"}, {"{event_title}"}, {"{guest_name}"}</div>
+                        {event?.subEvents && event.subEvents.length > 0 && (
+                          <div style={{ marginTop: "2px" }}>
+                            Subevents: {event.subEvents.map(se => {
+                              const cleanTitle = se.title.replace(/[^a-zA-Z0-9]/g, '');
+                              return cleanTitle ? `{${cleanTitle}_date}, {${cleanTitle}_location}, {${cleanTitle}_time}` : '';
+                            }).filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

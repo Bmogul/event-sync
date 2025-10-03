@@ -164,26 +164,25 @@ export const inviteTemplate = `
               Please RSVP to help us plan this special celebration
             </p>
             
-            <a
-              href="{{rsvpLink}}"
-              style="
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #ffffff;
-                text-decoration: none;
-                padding: 18px 40px;
-                border-radius: 50px;
-                font-weight: 700;
-                font-size: 18px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-                transition: all 0.3s ease;
-                border: 2px solid rgba(255, 255, 255, 0.2);
-              "
-            >
-              RSVP Now
-            </a>
+   <a
+  href="{{rsvpLink}}"
+  target="_blank"
+  data-sg-no-track="true"
+  style="
+    display: inline-block;
+    background-color: #667eea;
+    color: #ffffff;
+    text-decoration: none;
+    padding: 18px 40px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  "
+>
+  RSVP Now
+</a>
             
             <p 
               style="

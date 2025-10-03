@@ -207,7 +207,7 @@ export const POST = async (req, { params }) => {
         }
 
         // Generate RSVP link using guest public_id
-        const rsvpLink = `${process.env.HOST || "http://localhost:3000"}/${eventID}/rsvp?guestId=${guest.group_id}`;
+        const rsvpLink = `${`https://${process.env.HOST}` || "http://localhost:3000"}/${eventID}/rsvp?guestId=${guest.group_id}`;
 
         const templateData = {
           rsvpLink: rsvpLink,

@@ -224,7 +224,7 @@ export async function POST(request, { params }) {
   try {
     const supabase = createClient();
     const body = await request.json();
-    const { event, guestList, groups, rsvpsToDelete } = body;
+    const { event, guestList, groups, rsvpsToDelete, deletedGuests } = body;
 
     // Get auth token from request headers
     const authHeader = request.headers.get("Authorization");
@@ -510,7 +510,7 @@ export async function POST(request, { params }) {
       for (const rsvpToDelete of rsvpsToDelete) {
         // Map temp guest ID to real guest ID if needed
         const realGuestId = guestIdMapForDeletion[rsvpToDelete.guest_id] ?? rsvpToDelete.guest_id;
-        
+
         // Only attempt deletion if we have a valid (non-negative) guest ID
         if (realGuestId >= 0) {
           const { data: deletedRsvp, error: deleteError } = await supabase
@@ -543,6 +543,112 @@ export async function POST(request, { params }) {
             `api/${eventID}/guestList/route.js`,
             "SKIPPING RSVP DELETION - invalid guest ID",
             rsvpToDelete
+          );
+        }
+      }
+    }
+
+    // DELETE GUESTS that have been marked for deletion
+    if (deletedGuests && deletedGuests.length > 0) {
+      console.log(
+        "POST",
+        `api/${eventID}/guestList/route.js`,
+        "DELETING GUESTS",
+        deletedGuests
+      );
+
+      for (const guestToDelete of deletedGuests) {
+        // Only delete if we have a valid database ID (positive integer)
+        if (guestToDelete.id && guestToDelete.id > 0) {
+          // First, get guest info to handle POC and group cleanup
+          const { data: guestInfo, error: fetchError } = await supabase
+            .from("guests")
+            .select(`
+              id,
+              name,
+              group_id,
+              point_of_contact,
+              guest_groups(id, title)
+            `)
+            .eq("id", guestToDelete.id)
+            .single();
+
+          if (fetchError || !guestInfo) {
+            console.log(
+              Date.now(),
+              "POST",
+              `api/${eventID}/guestList/route.js`,
+              "FAILED TO FETCH GUEST FOR DELETION",
+              fetchError,
+              guestToDelete
+            );
+            continue; // Skip this guest and continue with others
+          }
+
+          // Delete the guest (cascades to RSVPs automatically if ON DELETE CASCADE)
+          const { error: deleteError } = await supabase
+            .from("guests")
+            .delete()
+            .eq("id", guestToDelete.id);
+
+          if (deleteError) {
+            console.log(
+              Date.now(),
+              "POST",
+              `api/${eventID}/guestList/route.js`,
+              "FAILED TO DELETE GUEST",
+              deleteError,
+              guestToDelete
+            );
+            // Continue with other deletions even if one fails
+          } else {
+            console.log(
+              "POST",
+              `api/${eventID}/guestList/route.js`,
+              "SUCCESSFULLY DELETED GUEST",
+              guestToDelete
+            );
+
+            // Check if this was the last guest in the group
+            const { data: remainingGuests, error: countError } = await supabase
+              .from("guests")
+              .select("id")
+              .eq("group_id", guestInfo.group_id);
+
+            if (countError) {
+              console.error("Error counting remaining guests:", countError);
+            } else if (remainingGuests.length === 0) {
+              // Delete the empty group
+              const { error: groupDeleteError } = await supabase
+                .from("guest_groups")
+                .delete()
+                .eq("id", guestInfo.group_id);
+
+              if (groupDeleteError) {
+                console.error("Error deleting empty group:", groupDeleteError);
+              } else {
+                console.log(`Deleted empty group ${guestInfo.group_id}`);
+              }
+            } else if (guestInfo.point_of_contact) {
+              // If deleted guest was POC, assign POC to first remaining member
+              const { error: pocUpdateError } = await supabase
+                .from("guests")
+                .update({ point_of_contact: true })
+                .eq("id", remainingGuests[0].id);
+
+              if (pocUpdateError) {
+                console.error("Error updating POC:", pocUpdateError);
+              } else {
+                console.log(`Transferred POC to guest ${remainingGuests[0].id}`);
+              }
+            }
+          }
+        } else {
+          console.log(
+            "POST",
+            `api/${eventID}/guestList/route.js`,
+            "SKIPPING GUEST DELETION - invalid or temporary ID",
+            guestToDelete
           );
         }
       }

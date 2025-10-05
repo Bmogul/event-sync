@@ -833,6 +833,59 @@ export async function POST(request) {
 
     // Step 4: Create or update the main event
     console.log("Step 4: Creating or updating main event...");
+
+    // Check if event already exists by public_id
+    console.log(
+      "Checking for existing event with public_id:",
+      eventData.public_id,
+    );
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("events")
+      .select("id, details")
+      .eq("public_id", eventData.public_id)
+      .single();
+
+    // Build details object - only include fields that are explicitly provided
+    let detailsToSave = {};
+
+    // Only add fields that are explicitly provided in the request
+    if (eventData.location !== undefined) detailsToSave.location = eventData.location;
+    if (eventData.timezone !== undefined) detailsToSave.timezone = eventData.timezone;
+    if (eventData.eventType !== undefined) detailsToSave.event_type = eventData.eventType;
+    if (eventData.isPrivate !== undefined) detailsToSave.is_private = eventData.isPrivate;
+    if (eventData.requireRSVP !== undefined) detailsToSave.require_rsvp = eventData.requireRSVP;
+    if (eventData.allowPlusOnes !== undefined) detailsToSave.allow_plus_ones = eventData.allowPlusOnes;
+    if (eventData.rsvpDeadline !== undefined) detailsToSave.rsvp_deadline = eventData.rsvpDeadline;
+
+    // Handle WhatsApp templates - migrate and store in new format
+    if (eventData.whatsappTemplates && Array.isArray(eventData.whatsappTemplates)) {
+      detailsToSave.whatsapp_templates = eventData.whatsappTemplates.map(template => ({
+        id: template.id || `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: template.name || "Untitled Template",
+        message: template.message || "",
+        created_at: template.created_at || new Date().toISOString(),
+        is_default: template.is_default || false
+      }));
+    }
+
+    // FIX: For existing events, merge with current details to preserve data
+    if (existingEvent && !existingEventError && existingEvent.details) {
+      console.log("✓ Merging with existing details to preserve data...");
+      detailsToSave = {
+        ...(existingEvent.details || {}),  // Preserve existing details
+        ...detailsToSave,                   // Apply only provided updates
+      };
+    } else if (!existingEvent || existingEventError) {
+      // For new events, apply defaults for missing fields
+      if (detailsToSave.location === undefined) detailsToSave.location = null;
+      if (detailsToSave.timezone === undefined) detailsToSave.timezone = null;
+      if (detailsToSave.event_type === undefined) detailsToSave.event_type = "event";
+      if (detailsToSave.is_private === undefined) detailsToSave.is_private = false;
+      if (detailsToSave.require_rsvp === undefined) detailsToSave.require_rsvp = false;
+      if (detailsToSave.allow_plus_ones === undefined) detailsToSave.allow_plus_ones = false;
+      if (detailsToSave.rsvp_deadline === undefined) detailsToSave.rsvp_deadline = null;
+    }
+
     const eventPayload = {
       public_id: eventData.public_id,
       title: eventData.title,
@@ -842,37 +895,8 @@ export async function POST(request) {
       capacity: eventData.maxGuests ? parseInt(eventData.maxGuests) : null,
       logo_url: eventData.logo_url || null,
       status_id: action === "published" ? 2 : 1,
-      details: {
-        location: eventData.location || null,
-        timezone: eventData.timezone || null,
-        event_type: eventData.eventType || "event",
-        is_private: eventData.isPrivate || false,
-        require_rsvp: eventData.requireRSVP || false,
-        allow_plus_ones: eventData.allowPlusOnes || false,
-        rsvp_deadline: eventData.rsvpDeadline || null,
-        // Handle WhatsApp templates - migrate and store in new format
-        ...(eventData.whatsappTemplates && Array.isArray(eventData.whatsappTemplates) && {
-          whatsapp_templates: eventData.whatsappTemplates.map(template => ({
-            id: template.id || `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: template.name || "Untitled Template",
-            message: template.message || "",
-            created_at: template.created_at || new Date().toISOString(),
-            is_default: template.is_default || false
-          }))
-        }),
-      },
+      details: detailsToSave,
     };
-
-    // Check if event already exists by public_id
-    console.log(
-      "Checking for existing event with public_id:",
-      eventData.public_id,
-    );
-    const { data: existingEvent, error: existingEventError } = await supabase
-      .from("events")
-      .select("id")
-      .eq("public_id", eventData.public_id)
-      .single();
 
     let createdEvent;
 

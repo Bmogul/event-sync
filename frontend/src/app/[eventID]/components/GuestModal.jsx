@@ -47,6 +47,7 @@ const GuestModal = ({
   const [groupsStaging, setGroupsStaging] = useState(null);
   const [updatedGuests, setUpdatedGuests] = useState([]);
   const [updatedGroups, setUpdatedGroups] = useState([]);
+  const [deletedGuests, setDeletedGuests] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -151,7 +152,7 @@ const GuestModal = ({
       if (guestGroup) {
         setSelectedGroup(guestGroup);
         setShowGuestForm(true);
-        setEditingGuest(true);
+        setEditingGuest(currentGuest);
         setGuestFormData({ ...currentGuest });
         // Store original RSVP status for tracking deletions
         setOriginalGuestRsvpStatus({ ...currentGuest.rsvp_status || {} });
@@ -420,6 +421,46 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
+  // Delete guest function
+  const deleteGuest = (guest) => {
+    // Only add to deletedGuests if it's an existing guest (positive ID)
+    if (guest.id && guest.id > 0) {
+      setDeletedGuests((prev) => {
+        // Avoid duplicates
+        if (prev.some(g => g.id === guest.id)) {
+          return prev;
+        }
+        return [...prev, { id: guest.id, name: guest.name }];
+      });
+    }
+
+    // Remove from updated guests list
+    setUpdatedGuests((prev) => prev.filter(g => g.id !== guest.id));
+
+    // Remove from staging list
+    setguestlistStaging((prev) => prev.filter(g => g.id !== guest.id));
+
+    // If the guest had RSVPs, track them for deletion
+    if (guest.rsvp_status && Object.keys(guest.rsvp_status).length > 0) {
+      const rsvpDeletions = Object.values(guest.rsvp_status).map(rsvp => ({
+        guest_id: guest.id,
+        subevent_id: rsvp.subevent_id
+      }));
+
+      setRsvpsToDelete(prev => {
+        const filtered = prev.filter(d => d.guest_id !== guest.id);
+        return [...filtered, ...rsvpDeletions];
+      });
+    }
+
+    // Close guest form after deletion
+    setShowGuestForm(false);
+    setEditingGuest(null);
+    setGuestFormData(defaultGuest);
+
+    console.log("Guest marked for deletion:", guest);
+  };
+
   // Check if there are unsaved changes in forms
   const hasUnsavedGuestChanges = () => {
     return showGuestForm && (editingGuest || 
@@ -513,7 +554,8 @@ const GuestModal = ({
           guestList: updatedGuests,
           groups: updatedGroups,
           event: { id: eventID },
-          rsvpsToDelete: rsvpsToDelete
+          rsvpsToDelete: rsvpsToDelete,
+          deletedGuests: deletedGuests
         })
       });
       
@@ -521,17 +563,18 @@ const GuestModal = ({
       
       if (response.ok && result.validated) {
         toast.success('Guest list updated successfully!');
-        
+
         // Clear staging data
         setUpdatedGuests([]);
         setUpdatedGroups([]);
         setRsvpsToDelete([]);
-        
+        setDeletedGuests([]);
+
         // Refresh data from server
         if (onDataRefresh) {
           await onDataRefresh();
         }
-        
+
         // Close modal after successful save
         setTimeout(() => {
           onClose();
@@ -1076,6 +1119,16 @@ const GuestModal = ({
               )}
 
               <div className={styles.formActions}>
+                {editingGuest && editingGuest.id > 0 && (
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnDanger}`}
+                    onClick={() => deleteGuest(guestFormData)}
+                    aria-label="Delete guest"
+                  >
+                    Delete Guest
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary}`}
@@ -1210,13 +1263,13 @@ const GuestModal = ({
                 {/* RSVP Deletions */}
                 {rsvpsToDelete.length > 0 && (
                   <div className={styles.reviewSection}>
-                    <h5 
+                    <h5
                       className={styles.reviewSectionTitle}
                       id="rsvp-deletions-section"
                     >
                       RSVP Invitations to Remove ({rsvpsToDelete.length}):
                     </h5>
-                    <ul 
+                    <ul
                       className={styles.reviewList}
                       aria-labelledby="rsvp-deletions-section"
                     >
@@ -1236,7 +1289,37 @@ const GuestModal = ({
                   </div>
                 )}
 
-                {updatedGroups.length === 0 && updatedGuests.length === 0 && rsvpsToDelete.length === 0 && (
+                {/* Deleted Guests */}
+                {deletedGuests.length > 0 && (
+                  <div className={styles.reviewSection}>
+                    <h5
+                      className={styles.reviewSectionTitle}
+                      id="deleted-guests-section"
+                      style={{ color: '#dc3545' }}
+                    >
+                      Guests to Delete ({deletedGuests.length}):
+                    </h5>
+                    <ul
+                      className={styles.reviewList}
+                      aria-labelledby="deleted-guests-section"
+                    >
+                      {deletedGuests.map((guest, index) => (
+                        <li
+                          key={guest.id || index}
+                          className={styles.reviewItem}
+                          style={{ color: '#dc3545' }}
+                        >
+                          <strong>{guest.name || 'Unnamed Guest'}</strong>
+                          <div className={styles.reviewSubtext}>
+                            This guest and all their RSVPs will be permanently deleted
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {updatedGroups.length === 0 && updatedGuests.length === 0 && rsvpsToDelete.length === 0 && deletedGuests.length === 0 && (
                   <p 
                     className={styles.noChanges}
                     role="status"
@@ -1247,12 +1330,12 @@ const GuestModal = ({
                 )}
                 
                 {/* Screen reader summary */}
-                <div 
+                <div
                   className={styles.srOnly}
                   aria-live="polite"
                   aria-atomic="true"
                 >
-                  {(updatedGroups.length > 0 || updatedGuests.length > 0 || rsvpsToDelete.length > 0) && (
+                  {(updatedGroups.length > 0 || updatedGuests.length > 0 || rsvpsToDelete.length > 0 || deletedGuests.length > 0) && (
                     (() => {
                       const parts = [];
                       if (updatedGroups.length > 0) {
@@ -1263,6 +1346,9 @@ const GuestModal = ({
                       }
                       if (rsvpsToDelete.length > 0) {
                         parts.push(`${rsvpsToDelete.length} RSVP invitation${rsvpsToDelete.length === 1 ? '' : 's'} to remove`);
+                      }
+                      if (deletedGuests.length > 0) {
+                        parts.push(`${deletedGuests.length} guest${deletedGuests.length === 1 ? '' : 's'} to delete`);
                       }
                       return `Ready to save ${parts.join(' and ')}`;
                     })()

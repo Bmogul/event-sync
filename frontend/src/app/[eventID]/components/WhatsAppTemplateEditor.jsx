@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import styles from "../../create-event/components/sections/EmailTemplateCreator.module.css";
+import { MdContentCopy, MdDelete, MdEdit, MdLightbulb } from "react-icons/md";
 
 const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0);
@@ -415,7 +416,7 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                     }}
                     title="Duplicate"
                   >
-                    📋
+                    <MdContentCopy size={14} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -432,7 +433,7 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                     }}
                     title="Delete"
                   >
-                    🗑️
+                    <MdDelete size={14} />
                   </button>
                 </div>
               </div>
@@ -529,8 +530,8 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                   marginBottom: "16px",
                   fontSize: "12px"
                 }}>
-                  <div style={{ fontWeight: 600, color: "#374151", marginBottom: "6px" }}>
-                    📝 Variable Usage Guide:
+                  <div style={{ fontWeight: 600, color: "#374151", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <MdEdit size={16} /> Variable Usage Guide:
                   </div>
                   <div style={{ color: "#6b7280", lineHeight: "1.4" }}>
                     <div><strong>Basic:</strong> {"{guest_name}, {event_title}, {rsvp_link}"}</div>
@@ -593,7 +594,7 @@ const WhatsAppTemplateEditor = ({ event, session, setCurrentView }) => {
                 borderRadius: "4px",
                 padding: "8px"
               }}>
-                <p style={{ margin: "0 0 4px 0", fontWeight: 600 }}>💡 Variable Usage Tips:</p>
+                <p style={{ margin: "0 0 4px 0", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}><MdLightbulb size={16} /> Variable Usage Tips:</p>
                 <p style={{ margin: "0 0 2px 0" }}>• Click any button above to insert that variable</p>
                 <p style={{ margin: "0 0 2px 0" }}>• Basic variables: {"{rsvp_link}, {guest_name}, {event_title}"}</p>
                 <p style={{ margin: "0 0 2px 0" }}>• Subevent variables: {"{SubeventName_date}, {SubeventName_time}, {SubeventName_location}"}</p>

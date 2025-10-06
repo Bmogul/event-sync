@@ -1,6 +1,25 @@
 import React, { useEffect, useState, useCallback } from "react";
 import styles from "../styles/portal.module.css";
-import { MdContentCopy, MdDelete, MdPeople, MdEmail, MdCheckCircle, MdSend, MdCampaign, MdRefresh, MdPerson, MdFolder, MdClose, MdBuild, MdExpandMore, MdExpandLess, MdSearch, MdMessage, MdPhone, MdStar } from "react-icons/md";
+import {
+  MdContentCopy,
+  MdDelete,
+  MdPeople,
+  MdEmail,
+  MdCheckCircle,
+  MdSend,
+  MdCampaign,
+  MdRefresh,
+  MdPerson,
+  MdFolder,
+  MdClose,
+  MdBuild,
+  MdExpandMore,
+  MdExpandLess,
+  MdSearch,
+  MdMessage,
+  MdPhone,
+  MdStar,
+} from "react-icons/md";
 
 const EmailPortal = ({
   event,
@@ -44,7 +63,8 @@ const EmailPortal = ({
   const [areaCodeInput, setAreaCodeInput] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
-  const [selectedWhatsappTemplateId, setSelectedWhatsappTemplateId] = useState("");
+  const [selectedWhatsappTemplateId, setSelectedWhatsappTemplateId] =
+    useState("");
 
   // Color palette for groups
   const groupColors = [
@@ -58,46 +78,58 @@ const EmailPortal = ({
     "#ea580c",
   ];
 
-  // Handle guest type change
-  const handleGuestTypeChange = (guestType) => {
-    setNewGuest((prev) => ({
-      ...prev,
-      guestType,
-      guestLimit: guestType === "multiple" ? 1 : null, // Set default limit for multiple type
-    }));
-  };
-
   // Function to replace variables in WhatsApp templates
   const replaceWhatsAppVariables = (message, guest, rsvpLink, eventData) => {
     let processedMessage = message;
-    
+
     // Replace basic variables
     processedMessage = processedMessage
       .replace(/{rsvp_link}/g, rsvpLink)
       .replace(/{event_title}/g, eventData?.eventTitle || "Your Event")
       .replace(/{guest_name}/g, guest?.name || "Guest");
-    
+
     // Replace subevent-specific variables
     if (eventData?.subevents) {
-      eventData.subevents.forEach(subevent => {
-        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces/special chars
+      eventData.subevents.forEach((subevent) => {
+        const cleanTitle = subevent.title.replace(/[^a-zA-Z0-9]/g, ""); // Remove spaces/special chars
         if (cleanTitle) {
           processedMessage = processedMessage
-            .replace(new RegExp(`{${cleanTitle}_title}`, 'g'), subevent.title || "TBD")
-            .replace(new RegExp(`{${cleanTitle}_date}`, 'g'), subevent.event_date || "TBD")
-            .replace(new RegExp(`{${cleanTitle}_location}`, 'g'), subevent.venue_address || "TBD")
-            .replace(new RegExp(`{${cleanTitle}_time}`, 'g'), subevent.start_time || "TBD")
-            .replace(new RegExp(`{${cleanTitle}_endtime}`, 'g'), subevent.end_time || "TBD");
+            .replace(
+              new RegExp(`{${cleanTitle}_title}`, "g"),
+              subevent.title || "TBD",
+            )
+            .replace(
+              new RegExp(`{${cleanTitle}_date}`, "g"),
+              subevent.event_date || "TBD",
+            )
+            .replace(
+              new RegExp(`{${cleanTitle}_location}`, "g"),
+              subevent.venue_address || "TBD",
+            )
+            .replace(
+              new RegExp(`{${cleanTitle}_time}`, "g"),
+              subevent.start_time || "TBD",
+            )
+            .replace(
+              new RegExp(`{${cleanTitle}_endtime}`, "g"),
+              subevent.end_time || "TBD",
+            );
         }
       });
     }
-    
+
     // Keep old variables for backward compatibility
     const firstSubevent = eventData?.subevents?.[0];
     processedMessage = processedMessage
-      .replace(/{event_date}/g, firstSubevent?.event_date || eventData?.startDate || "Event Date")
-      .replace(/{event_location}/g, firstSubevent?.venue_address || eventData?.location || "Event Location");
-    
+      .replace(
+        /{event_date}/g,
+        firstSubevent?.event_date || eventData?.startDate || "Event Date",
+      )
+      .replace(
+        /{event_location}/g,
+        firstSubevent?.venue_address || eventData?.location || "Event Location",
+      );
+
     return processedMessage;
   };
 
@@ -151,7 +183,9 @@ const EmailPortal = ({
           if (data.success && data.event?.whatsappTemplates) {
             setWhatsappTemplates(data.event.whatsappTemplates);
             // Set default template as selected
-            const defaultTemplate = data.event.whatsappTemplates.find(t => t.is_default) || data.event.whatsappTemplates[0];
+            const defaultTemplate =
+              data.event.whatsappTemplates.find((t) => t.is_default) ||
+              data.event.whatsappTemplates[0];
             if (defaultTemplate) {
               setSelectedWhatsappTemplateId(defaultTemplate.id);
             }
@@ -164,12 +198,12 @@ const EmailPortal = ({
 
     fetchWhatsAppTemplates();
   }, [event?.eventID, session?.access_token]);
-  
+
   // Apply initial filters when passed from Analytics
   useEffect(() => {
     if (initialFilters) {
       console.log("Applying initial filters:", initialFilters);
-      
+
       // Apply filters
       if (initialFilters.statusFilters) {
         setStatusFilters(initialFilters.statusFilters);
@@ -194,14 +228,15 @@ const EmailPortal = ({
       }
 
       // Show advanced filters if any filters are applied
-      const hasFilters = Object.keys(initialFilters.statusFilters || {}).length > 0 ||
-                        initialFilters.groupFilters?.length > 0 ||
-                        initialFilters.genderFilters?.length > 0 ||
-                        initialFilters.ageGroupFilters?.length > 0 ||
-                        initialFilters.contactFilters?.length > 0 ||
-                        initialFilters.groupStatusFilters?.length > 0 ||
-                        initialFilters.groupContactFilters?.length > 0;
-      
+      const hasFilters =
+        Object.keys(initialFilters.statusFilters || {}).length > 0 ||
+        initialFilters.groupFilters?.length > 0 ||
+        initialFilters.genderFilters?.length > 0 ||
+        initialFilters.ageGroupFilters?.length > 0 ||
+        initialFilters.contactFilters?.length > 0 ||
+        initialFilters.groupStatusFilters?.length > 0 ||
+        initialFilters.groupContactFilters?.length > 0;
+
       if (hasFilters) {
         setShowAdvancedFilters(true);
       }
@@ -297,20 +332,26 @@ const EmailPortal = ({
 
   // Helper function to analyze group contact status
   const getGroupContactStatus = (groupName) => {
-    const groupMembers = transformedGuestList.filter(guest => guest.group === groupName);
+    const groupMembers = transformedGuestList.filter(
+      (guest) => guest.group === groupName,
+    );
     if (groupMembers.length === 0) return {};
-    
-    const hasAnyEmail = groupMembers.some(member => member.hasEmail);
-    const hasAllEmails = groupMembers.every(member => member.hasEmail);
-    const hasNoEmails = groupMembers.every(member => !member.hasEmail);
-    
-    const hasAnyPhone = groupMembers.some(member => member.hasPhone);
-    const hasAllPhones = groupMembers.every(member => member.hasPhone);
-    const hasNoPhones = groupMembers.every(member => !member.hasPhone);
-    
-    const hasCompleteContactInfo = groupMembers.every(member => member.hasContactInfo);
-    const hasAnyContactInfo = groupMembers.some(member => member.hasContactInfo);
-    
+
+    const hasAnyEmail = groupMembers.some((member) => member.hasEmail);
+    const hasAllEmails = groupMembers.every((member) => member.hasEmail);
+    const hasNoEmails = groupMembers.every((member) => !member.hasEmail);
+
+    const hasAnyPhone = groupMembers.some((member) => member.hasPhone);
+    const hasAllPhones = groupMembers.every((member) => member.hasPhone);
+    const hasNoPhones = groupMembers.every((member) => !member.hasPhone);
+
+    const hasCompleteContactInfo = groupMembers.every(
+      (member) => member.hasContactInfo,
+    );
+    const hasAnyContactInfo = groupMembers.some(
+      (member) => member.hasContactInfo,
+    );
+
     return {
       hasAnyEmail,
       hasAllEmails,
@@ -320,7 +361,7 @@ const EmailPortal = ({
       hasNoPhones,
       hasCompleteContactInfo,
       hasAnyContactInfo,
-      memberCount: groupMembers.length
+      memberCount: groupMembers.length,
     };
   };
 
@@ -467,19 +508,22 @@ const EmailPortal = ({
     if (Object.keys(statusFilters).length > 0) {
       filtered = filtered.filter((guest) => {
         // Check if guest matches any of the selected subevent status filters
-        return Object.entries(statusFilters).some(([subeventName, selectedStatuses]) => {
-          if (!selectedStatuses || selectedStatuses.length === 0) return false;
-          
-          const rsvpForSubevent = guest.rsvpStatus?.[subeventName];
-          if (!rsvpForSubevent) {
-            // Guest has no RSVP entry for this subevent - they are not invited
-            // Check if "not invited" status (0) is selected
-            return selectedStatuses.includes(0);
-          }
-          
-          // Check if the guest's status for this subevent matches any selected status
-          return selectedStatuses.includes(rsvpForSubevent.status_id);
-        });
+        return Object.entries(statusFilters).some(
+          ([subeventName, selectedStatuses]) => {
+            if (!selectedStatuses || selectedStatuses.length === 0)
+              return false;
+
+            const rsvpForSubevent = guest.rsvpStatus?.[subeventName];
+            if (!rsvpForSubevent) {
+              // Guest has no RSVP entry for this subevent - they are not invited
+              // Check if "not invited" status (0) is selected
+              return selectedStatuses.includes(0);
+            }
+
+            // Check if the guest's status for this subevent matches any selected status
+            return selectedStatuses.includes(rsvpForSubevent.status_id);
+          },
+        );
       });
     }
 
@@ -511,14 +555,16 @@ const EmailPortal = ({
     if (groupContactFilters.length > 0) {
       // Get unique groups from current filtered list
       const groupsToInclude = new Set();
-      
+
       // Check each unique group against group contact filters
-      const uniqueGroups = [...new Set(filtered.map(guest => guest.group).filter(Boolean))];
-      
-      uniqueGroups.forEach(groupName => {
+      const uniqueGroups = [
+        ...new Set(filtered.map((guest) => guest.group).filter(Boolean)),
+      ];
+
+      uniqueGroups.forEach((groupName) => {
         const groupContactStatus = getGroupContactStatus(groupName);
-        
-        const shouldIncludeGroup = groupContactFilters.some(filter => {
+
+        const shouldIncludeGroup = groupContactFilters.some((filter) => {
           switch (filter) {
             case "has_any_email":
               return groupContactStatus.hasAnyEmail;
@@ -540,15 +586,15 @@ const EmailPortal = ({
               return false;
           }
         });
-        
+
         if (shouldIncludeGroup) {
           groupsToInclude.add(groupName);
         }
       });
-      
+
       // Filter guests to only include those from qualifying groups
-      filtered = filtered.filter((guest) =>
-        groupsToInclude.has(guest.group) || !guest.group // Include individuals if no group
+      filtered = filtered.filter(
+        (guest) => groupsToInclude.has(guest.group) || !guest.group, // Include individuals if no group
       );
     }
 
@@ -626,17 +672,19 @@ const EmailPortal = ({
       if (!updated[subeventName]) {
         updated[subeventName] = [];
       }
-      
+
       if (checked) {
         updated[subeventName] = [...updated[subeventName], statusId];
       } else {
-        updated[subeventName] = updated[subeventName].filter((id) => id !== statusId);
+        updated[subeventName] = updated[subeventName].filter(
+          (id) => id !== statusId,
+        );
         // Remove the subevent key if no statuses are selected
         if (updated[subeventName].length === 0) {
           delete updated[subeventName];
         }
       }
-      
+
       return updated;
     });
   };
@@ -651,7 +699,9 @@ const EmailPortal = ({
   const hasAdvancedFilters = () => {
     return (
       groupFilters.length > 0 ||
-      Object.values(statusFilters).some(filters => filters && filters.length > 0) ||
+      Object.values(statusFilters).some(
+        (filters) => filters && filters.length > 0,
+      ) ||
       genderFilters.length > 0 ||
       ageGroupFilters.length > 0 ||
       contactFilters.length > 0 ||
@@ -888,7 +938,7 @@ const EmailPortal = ({
         })}
         <td>
           <span
-            className={`${styles.statusBadge} ${[3, 4, 5].includes(guest.group_status_id) 
+            className={`${styles.statusBadge} ${[3, 4, 5].includes(guest.group_status_id)
                 ? styles.statusInvited
                 : styles.statusNotInvited
               }`}
@@ -1079,8 +1129,10 @@ const EmailPortal = ({
       );
       if (result.guestList) {
         // Merge updated guests with existing guest list
-        const updatedGuestList = guestList.map(guest => {
-          const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+        const updatedGuestList = guestList.map((guest) => {
+          const updatedGuest = result.guestList.find(
+            (updated) => updated.id === guest.id,
+          );
           return updatedGuest || guest;
         });
         setGuestList(updatedGuestList);
@@ -1113,8 +1165,10 @@ const EmailPortal = ({
     if (res.status === 200 && result.validated) {
       toast("Reminders sent!");
       // Merge updated guests with existing guest list
-      const updatedGuestList = guestList.map(guest => {
-        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+      const updatedGuestList = guestList.map((guest) => {
+        const updatedGuest = result.guestList.find(
+          (updated) => updated.id === guest.id,
+        );
         return updatedGuest || guest;
       });
       setGuestList(updatedGuestList);
@@ -1147,8 +1201,10 @@ const EmailPortal = ({
     if (res.status === 200 && result.validated) {
       toast("Reminders sent!");
       // Merge updated guests with existing guest list
-      const updatedGuestList = guestList.map(guest => {
-        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+      const updatedGuestList = guestList.map((guest) => {
+        const updatedGuest = result.guestList.find(
+          (updated) => updated.id === guest.id,
+        );
         return updatedGuest || guest;
       });
       setGuestList(updatedGuestList);
@@ -1181,8 +1237,10 @@ const EmailPortal = ({
     if (res.status === 200 && result.validated) {
       toast("Updates sent!");
       // Merge updated guests with existing guest list
-      const updatedGuestList = guestList.map(guest => {
-        const updatedGuest = result.guestList.find(updated => updated.id === guest.id);
+      const updatedGuestList = guestList.map((guest) => {
+        const updatedGuest = result.guestList.find(
+          (updated) => updated.id === guest.id,
+        );
         return updatedGuest || guest;
       });
       setGuestList(updatedGuestList);
@@ -1251,21 +1309,27 @@ const EmailPortal = ({
 
       // Build the RSVP link
       const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
-      
+
       // Get the selected template or default
-      const selectedTemplate = whatsappTemplates.find(t => t.id === selectedWhatsappTemplateId) || 
-                              whatsappTemplates.find(t => t.is_default) || 
-                              whatsappTemplates[0];
-      
+      const selectedTemplate =
+        whatsappTemplates.find((t) => t.id === selectedWhatsappTemplateId) ||
+        whatsappTemplates.find((t) => t.is_default) ||
+        whatsappTemplates[0];
+
       // Set initial message with template variables replaced
       let initialMessage = "You are invited!";
       if (selectedTemplate) {
-        initialMessage = replaceWhatsAppVariables(selectedTemplate.message, guest, rsvpLink, event);
+        initialMessage = replaceWhatsAppVariables(
+          selectedTemplate.message,
+          guest,
+          rsvpLink,
+          event,
+        );
       } else {
         // Fallback to old method if no templates
-        initialMessage = `${event.details?.whatsapp_msg || 'You are invited!'}: ${rsvpLink}`;
+        initialMessage = `${event.details?.whatsapp_msg || "You are invited!"}: ${rsvpLink}`;
       }
-      
+
       setWhatsappMessage(initialMessage);
 
       // Clean the phone number (remove non-digits)
@@ -1276,7 +1340,7 @@ const EmailPortal = ({
         guest,
         phoneNumber,
         originalPhone: guest.phone,
-        rsvpLink
+        rsvpLink,
       });
       setAreaCodeInput("");
       setShowAreaCodeModal(true);
@@ -1304,34 +1368,43 @@ const EmailPortal = ({
       // Update group status to "invited" (status_id: 3) after sharing
       if (session?.access_token && guest.group_id) {
         try {
-          const response = await fetch(`/api/${params.eventID}/updateGroupStatus`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
+          const response = await fetch(
+            `/api/${params.eventID}/updateGroupStatus`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                group_id: guest.group_id,
+                status_id: 3, // "invited" status
+                invite_method: "whatsapp",
+              }),
             },
-            body: JSON.stringify({
-              group_id: guest.group_id,
-              status_id: 3, // "invited" status
-              invite_method: "whatsapp"
-            }),
-          });
+          );
 
           const result = await response.json();
 
           if (response.ok && result.success) {
-            toast(`WhatsApp invitation sent to ${guest.name}! Group status updated to ${result.new_status}.`);
+            toast(
+              `WhatsApp invitation sent to ${guest.name}! Group status updated to ${result.new_status}.`,
+            );
             // Refresh guest list to show updated status
             if (getGuestList && event) {
               await getGuestList(event);
             }
           } else {
             console.error("Failed to update group status:", result);
-            toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+            toast(
+              `WhatsApp shared with ${guest.name}, but status update failed.`,
+            );
           }
         } catch (statusError) {
           console.error("Error updating group status:", statusError);
-          toast(`WhatsApp shared with ${guest.name}, but status update failed.`);
+          toast(
+            `WhatsApp shared with ${guest.name}, but status update failed.`,
+          );
         }
       } else {
         toast(`WhatsApp shared with ${guest.name}!`);
@@ -1359,9 +1432,11 @@ const EmailPortal = ({
     setShowAreaCodeModal(false);
     setAreaCodeModalData(null);
     setAreaCodeInput("");
-    
+
     // Encode phone number if it exists, otherwise empty string for general share
-    const encodedPhoneNumber = finalPhoneNumber ? encodeURIComponent(finalPhoneNumber) : "";
+    const encodedPhoneNumber = finalPhoneNumber
+      ? encodeURIComponent(finalPhoneNumber)
+      : "";
     proceedWithWhatsAppShare(guest, encodedPhoneNumber);
   };
 
@@ -1459,60 +1534,6 @@ const EmailPortal = ({
 
   return (
     <>
-      {/* Quick Actions */}
-      <div className={styles.actionButtons}>
-        <button
-          className={styles.actionBtn}
-          onClick={SendMail}
-          disabled={!selectedTemplateId || selectedRows.length === 0}
-          title="Send invite to selected guests"
-        >
-          <div className={styles.actionBtnIcon}><MdSend size={24} /></div>
-          <div>
-            <div>Send Invites</div>
-            <div className={styles.actionBtnSubtitle}>
-              Send to selected guests
-            </div>
-          </div>
-        </button>
-        <button
-          className={`${styles.actionBtn} ${styles.disabledBtn}`}
-          disabled
-          title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: "not-allowed" }}
-        >
-          <div className={styles.actionBtnIcon}>⏰</div>
-          <div>
-            <div>Send Reminders</div>
-            <div className={styles.actionBtnSubtitle}>Coming soon</div>
-          </div>
-        </button>
-        <button
-          className={`${styles.actionBtn} ${styles.disabledBtn}`}
-          disabled
-          title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: "not-allowed" }}
-        >
-          <div className={styles.actionBtnIcon}><MdCampaign size={24} /></div>
-          <div>
-            <div>Send Reminder All</div>
-            <div className={styles.actionBtnSubtitle}>Coming soon</div>
-          </div>
-        </button>
-        <button
-          className={`${styles.actionBtn} ${styles.disabledBtn}`}
-          disabled
-          title="Feature temporarily disabled"
-          style={{ opacity: 0.5, cursor: "not-allowed" }}
-        >
-          <div className={styles.actionBtnIcon}><MdRefresh size={24} /></div>
-          <div>
-            <div>Send Update All</div>
-            <div className={styles.actionBtnSubtitle}>Coming soon</div>
-          </div>
-        </button>
-      </div>
-
       {/* Guest List Section */}
       <div className={styles.guestSection}>
         <div className={styles.sectionHeader}>
@@ -1693,7 +1714,12 @@ const EmailPortal = ({
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               title="Toggle advanced filters"
             >
-              <MdBuild size={18} /> Advanced Filters {showAdvancedFilters ? <MdExpandMore size={18} /> : <MdExpandLess size={18} />}
+              <MdBuild size={18} /> Advanced Filters{" "}
+              {showAdvancedFilters ? (
+                <MdExpandMore size={18} />
+              ) : (
+                <MdExpandLess size={18} />
+              )}
             </button>
           </div>
 
@@ -1728,15 +1754,22 @@ const EmailPortal = ({
 
                 {/* Per-Subevent Status Filters */}
                 <div className={styles.filterGroup}>
-                  <label className={styles.filterGroupLabel}>Status by Sub-Event:</label>
+                  <label className={styles.filterGroupLabel}>
+                    Status by Sub-Event:
+                  </label>
                   {subevents.length === 0 ? (
                     <div style={{ color: "#666", fontStyle: "italic" }}>
                       No sub-events available
                     </div>
                   ) : (
                     subevents.map((subeventName) => (
-                      <div key={subeventName} className={styles.subEventFilterGroup}>
-                        <div className={styles.subEventLabel}>{subeventName}:</div>
+                      <div
+                        key={subeventName}
+                        className={styles.subEventFilterGroup}
+                      >
+                        <div className={styles.subEventLabel}>
+                          {subeventName}:
+                        </div>
                         <div className={styles.checkboxGrid}>
                           {[
                             { id: 0, label: "Not Invited" },
@@ -1750,7 +1783,11 @@ const EmailPortal = ({
                             >
                               <input
                                 type="checkbox"
-                                checked={statusFilters[subeventName]?.includes(status.id) || false}
+                                checked={
+                                  statusFilters[subeventName]?.includes(
+                                    status.id,
+                                  ) || false
+                                }
                                 onChange={(e) =>
                                   handleSubeventStatusFilter(
                                     subeventName,
@@ -1874,16 +1911,43 @@ const EmailPortal = ({
                   </label>
                   <div className={styles.checkboxGrid}>
                     {[
-                      { value: "has_any_email", label: "Groups with Any Email" },
-                      { value: "has_all_emails", label: "Groups with All Emails" },
-                      { value: "has_no_emails", label: "Groups with No Emails" },
-                      { value: "has_any_phone", label: "Groups with Any Phone" },
-                      { value: "has_all_phones", label: "Groups with All Phones" },
-                      { value: "has_no_phones", label: "Groups with No Phones" },
-                      { value: "has_complete_contact", label: "Groups with Complete Contact" },
-                      { value: "has_any_contact", label: "Groups with Any Contact Info" },
+                      {
+                        value: "has_any_email",
+                        label: "Groups with Any Email",
+                      },
+                      {
+                        value: "has_all_emails",
+                        label: "Groups with All Emails",
+                      },
+                      {
+                        value: "has_no_emails",
+                        label: "Groups with No Emails",
+                      },
+                      {
+                        value: "has_any_phone",
+                        label: "Groups with Any Phone",
+                      },
+                      {
+                        value: "has_all_phones",
+                        label: "Groups with All Phones",
+                      },
+                      {
+                        value: "has_no_phones",
+                        label: "Groups with No Phones",
+                      },
+                      {
+                        value: "has_complete_contact",
+                        label: "Groups with Complete Contact",
+                      },
+                      {
+                        value: "has_any_contact",
+                        label: "Groups with Any Contact Info",
+                      },
                     ].map((option) => (
-                      <label key={option.value} className={styles.checkboxLabel}>
+                      <label
+                        key={option.value}
+                        className={styles.checkboxLabel}
+                      >
                         <input
                           type="checkbox"
                           checked={groupContactFilters.includes(option.value)}
@@ -1920,13 +1984,13 @@ const EmailPortal = ({
                     setGroupStatusFilters(getFilterOptions().groupStatuses);
                     setGroupContactFilters([
                       "has_any_email",
-                      "has_all_emails", 
+                      "has_all_emails",
                       "has_no_emails",
                       "has_any_phone",
                       "has_all_phones",
-                      "has_no_phones", 
+                      "has_no_phones",
                       "has_complete_contact",
-                      "has_any_contact"
+                      "has_any_contact",
                     ]);
                   }}
                 >
@@ -2051,7 +2115,9 @@ const EmailPortal = ({
         {/* Guest Table */}
         {filteredGuests.length === 0 ? (
           <div className={styles.noResultsContainer}>
-            <div className={styles.noResultsIcon}><MdSearch size={48} /></div>
+            <div className={styles.noResultsIcon}>
+              <MdSearch size={48} />
+            </div>
             <h4 className={styles.noResultsTitle}>No guests found</h4>
             <p className={styles.noResultsText}>
               {searchTerm || filterBy !== "all" || hasAdvancedFilters()
@@ -2152,626 +2218,6 @@ const EmailPortal = ({
         )}
       </div>
 
-      {/* Guest Form Modal - REMOVED */}
-      {false && (
-        <div className={styles.guestFormOverlay}>
-          <div className={styles.guestFormModal}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>
-                {editingGuest
-                  ? "Edit Guest"
-                  : addMode === "group"
-                    ? "Create Group & Add Members"
-                    : "Add Individual Guest"}
-              </h3>
-              <button
-                className={styles.closeModal}
-                onClick={() => {
-                  setShowGuestForm(false);
-                  setEditingGuest(null);
-                  setNewGuest({
-                    name: "",
-                    email: "",
-                    phone: "",
-                    gender: "",
-                    ageGroup: "",
-                    tag: "",
-                    selectedGroup: "",
-                    subEventRSVPs: {},
-                    isPointOfContact: true,
-                    guestType: "single",
-                    guestLimit: null,
-                  });
-                  setNewGroup({ name: "", members: [] });
-                  setTempGroupMembers([]);
-                  setEditingMemberIndex(-1);
-                }}
-              >
-                <MdClose size={20} />
-              </button>
-            </div>
-
-            <div className={styles.modalContent}>
-              {addMode === "individual" ? (
-                <>
-                  {/* Guest Information Section */}
-                  <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Guest Information
-                    </h4>
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Name *</label>
-                        <input
-                          type="text"
-                          className={styles.formInput}
-                          value={newGuest.name}
-                          onChange={(e) =>
-                            setNewGuest({ ...newGuest, name: e.target.value })
-                          }
-                          placeholder="Guest name"
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Email *</label>
-                        <input
-                          type="email"
-                          className={styles.formInput}
-                          value={newGuest.email}
-                          onChange={(e) =>
-                            setNewGuest({ ...newGuest, email: e.target.value })
-                          }
-                          placeholder="guest@example.com"
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Phone</label>
-                        <input
-                          type="tel"
-                          className={styles.formInput}
-                          value={newGuest.phone}
-                          onChange={(e) =>
-                            setNewGuest({ ...newGuest, phone: e.target.value })
-                          }
-                          placeholder="+1 (555) 123-4567"
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Gender</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.gender}
-                          onChange={(e) =>
-                            setNewGuest({ ...newGuest, gender: e.target.value })
-                          }
-                        >
-                          <option value="">Select gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Age Group</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.ageGroup}
-                          onChange={(e) =>
-                            setNewGuest({
-                              ...newGuest,
-                              ageGroup: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">Select age group</option>
-                          {ageGroups.map((group) => (
-                            <option key={group.value} value={group.value}>
-                              {group.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Tag/Side</label>
-                        <input
-                          type="text"
-                          className={styles.formInput}
-                          value={newGuest.tag}
-                          onChange={(e) =>
-                            setNewGuest({ ...newGuest, tag: e.target.value })
-                          }
-                          placeholder="e.g., Bride's Side"
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Group</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.selectedGroup}
-                          onChange={(e) =>
-                            handleGroupSelectionChange(e.target.value)
-                          }
-                        >
-                          <option value="">Create new individual group</option>
-                          {getExistingGroups().map((group) => (
-                            <option key={group.title} value={group.title}>
-                              {group.title} ({group.size} members)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Guest Type</label>
-                        <select
-                          className={styles.formSelect}
-                          value={newGuest.guestType}
-                          onChange={(e) =>
-                            handleGuestTypeChange(e.target.value)
-                          }
-                        >
-                          {guestTypes.map((type) => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </select>
-                        <div className={styles.fieldHelp}>
-                          {
-                            guestTypes.find(
-                              (t) => t.value === newGuest.guestType,
-                            )?.description
-                          }
-                        </div>
-                      </div>
-                      {newGuest.guestType === "multiple" && (
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>
-                            Guest Limit *
-                          </label>
-                          <input
-                            type="number"
-                            className={styles.formInput}
-                            value={newGuest.guestLimit || ""}
-                            onChange={(e) =>
-                              setNewGuest({
-                                ...newGuest,
-                                guestLimit: parseInt(e.target.value) || null,
-                              })
-                            }
-                            placeholder="Enter maximum number of guests"
-                            min="0"
-                            required
-                          />
-                          <div className={styles.fieldHelp}>
-                            Maximum number of guests this person can bring
-                            (including themselves)
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Point of Contact Section */}
-                  <div className={styles.formSectionGroup}>
-                    <label className={styles.checkboxOption}>
-                      <input
-                        type="checkbox"
-                        checked={newGuest.isPointOfContact}
-                        onChange={(e) => handlePOCChange(e.target.checked)}
-                      />
-                      <span>Point of Contact</span>
-                    </label>
-                    <div className={styles.fieldHelp}>
-                      Point of contact will receive important updates and can
-                      help coordinate with their group
-                      {newGuest.selectedGroup &&
-                        groupHasPOC(newGuest.selectedGroup) && (
-                          <div className={styles.pocWarningText}>
-                            This group already has a POC (
-                            {getCurrentPOCName(newGuest.selectedGroup)}).
-                            Checking this box will transfer POC status to this
-                            guest.
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Sub-Event Selection */}
-                  <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Sub-Event Invitations
-                    </h4>
-                    {loadingSubEvents ? (
-                      <div className={styles.loadingIndicator}>
-                        Loading sub-events...
-                      </div>
-                    ) : (
-                      <div className={styles.subEventGrid}>
-                        {subEvents.map((subEvent) => (
-                          <label
-                            key={subEvent.id}
-                            className={styles.checkboxOption}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={
-                                newGuest.subEventRSVPs[subEvent.id] ===
-                                "invited"
-                              }
-                              onChange={(e) => {
-                                const updated = { ...newGuest.subEventRSVPs };
-                                if (e.target.checked) {
-                                  updated[subEvent.id] = "invited";
-                                } else {
-                                  delete updated[subEvent.id];
-                                }
-                                setNewGuest({
-                                  ...newGuest,
-                                  subEventRSVPs: updated,
-                                });
-                              }}
-                            />
-                            <span>{subEvent.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Group Name Section */}
-                  <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Group Information
-                    </h4>
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Group Name *</label>
-                        <input
-                          type="text"
-                          className={styles.formInput}
-                          value={newGroup.name}
-                          onChange={(e) =>
-                            setNewGroup({ ...newGroup, name: e.target.value })
-                          }
-                          placeholder="Enter group name"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Member Addition Form */}
-                  <div className={styles.formSectionGroup}>
-                    <h4 className={styles.formSectionTitle}>
-                      Add Group Members
-                    </h4>
-
-                    <div className={styles.memberForm}>
-                      <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Name *</label>
-                          <input
-                            type="text"
-                            className={styles.formInput}
-                            value={newGuest.name}
-                            onChange={(e) =>
-                              setNewGuest({ ...newGuest, name: e.target.value })
-                            }
-                            placeholder="Member name"
-                          />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Email</label>
-                          <input
-                            type="email"
-                            className={styles.formInput}
-                            value={newGuest.email}
-                            onChange={(e) =>
-                              setNewGuest({
-                                ...newGuest,
-                                email: e.target.value,
-                              })
-                            }
-                            placeholder="member@example.com"
-                          />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Phone</label>
-                          <input
-                            type="tel"
-                            className={styles.formInput}
-                            value={newGuest.phone}
-                            onChange={(e) =>
-                              setNewGuest({
-                                ...newGuest,
-                                phone: e.target.value,
-                              })
-                            }
-                            placeholder="+1 (555) 123-4567"
-                          />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Gender</label>
-                          <select
-                            className={styles.formSelect}
-                            value={newGuest.gender}
-                            onChange={(e) =>
-                              setNewGuest({
-                                ...newGuest,
-                                gender: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="">Select gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Age Group</label>
-                          <select
-                            className={styles.formSelect}
-                            value={newGuest.ageGroup}
-                            onChange={(e) =>
-                              setNewGuest({
-                                ...newGuest,
-                                ageGroup: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="">Select age group</option>
-                            {ageGroups.map((group) => (
-                              <option key={group.value} value={group.value}>
-                                {group.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Tag/Side</label>
-                          <input
-                            type="text"
-                            className={styles.formInput}
-                            value={newGuest.tag}
-                            onChange={(e) =>
-                              setNewGuest({ ...newGuest, tag: e.target.value })
-                            }
-                            placeholder="e.g., Bride's Side"
-                          />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Guest Type</label>
-                          <select
-                            className={styles.formSelect}
-                            value={newGuest.guestType}
-                            onChange={(e) =>
-                              handleGuestTypeChange(e.target.value)
-                            }
-                          >
-                            {guestTypes.map((type) => (
-                              <option key={type.value} value={type.value}>
-                                {type.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className={styles.fieldHelp}>
-                            {
-                              guestTypes.find(
-                                (t) => t.value === newGuest.guestType,
-                              )?.description
-                            }
-                          </div>
-                        </div>
-                        {newGuest.guestType === "multiple" && (
-                          <div className={styles.formGroup}>
-                            <label className={styles.formLabel}>
-                              Guest Limit *
-                            </label>
-                            <input
-                              type="number"
-                              className={styles.formInput}
-                              value={newGuest.guestLimit || ""}
-                              onChange={(e) =>
-                                setNewGuest({
-                                  ...newGuest,
-                                  guestLimit: parseInt(e.target.value) || null,
-                                })
-                              }
-                              placeholder="Enter maximum number of guests"
-                              min="0"
-                              required
-                            />
-                            <div className={styles.fieldHelp}>
-                              Maximum number of guests this person can bring
-                              (including themselves)
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={styles.memberFormActions}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.checkboxOption}>
-                            <input
-                              type="checkbox"
-                              checked={newGuest.isPointOfContact}
-                              onChange={(e) =>
-                                setNewGuest({
-                                  ...newGuest,
-                                  isPointOfContact: e.target.checked,
-                                })
-                              }
-                            />
-                            <span>Point of Contact</span>
-                          </label>
-                        </div>
-
-                        {/* Sub-Event Selection for Group */}
-                        <div className={styles.formSectionGroup}>
-                          <h4 className={styles.formSectionTitle}>
-                            Sub-Event Invitations
-                          </h4>
-                          {loadingSubEvents ? (
-                            <div className={styles.loadingIndicator}>
-                              Loading sub-events...
-                            </div>
-                          ) : (
-                            <div className={styles.subEventGrid}>
-                              {subEvents.map((subEvent) => (
-                                <label
-                                  key={subEvent.id}
-                                  className={styles.checkboxOption}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      newGuest.subEventRSVPs[subEvent.id] ===
-                                      "invited"
-                                    }
-                                    onChange={(e) => {
-                                      const updated = {
-                                        ...newGuest.subEventRSVPs,
-                                      };
-                                      if (e.target.checked) {
-                                        updated[subEvent.id] = "invited";
-                                      } else {
-                                        delete updated[subEvent.id];
-                                      }
-                                      setNewGuest({
-                                        ...newGuest,
-                                        subEventRSVPs: updated,
-                                      });
-                                    }}
-                                  />
-                                  <span>{subEvent.name}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          className={styles.btnSecondary}
-                          onClick={handleAddMemberToGroup}
-                        >
-                          {editingMemberIndex >= 0
-                            ? "Update Member"
-                            : "Add to Group"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Members List */}
-                    {tempGroupMembers.length > 0 && (
-                      <div className={styles.membersList}>
-                        <h5 className={styles.membersListTitle}>
-                          Group Members ({tempGroupMembers.length})
-                        </h5>
-                        {tempGroupMembers.map((member, index) => (
-                          <div key={index} className={styles.memberCard}>
-                            <div className={styles.memberInfo}>
-                              <div className={styles.memberName}>
-                                {member.name}
-                                {member.isPointOfContact && (
-                                  <span className={styles.pocBadge}>POC</span>
-                                )}
-                              </div>
-                              <div className={styles.memberDetails}>
-                                {member.email} • {member.phone || "No phone"} •
-                                {member.gender || "No gender"} •
-                                {member.ageGroup
-                                  ? ageGroups.find(
-                                    (group) =>
-                                      group.value === member.ageGroup,
-                                  )?.label || member.ageGroup
-                                  : "No age group"}
-                              </div>
-                              {member.tag && (
-                                <div className={styles.memberTag}>
-                                  {member.tag}
-                                </div>
-                              )}
-                            </div>
-                            <div className={styles.memberActions}>
-                              <button
-                                type="button"
-                                className={styles.btnGhost}
-                                onClick={() => handleEditMember(index)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.btnDanger}
-                                onClick={() => handleRemoveMember(index)}
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className={styles.modalFooter}>
-              <button
-                type="button"
-                className={`${styles.btnSecondary}`}
-                onClick={() => {
-                  setShowGuestForm(false);
-                  setEditingGuest(null);
-                  setNewGuest({
-                    name: "",
-                    email: "",
-                    phone: "",
-                    gender: "",
-                    ageGroup: "",
-                    tag: "",
-                    selectedGroup: "",
-                    subEventRSVPs: {},
-                    isPointOfContact: true,
-                    guestType: "single",
-                    guestLimit: null,
-                  });
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={`${styles.btnPrimary}`}
-                onClick={() => {
-                  if (editingGuest || addMode === "individual") {
-                    handleAddIndividualGuest();
-                  } else if (addMode === "group") {
-                    handleCreateGroup();
-                  }
-                }}
-                disabled={
-                  addMode === "group"
-                    ? !newGroup.name.trim() || tempGroupMembers.length === 0
-                    : !newGuest.name.trim()
-                }
-              >
-                {editingGuest
-                  ? "Save Changes"
-                  : addMode === "group"
-                    ? "Create Group"
-                    : "Add Guest"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* POC Transfer Confirmation Modal */}
       {showPOCConfirmation && pocTransferData && (
         <div className={styles.guestFormOverlay}>
@@ -2781,7 +2227,9 @@ const EmailPortal = ({
             </div>
 
             <div className={styles.confirmationContent}>
-              <div className={styles.confirmationIcon}><MdPeople size={48} /></div>
+              <div className={styles.confirmationIcon}>
+                <MdPeople size={48} />
+              </div>
               <div className={styles.confirmationMessage}>
                 <p>
                   This will transfer the point of contact role from{" "}
@@ -2823,9 +2271,21 @@ const EmailPortal = ({
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>
                 <span className={styles.whatsappIcon}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z" fill="#25D366"/>
-                    <path d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z" fill="#fff"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z"
+                      fill="#25D366"
+                    />
+                    <path
+                      d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z"
+                      fill="#fff"
+                    />
                   </svg>
                 </span>
                 WhatsApp Invitation
@@ -2845,8 +2305,12 @@ const EmailPortal = ({
                   {areaCodeModalData.guest.name.charAt(0).toUpperCase()}
                 </div>
                 <div className={styles.guestDetails}>
-                  <h4 className={styles.guestName}>{areaCodeModalData.guest.name}</h4>
-                  <p className={styles.guestPhone}>{areaCodeModalData.originalPhone}</p>
+                  <h4 className={styles.guestName}>
+                    {areaCodeModalData.guest.name}
+                  </h4>
+                  <p className={styles.guestPhone}>
+                    {areaCodeModalData.originalPhone}
+                  </p>
                 </div>
               </div>
 
@@ -2860,10 +2324,17 @@ const EmailPortal = ({
                       value={selectedWhatsappTemplateId}
                       onChange={(e) => {
                         setSelectedWhatsappTemplateId(e.target.value);
-                        const template = whatsappTemplates.find(t => t.id === e.target.value);
+                        const template = whatsappTemplates.find(
+                          (t) => t.id === e.target.value,
+                        );
                         if (template && areaCodeModalData) {
                           const rsvpLink = areaCodeModalData.rsvpLink;
-                          const replacedMessage = replaceWhatsAppVariables(template.message, areaCodeModalData.guest, rsvpLink, event);
+                          const replacedMessage = replaceWhatsAppVariables(
+                            template.message,
+                            areaCodeModalData.guest,
+                            rsvpLink,
+                            event,
+                          );
                           setWhatsappMessage(replacedMessage);
                         }
                       }}
@@ -2876,11 +2347,13 @@ const EmailPortal = ({
                         </option>
                       ))}
                     </select>
-                    <div style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginBottom: "16px"
-                    }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#6b7280",
+                        marginBottom: "16px",
+                      }}
+                    >
                       Templates can be managed in the "Edit Templates" section
                     </div>
                   </div>
@@ -2891,7 +2364,9 @@ const EmailPortal = ({
                   <label className={styles.inputLabel}>Message Preview</label>
                   <div className={styles.messagePreview}>
                     <div className={styles.messageHeader}>
-                      <span className={styles.messageIcon}><MdMessage size={16} /></span>
+                      <span className={styles.messageIcon}>
+                        <MdMessage size={16} />
+                      </span>
                       <span>WhatsApp Message</span>
                     </div>
                     <textarea
@@ -2905,18 +2380,32 @@ const EmailPortal = ({
                       <span className={styles.characterCount}>
                         {whatsappMessage.length} characters
                       </span>
-                      <div style={{
-                        fontSize: "11px",
-                        color: "#9ca3af",
-                        marginTop: "4px"
-                      }}>
-                        <div>Basic: {"{rsvp_link}"}, {"{event_title}"}, {"{guest_name}"}</div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: "#9ca3af",
+                          marginTop: "4px",
+                        }}
+                      >
+                        <div>
+                          Basic: {"{rsvp_link}"}, {"{event_title}"},{" "}
+                          {"{guest_name}"}
+                        </div>
                         {event?.subEvents && event.subEvents.length > 0 && (
                           <div style={{ marginTop: "2px" }}>
-                            Subevents: {event.subEvents.map(se => {
-                              const cleanTitle = se.title.replace(/[^a-zA-Z0-9]/g, '');
-                              return cleanTitle ? `{${cleanTitle}_date}, {${cleanTitle}_location}, {${cleanTitle}_time}` : '';
-                            }).filter(Boolean).join(', ')}
+                            Subevents:{" "}
+                            {event.subEvents
+                              .map((se) => {
+                                const cleanTitle = se.title.replace(
+                                  /[^a-zA-Z0-9]/g,
+                                  "",
+                                );
+                                return cleanTitle
+                                  ? `{${cleanTitle}_date}, {${cleanTitle}_location}, {${cleanTitle}_time}`
+                                  : "";
+                              })
+                              .filter(Boolean)
+                              .join(", ")}
                           </div>
                         )}
                       </div>
@@ -2928,12 +2417,19 @@ const EmailPortal = ({
                 {areaCodeModalData.phoneNumber && (
                   <>
                     <div className={styles.formDescription}>
-                      <p>Do you want to add a country code to this phone number?</p>
-                      <p className={styles.formHint}>This helps ensure the WhatsApp link works internationally</p>
+                      <p>
+                        Do you want to add a country code to this phone number?
+                      </p>
+                      <p className={styles.formHint}>
+                        This helps ensure the WhatsApp link works
+                        internationally
+                      </p>
                     </div>
 
                     <div className={styles.areaCodeInput}>
-                      <label className={styles.inputLabel}>Country Code (optional)</label>
+                      <label className={styles.inputLabel}>
+                        Country Code (optional)
+                      </label>
                       <div className={styles.inputContainer}>
                         <span className={styles.inputPrefix}>+</span>
                         <input
@@ -2946,17 +2442,17 @@ const EmailPortal = ({
                         />
                       </div>
                       <div className={styles.inputHelp}>
-                        Examples: +1 (US/CA), +44 (UK), +91 (India), +49 (Germany)
+                        Examples: +1 (US/CA), +44 (UK), +91 (India), +49
+                        (Germany)
                       </div>
                     </div>
 
                     <div className={styles.phonePreview}>
                       <span className={styles.previewLabel}>Final number:</span>
                       <span className={styles.previewNumber}>
-                        {areaCodeInput.trim() 
+                        {areaCodeInput.trim()
                           ? `+${areaCodeInput.replace(/[^\d]/g, "")}${areaCodeModalData.phoneNumber}`
-                          : areaCodeModalData.originalPhone
-                        }
+                          : areaCodeModalData.originalPhone}
                       </span>
                     </div>
                   </>
@@ -2965,9 +2461,13 @@ const EmailPortal = ({
                 {/* No Phone Number Message */}
                 {!areaCodeModalData.phoneNumber && (
                   <div className={styles.noPhoneMessage}>
-                    <div className={styles.noPhoneIcon}><MdPhone size={24} /></div>
+                    <div className={styles.noPhoneIcon}>
+                      <MdPhone size={24} />
+                    </div>
                     <p>No phone number available for this guest.</p>
-                    <p className={styles.formHint}>The message will be opened as a general WhatsApp share.</p>
+                    <p className={styles.formHint}>
+                      The message will be opened as a general WhatsApp share.
+                    </p>
                   </div>
                 )}
               </div>
@@ -2988,9 +2488,21 @@ const EmailPortal = ({
                 disabled={!whatsappMessage.trim()}
               >
                 <span className={styles.whatsappIcon}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z" fill="currentColor"/>
-                    <path d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z" fill="#fff"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.373 0 .01 4.99.01 11.17c0 1.962.51 3.882 1.478 5.58L0 24l7.57-1.99A11.87 11.87 0 0 0 12 22.34c6.627 0 12-4.99 12-11.17 0-1.95-.51-3.85-1.48-5.7z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M17.21 14.03c-.28-.14-1.64-.8-1.9-.89-.26-.09-.45-.14-.64.14-.19.28-.73.89-.9 1.07-.17.19-.34.21-.63.07-.29-.14-1.23-.45-2.34-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.12-.59.12-.12.26-.34.39-.51.13-.18.17-.31.26-.51.09-.19.04-.36-.02-.5-.06-.14-.64-1.55-.88-2.12-.23-.56-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.45s1.03 2.85 1.17 3.05c.13.2 2.02 3.08 4.9 4.3 1.01.44 1.8.7 2.42.9.99.32 1.89.27 2.6.16.79-.13 2.43-.99 2.77-1.95.34-.95.34-1.76.24-1.95-.1-.19-.35-.31-.73-.45z"
+                      fill="#fff"
+                    />
                   </svg>
                 </span>
                 Send WhatsApp

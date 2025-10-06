@@ -6,6 +6,7 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import styles from "./Dashboard.module.css";
+import { MdSettings, MdAdd, MdExitToApp, MdDelete, MdNotifications, MdPeople, MdEvent, MdWarning } from "react-icons/md";
 
 const DashboardContent = () => {
   const router = useRouter();
@@ -372,10 +373,10 @@ const DashboardContent = () => {
 
   const getEventTypeIcon = (type) => {
     switch (type) {
-      case "wedding": return "💒";
+      case "wedding": return "👰";
       case "birthday": return "🎂";
-      case "corporate": return "🏢";
-      default: return "🎉";
+      case "corporate": return "💼";
+      default: return "🎊";
     }
   };
 
@@ -604,23 +605,23 @@ const DashboardContent = () => {
               <span className={styles.breadcrumb}>/ Dashboard</span>
             </div>
             <div className={styles.navActions}>
-              <button 
+              <button
                 className={styles.btnSecondary}
                 onClick={() => setActiveSection("settings")}
               >
-                ⚙️ Settings
+                <MdSettings size={18} /> Settings
               </button>
-              <button 
+              <button
                 className={styles.btnPrimary}
                 onClick={handleCreateEvent}
               >
-                ➕ Create Event
+                <MdAdd size={18} /> Create Event
               </button>
-              <button 
+              <button
                 className={styles.btnOutline}
                 onClick={handleSignOut}
               >
-                🚪 Sign Out
+                <MdExitToApp size={18} /> Sign Out
               </button>
             </div>
           </nav>
@@ -668,29 +669,29 @@ const DashboardContent = () => {
 
           {/* Navigation Tabs */}
           <div className={styles.tabNavigation}>
-            <button 
+            <button
               className={`${styles.tabButton} ${activeSection === "events" ? styles.active : ""}`}
               onClick={() => setActiveSection("events")}
             >
-              🎉 My Events ({events.length})
+              <MdEvent size={18} /> My Events ({events.length})
             </button>
-            <button 
+            <button
               className={`${styles.tabButton} ${activeSection === "collaborations" ? styles.active : ""}`}
               onClick={() => setActiveSection("collaborations")}
             >
-              🤝 Collaborations ({collaborations.length})
+              <MdPeople size={18} /> Collaborations ({collaborations.length})
             </button>
-            <button 
+            <button
               className={`${styles.tabButton} ${activeSection === "inbox" ? styles.active : ""}`}
               onClick={() => setActiveSection("inbox")}
             >
-              🔔 Inbox {unreadCount > 0 && <span className={styles.notificationBadge}>({unreadCount})</span>}
+              <MdNotifications size={18} /> Inbox {unreadCount > 0 && <span className={styles.notificationBadge}>({unreadCount})</span>}
             </button>
-            <button 
+            <button
               className={`${styles.tabButton} ${activeSection === "settings" ? styles.active : ""}`}
               onClick={() => setActiveSection("settings")}
             >
-              ⚙️ Account Settings
+              <MdSettings size={18} /> Account Settings
             </button>
           </div>
 
@@ -715,17 +716,17 @@ const DashboardContent = () => {
                           className={styles.btnDanger}
                           onClick={handleMassDelete}
                         >
-                          🗑️ Delete Selected ({selectedEvents.length})
+                          <MdDelete size={18} /> Delete Selected ({selectedEvents.length})
                         </button>
                       )}
                     </div>
                   )}
                 </div>
-                <button 
+                <button
                   className={styles.btnPrimary}
                   onClick={handleCreateEvent}
                 >
-                  ➕ Create New Event
+                  <MdAdd size={18} /> Create New Event
                 </button>
               </div>
 
@@ -770,7 +771,7 @@ const DashboardContent = () => {
                 </div>
               ) : events.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <div className={styles.emptyIcon}>🎉</div>
+                  <div className={styles.emptyIcon}></div>
                   <h3>No events yet</h3>
                   <p>Create your first event to get started!</p>
                   <button className={styles.btnPrimary} onClick={handleCreateEvent}>
@@ -794,7 +795,7 @@ const DashboardContent = () => {
                             onClick={() => handleDeleteEvent(event.id)}
                             title="Delete event"
                           >
-                            🗑️
+                            <MdDelete size={16} />
                           </button>
                         </div>
                         <div className={styles.eventIcon}>
@@ -812,9 +813,9 @@ const DashboardContent = () => {
                       <div className={styles.eventContent}>
                         <h3 className={styles.eventTitle}>{event.title}</h3>
                         <p className={styles.eventDate}>
-                          📅 {new Date(event.date).toLocaleDateString()}
+                          {new Date(event.date).toLocaleDateString()}
                         </p>
-                        <p className={styles.eventLocation}>📍 {event.location}</p>
+                        <p className={styles.eventLocation}>{event.location}</p>
                         
                         <div className={styles.eventStats}>
                           <div className={styles.eventStat}>
@@ -829,11 +830,11 @@ const DashboardContent = () => {
                       </div>
 
                       <div className={styles.eventActions}>
-                        {/*<button 
+                        {/*<button
                           className={styles.btnSecondary}
                           onClick={() => handleEditEvent(event.id)}
                         >
-                          ✏️ Edit
+                          Edit
                         </button>*/}
                         <button 
                           className={styles.btnPrimary}
@@ -872,7 +873,7 @@ const DashboardContent = () => {
                 </div>
               ) : collaborations.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <div className={styles.emptyIcon}>🤝</div>
+                  <div className={styles.emptyIcon}></div>
                   <h3>No collaborations</h3>
                   <p>You haven't been invited to collaborate on any events yet.</p>
                 </div>
@@ -952,7 +953,7 @@ const DashboardContent = () => {
               <div className={styles.settingsGrid}>
                 <div className={styles.settingsCard}>
                   <div className={styles.settingsHeader}>
-                    <div className={styles.settingsIcon}>👤</div>
+                    <div className={styles.settingsIcon}></div>
                     <h3 className={styles.settingsTitle}>Profile Information</h3>
                   </div>
                   <div className={styles.settingsContent}>
@@ -981,7 +982,7 @@ const DashboardContent = () => {
 
                 <div className={styles.settingsCard}>
                   <div className={styles.settingsHeader}>
-                    <div className={styles.settingsIcon}>🔒</div>
+                    <div className={styles.settingsIcon}></div>
                     <h3 className={styles.settingsTitle}>Security</h3>
                   </div>
                   <div className={styles.settingsContent}>
@@ -1003,7 +1004,7 @@ const DashboardContent = () => {
 
                 <div className={styles.settingsCard}>
                   <div className={styles.settingsHeader}>
-                    <div className={styles.settingsIcon}>🔔</div>
+                    <div className={styles.settingsIcon}></div>
                     <h3 className={styles.settingsTitle}>Notifications</h3>
                   </div>
                   <div className={styles.settingsContent}>
@@ -1067,7 +1068,7 @@ const DashboardContent = () => {
                 </div>
               ) : notifications.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <div className={styles.emptyIcon}>🔔</div>
+                  <div className={styles.emptyIcon}></div>
                   <h3>No notifications</h3>
                   <p>You're all caught up! New collaboration invitations and updates will appear here.</p>
                 </div>
@@ -1077,9 +1078,9 @@ const DashboardContent = () => {
                     <div key={notification.id} className={`${styles.notificationCard} ${!notification.read ? styles.unread : ''}`}>
                       <div className={styles.notificationHeader}>
                         <div className={styles.notificationIcon}>
-                          {notification.type === 'collaboration_invite' && '🤝'}
-                          {notification.type === 'system' && 'ℹ️'}
-                          {notification.type === 'update' && '📢'}
+                          {notification.type === 'collaboration_invite' && 'Collab'}
+                          {notification.type === 'system' && 'Info'}
+                          {notification.type === 'update' && 'Update'}
                         </div>
                         <div className={styles.notificationContent}>
                           <h4 className={styles.notificationTitle}>{notification.title}</h4>
@@ -1136,7 +1137,7 @@ const DashboardContent = () => {
             
             <div className={styles.confirmationContent}>
               <div className={styles.confirmationIcon}>
-                ⚠️
+                <MdWarning size={48} />
               </div>
               <div className={styles.confirmationMessage}>
                 <p>

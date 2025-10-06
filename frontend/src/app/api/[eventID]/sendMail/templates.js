@@ -345,7 +345,7 @@ export const reminderTemplate = `
       <tr style="background-color:#ffeb3b; color: #333;">
         <td style="text-align: center; padding-top: 20px">
           <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
-            📅 Event Reminder: {{eventName}}
+            Event Reminder: {{eventName}}
           </h1>
           {{#if eventDate}}
           <p style="font-size: 18px; margin-bottom: 10px; font-weight: bold;">

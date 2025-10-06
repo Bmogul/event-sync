@@ -12,7 +12,7 @@ export async function GET(request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error("❌ Auth error:", userError);
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -24,7 +24,7 @@ export async function GET(request) {
       .single();
 
     if (profileError || !userProfile) {
-      console.error("❌ Profile error:", profileError);
+      console.error("Profile error:", profileError);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 },
@@ -58,7 +58,7 @@ export async function GET(request) {
       .single();
 
     if (eventError || !event) {
-      console.error("❌ Event not found or unauthorized:", eventError);
+      console.error("Event not found or unauthorized:", eventError);
       return NextResponse.json(
         { error: "Event not found or unauthorized" },
         { status: 404 },
@@ -361,7 +361,7 @@ export async function GET(request) {
       })(),
     };
 
-    console.log("✓ Event data loaded successfully");
+    console.log("Event data loaded successfully");
     console.log("Debug: Raw database results:");
     console.log("  - Event:", event?.title || "No event");
     console.log("  - Sub-events count:", subEvents?.length || 0, subEvents);
@@ -496,7 +496,7 @@ export async function PATCH(request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error("❌ Auth error:", userError);
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -511,7 +511,7 @@ export async function PATCH(request) {
       .single();
 
     if (profileError || !userProfile) {
-      console.error("❌ Profile error:", profileError);
+      console.error("Profile error:", profileError);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 },
@@ -639,7 +639,7 @@ export async function PATCH(request) {
           .eq("id", existingEvent.id);
 
         if (updateError) {
-          console.error("❌ Main event update error:", updateError);
+          console.error("Main event update error:", updateError);
           throw updateError;
         }
         
@@ -764,7 +764,7 @@ export async function POST(request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error("❌ Auth error:", userError);
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -779,7 +779,7 @@ export async function POST(request) {
       .single();
 
     if (profileError || !userProfile) {
-      console.error("❌ Profile error:", profileError);
+      console.error("Profile error:", profileError);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 },
@@ -908,7 +908,7 @@ export async function POST(request) {
         .single();
 
       if (eventError) {
-        console.error("❌ Event creation error:", eventError);
+        console.error("Event creation error:", eventError);
         throw eventError;
       }
 
@@ -929,7 +929,7 @@ export async function POST(request) {
         });
 
       if (managerError) {
-        console.error("❌ Manager creation error:", managerError);
+        console.error("Manager creation error:", managerError);
         // Clean up event
         await supabase.from("events").delete().eq("id", createdEvent.id);
         throw managerError;
@@ -1098,7 +1098,7 @@ export async function POST(request) {
             await supabase.from("subevents").insert(subEventPayloads).select();
 
           if (subEventError) {
-            console.error("❌ Sub-event creation error:", subEventError);
+            console.error("Sub-event creation error:", subEventError);
             throw subEventError;
           }
 
@@ -1384,7 +1384,7 @@ export async function POST(request) {
           .select();
 
         if (groupError) {
-          console.error("❌ Guest group creation error:", groupError);
+          console.error("Guest group creation error:", groupError);
           throw groupError;
         }
 
@@ -1681,7 +1681,7 @@ export async function POST(request) {
               .select();
               
             if (guestError) {
-              console.error("❌ Guest creation error:", guestError);
+              console.error("Guest creation error:", guestError);
               throw guestError;
             }
             
@@ -2144,7 +2144,7 @@ export async function POST(request) {
             .select();
 
           if (templateError) {
-            console.error("❌ Email template creation error:", templateError);
+            console.error("Email template creation error:", templateError);
             throw templateError;
           }
 
@@ -2201,7 +2201,7 @@ export async function POST(request) {
       .insert(landingConfigPayload);
 
     if (configError) {
-      console.error("❌ Landing config creation error:", configError);
+      console.error("Landing config creation error:", configError);
       // Don't throw - this is optional but log detailed error
       console.error(
         "Full error details:",

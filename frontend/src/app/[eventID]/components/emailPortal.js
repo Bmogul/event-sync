@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import styles from "../styles/portal.module.css";
+import { MdContentCopy, MdDelete, MdPeople, MdEmail, MdCheckCircle, MdSend, MdCampaign, MdRefresh, MdPerson, MdFolder, MdClose, MdBuild, MdExpandMore, MdExpandLess, MdSearch, MdMessage, MdPhone, MdStar } from "react-icons/md";
 
 const EmailPortal = ({
   event,
@@ -787,7 +788,7 @@ const EmailPortal = ({
               onClick={() => handleCopyRSVPLink(guest)}
               title="Copy RSVP link"
             >
-              📋
+              <MdContentCopy size={20} />
             </button>
             {/*<button
               type="button"
@@ -795,7 +796,7 @@ const EmailPortal = ({
               onClick={() => handleRemoveGuest(guest.id)}
               title="Remove guest"
             >
-              🗑️
+              <MdDelete size={20} />
             </button>*/}
             <button
               type="button"
@@ -957,13 +958,13 @@ const EmailPortal = ({
 
                   <div className={styles.groupStats}>
                     <span className={styles.groupStatBadge}>
-                      👥 {groupStats.total}
+                      <MdPeople size={16} /> {groupStats.total}
                     </span>
                     <span className={styles.groupStatBadge}>
-                      📧 {groupStats.invited}
+                      <MdEmail size={16} /> {groupStats.invited}
                     </span>
                     <span className={styles.groupStatBadge}>
-                      ✅ {groupStats.responded}
+                      <MdCheckCircle size={16} /> {groupStats.responded}
                     </span>
                     <span className={styles.groupStatBadge}>
                       ⏳ {groupStats.pending}
@@ -984,7 +985,7 @@ const EmailPortal = ({
                     }}
                     title="Select group for email"
                   >
-                    📧 Select for Email
+                    <MdEmail size={16} /> Select for Email
                   </button>
                 </div>
               </div>
@@ -1466,7 +1467,7 @@ const EmailPortal = ({
           disabled={!selectedTemplateId || selectedRows.length === 0}
           title="Send invite to selected guests"
         >
-          <div className={styles.actionBtnIcon}>📮</div>
+          <div className={styles.actionBtnIcon}><MdSend size={24} /></div>
           <div>
             <div>Send Invites</div>
             <div className={styles.actionBtnSubtitle}>
@@ -1492,7 +1493,7 @@ const EmailPortal = ({
           title="Feature temporarily disabled"
           style={{ opacity: 0.5, cursor: "not-allowed" }}
         >
-          <div className={styles.actionBtnIcon}>📢</div>
+          <div className={styles.actionBtnIcon}><MdCampaign size={24} /></div>
           <div>
             <div>Send Reminder All</div>
             <div className={styles.actionBtnSubtitle}>Coming soon</div>
@@ -1504,7 +1505,7 @@ const EmailPortal = ({
           title="Feature temporarily disabled"
           style={{ opacity: 0.5, cursor: "not-allowed" }}
         >
-          <div className={styles.actionBtnIcon}>🔄</div>
+          <div className={styles.actionBtnIcon}><MdRefresh size={24} /></div>
           <div>
             <div>Send Update All</div>
             <div className={styles.actionBtnSubtitle}>Coming soon</div>
@@ -1525,7 +1526,7 @@ const EmailPortal = ({
                   setShowGuestForm(true);
                 }}
               >
-                <span>👤</span>
+                <span><MdPerson size={18} /></span>
                 Add Guest
               </button>
               <button
@@ -1535,14 +1536,14 @@ const EmailPortal = ({
                   setShowGuestForm(true);
                 }}
               >
-                <span>👥</span>
+                <span><MdPeople size={18} /></span>
                 Create Group
               </button>
               <label
                 className={styles.btnPrimarySmall}
                 style={{ cursor: "pointer" }}
               >
-                <span>📁</span>
+                <span><MdFolder size={18} /></span>
                 Import CSV
                 <input
                   type="file"
@@ -1619,7 +1620,7 @@ const EmailPortal = ({
                 onClick={() => setSearchTerm("")}
                 title="Clear search"
               >
-                ✕
+                <MdClose size={20} />
               </button>
             )}
           </div>
@@ -1692,7 +1693,7 @@ const EmailPortal = ({
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               title="Toggle advanced filters"
             >
-              🔧 Advanced Filters {showAdvancedFilters ? "▼" : "▶"}
+              <MdBuild size={18} /> Advanced Filters {showAdvancedFilters ? <MdExpandMore size={18} /> : <MdExpandLess size={18} />}
             </button>
           </div>
 
@@ -1975,7 +1976,7 @@ const EmailPortal = ({
                 setSortDirection("asc");
               }}
             >
-              📁 Group → Name
+              <MdFolder size={16} /> Group → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "inviteStatus" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -1985,7 +1986,7 @@ const EmailPortal = ({
                 setSortDirection("asc");
               }}
             >
-              📧 Status → Name
+              <MdEmail size={16} /> Status → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "groupStatus" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -1995,7 +1996,7 @@ const EmailPortal = ({
                 setSortDirection("asc");
               }}
             >
-              📋 Group Status → Name
+              <MdCheckCircle size={16} /> Group Status → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "contactStatus" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -2005,7 +2006,7 @@ const EmailPortal = ({
                 setSortDirection("asc");
               }}
             >
-              📞 Contact Info → Name
+              <MdPhone size={16} /> Contact Info → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "hasEmail" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -2015,7 +2016,7 @@ const EmailPortal = ({
                 setSortDirection("desc");
               }}
             >
-              📧 Has Email → Name
+              <MdEmail size={16} /> Has Email → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "hasPhone" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -2025,7 +2026,7 @@ const EmailPortal = ({
                 setSortDirection("desc");
               }}
             >
-              📱 Has Phone → Name
+              <MdPhone size={16} /> Has Phone → Name
             </button>
             <button
               className={`${styles.btnOutlineSmall} ${sortBy === "ageGroup" && secondarySortBy === "name" ? styles.active : ""}`}
@@ -2035,14 +2036,14 @@ const EmailPortal = ({
                 setSortDirection("asc");
               }}
             >
-              👥 Age → Name
+              <MdPeople size={16} /> Age → Name
             </button>
             <button
               className={styles.btnPrimarySmall}
               onClick={handleSelectAllPOCs}
               title="Select all Point of Contact guests"
             >
-              👑 Select All POCs
+              <MdStar size={16} /> Select All POCs
             </button>
           </div>
         </div>
@@ -2050,7 +2051,7 @@ const EmailPortal = ({
         {/* Guest Table */}
         {filteredGuests.length === 0 ? (
           <div className={styles.noResultsContainer}>
-            <div className={styles.noResultsIcon}>🔍</div>
+            <div className={styles.noResultsIcon}><MdSearch size={48} /></div>
             <h4 className={styles.noResultsTitle}>No guests found</h4>
             <p className={styles.noResultsText}>
               {searchTerm || filterBy !== "all" || hasAdvancedFilters()
@@ -2186,7 +2187,7 @@ const EmailPortal = ({
                   setEditingMemberIndex(-1);
                 }}
               >
-                ✕
+                <MdClose size={20} />
               </button>
             </div>
 
@@ -2780,7 +2781,7 @@ const EmailPortal = ({
             </div>
 
             <div className={styles.confirmationContent}>
-              <div className={styles.confirmationIcon}>👥</div>
+              <div className={styles.confirmationIcon}><MdPeople size={48} /></div>
               <div className={styles.confirmationMessage}>
                 <p>
                   This will transfer the point of contact role from{" "}
@@ -2834,7 +2835,7 @@ const EmailPortal = ({
                 onClick={handleAreaCodeCancel}
                 title="Close"
               >
-                ✕
+                <MdClose size={20} />
               </button>
             </div>
 
@@ -2890,7 +2891,7 @@ const EmailPortal = ({
                   <label className={styles.inputLabel}>Message Preview</label>
                   <div className={styles.messagePreview}>
                     <div className={styles.messageHeader}>
-                      <span className={styles.messageIcon}>💬</span>
+                      <span className={styles.messageIcon}><MdMessage size={16} /></span>
                       <span>WhatsApp Message</span>
                     </div>
                     <textarea
@@ -2964,7 +2965,7 @@ const EmailPortal = ({
                 {/* No Phone Number Message */}
                 {!areaCodeModalData.phoneNumber && (
                   <div className={styles.noPhoneMessage}>
-                    <div className={styles.noPhoneIcon}>📱</div>
+                    <div className={styles.noPhoneIcon}><MdPhone size={24} /></div>
                     <p>No phone number available for this guest.</p>
                     <p className={styles.formHint}>The message will be opened as a general WhatsApp share.</p>
                   </div>

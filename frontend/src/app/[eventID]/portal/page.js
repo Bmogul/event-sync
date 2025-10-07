@@ -6,7 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 import Image from "next/image";
-import { MdEmail, MdBarChart, MdPalette, MdEdit, MdPeople, MdDownload, MdSettings, MdVisibility } from "react-icons/md";
+import { MdEmail, MdBarChart, MdPalette, MdEdit, MdPeople, MdDownload, MdSettings, MdVisibility, MdPersonAdd } from "react-icons/md";
 
 import { useAuth } from "../../contexts/AuthContext";
 import useEventPermissions from "../../hooks/useEventPermissions";
@@ -273,7 +273,7 @@ const Page = () => {
                     className={currentView === "manage-guests"
                        ? styles.btnPrimary : styles.btnOutline}
                   >
-                    Manage Guests
+                    <MdPersonAdd size={18} /> Manage Guests
                   </button>
                 )}
 

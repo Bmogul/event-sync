@@ -1,0 +1,83 @@
+Event-Sync
+Copyright (c) 2025 Event-Sync.com
+All rights reserved.
+
+================================================================================
+
+This software is licensed under the Proprietary Source-Available License (PSAL).
+See the LICENSE file for the full license terms.
+
+================================================================================
+
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+
+This product includes or depends on the following third-party open source software components:
+
+1. Next.js (MIT License)
+   Copyright (c) 2024 Vercel, Inc.
+   https://github.com/vercel/next.js
+
+2. React (MIT License)
+   Copyright (c) Meta Platforms, Inc. and affiliates.
+   https://github.com/facebook/react
+
+3. Supabase (Apache-2.0 License)
+   Copyright (c) 2024 Supabase, Inc.
+   https://github.com/supabase/supabase
+
+4. SendGrid (MIT License)
+   Copyright (c) 2024 Twilio SendGrid
+   https://github.com/sendgrid/sendgrid-nodejs
+
+5. React Icons (MIT License)
+   Copyright (c) 2024 React Icons
+   https://github.com/react-icons/react-icons
+
+6. React Toastify (MIT License)
+   Copyright (c) 2024 Fadi Khadra
+   https://github.com/fkhadra/react-toastify
+
+7. AG Grid React (MIT License for Community Edition)
+   Copyright (c) 2024 AG Grid Ltd.
+   https://github.com/ag-grid/ag-grid
+
+8. Google APIs (Apache-2.0 License)
+   Copyright (c) 2024 Google LLC
+   https://github.com/googleapis/google-api-nodejs-client
+
+9. Handlebars (MIT License)
+   Copyright (c) 2011-2019 by Yehuda Katz
+   https://github.com/handlebars-lang/handlebars.js
+
+10. xlsx (Apache-2.0 License)
+    Copyright (c) 2012-present SheetJS LLC
+    https://github.com/SheetJS/sheetjs
+
+11. bcrypt (MIT License)
+    Copyright (c) 2010 Nicholas Campbell
+    https://github.com/kelektiv/node.bcrypt.js
+
+12. js-cookie (MIT License)
+    Copyright (c) 2018 Klaus Hartl, Fagner Brack, GitHub Contributors
+    https://github.com/js-cookie/js-cookie
+
+13. react-select (MIT License)
+    Copyright (c) 2024 Jed Watson
+    https://github.com/JedWatson/react-select
+
+================================================================================
+
+For the full text of each third-party license, please refer to the respective
+project repositories or the node_modules directory.
+
+The use of these third-party components does not grant any rights to redistribute
+or use Event-Sync itself outside the terms of the Proprietary Source-Available
+License (PSAL).
+
+================================================================================
+
+For licensing inquiries or to request permissions beyond the scope of the PSAL,
+please contact:
+
+Event-Sync.com
+Email: [your email]

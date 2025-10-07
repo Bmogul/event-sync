@@ -21,6 +21,9 @@ import {
   MdStar,
 } from "react-icons/md";
 
+import { generateWhatsAppLink, debugWhatsAppLink } from "../../../utils/whatsapp";
+
+
 const EmailPortal = ({
   event,
   toast,
@@ -1355,10 +1358,14 @@ const EmailPortal = ({
       // Use the edited message from the modal
       const message = whatsappMessage;
 
-      // Construct WhatsApp URL
-      const url = finalPhoneNumber
-        ? `https://wa.me/${finalPhoneNumber}?text=${encodeURIComponent(message)}`
-        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      // Construct WhatsApp URL using the robust link generator
+      const url = generateWhatsAppLink(finalPhoneNumber, message);
+
+      // Debug the link in development
+      if (process.env.NODE_ENV === 'development') {
+        const debugInfo = debugWhatsAppLink(url);
+        console.log("WHATSAPP LINK DEBUG:", debugInfo);
+      }
 
       console.log("WHATSAPP URL:", url);
 

@@ -23,6 +23,8 @@ const ManageGuests = ({
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [subevents, setSubevents] = useState([]);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [guestToDelete, setGuestToDelete] = useState(null);
   const params = useParams();
 
   useEffect(() => {
@@ -119,6 +121,59 @@ const ManageGuests = ({
     setShowGuestModal(false);
     setSelectedGuest(null);
   };
+
+  // Handle delete guest button click - show confirmation
+  const handleDeleteGuest = (guest) => {
+    setGuestToDelete(guest);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Handle confirming deletion
+  const confirmDeleteGuest = async () => {
+    if (!guestToDelete) return;
+
+    try {
+      // Use guestList POST endpoint with deletedGuests array
+      const remainingGuests = guests.filter(g => g.id !== guestToDelete.id);
+
+      const response = await fetch(`/api/${params.eventID}/guestList`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          guestList: remainingGuests,
+          groups: groups,
+          deletedGuests: [{ id: guestToDelete.id, name: guestToDelete.name }],
+          rsvpsToDelete: [],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete guest');
+      }
+
+      toast(`Guest ${guestToDelete.name} deleted successfully`);
+      setShowDeleteConfirmation(false);
+      setGuestToDelete(null);
+
+      // Refresh the data
+      if (onDataRefresh) {
+        onDataRefresh();
+      }
+    } catch (error) {
+      console.error('Error deleting guest:', error);
+      toast('Failed to delete guest. Please try again.');
+    }
+  };
+
+  // Handle canceling deletion
+  const cancelDeleteGuest = () => {
+    setShowDeleteConfirmation(false);
+    setGuestToDelete(null);
+  };
+
   // Handle copying RSVP link to clipboard
   const handleCopyRSVPLink = async (guest) => {
     const rsvpLink = `${window.location.origin}/${params.eventID}/rsvp?guestId=${guest.group_id}`;
@@ -172,13 +227,15 @@ const ManageGuests = ({
             >
               <MdContentCopy size={18} />
             </button>
-            {/*<button
+            <button
               type="button"
               className={`${styles.actionButton} ${styles.btnGhost} ${styles.btnIcon}`}
               title="Delete guest"
+              onClick={() => handleDeleteGuest(guest)}
             >
               <MdDelete size={18} />
             </button>*/}
+
           </div>
         </td>
         <td>
@@ -224,6 +281,51 @@ const ManageGuests = ({
 
   return (
     <div className={styles.emailSection}>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && guestToDelete && (
+        <div
+          className={styles.confirmationOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-confirmation-title"
+          style={{ zIndex: 9999 }}
+        >
+          <div className={styles.confirmationDialog}>
+            <h4
+              className={styles.confirmationTitle}
+              id="delete-confirmation-title"
+            >
+              Delete Guest?
+            </h4>
+            <p className={styles.confirmationMessage}>
+              Are you sure you want to delete <strong>{guestToDelete.name}</strong>?
+              <br />
+              <br />
+              This will permanently remove the guest and all their RSVP responses.
+              This action cannot be undone.
+            </p>
+            <div className={styles.confirmationActions}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={cancelDeleteGuest}
+                aria-label="Cancel deletion"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDanger}`}
+                onClick={confirmDeleteGuest}
+                aria-label="Confirm deletion"
+              >
+                Delete Guest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Guest List Management</h2>
         <p className={styles.sectionDescription}>

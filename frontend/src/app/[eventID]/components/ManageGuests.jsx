@@ -234,8 +234,7 @@ const ManageGuests = ({
               onClick={() => handleDeleteGuest(guest)}
             >
               <MdDelete size={18} />
-            </button>*/}
-
+            </button>
           </div>
         </td>
         <td>

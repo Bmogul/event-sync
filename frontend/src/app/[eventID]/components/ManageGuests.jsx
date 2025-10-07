@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import styles from "../styles/portal.module.css";
 import GuestModal from "./GuestModal";
+import { MdEdit, MdContentCopy, MdDelete, MdAdd } from "react-icons/md";
 
 import { useParams } from "next/navigation";
 
@@ -216,7 +217,7 @@ const ManageGuests = ({
               title="Edit guest"
               onClick={() => handleEditGuest(guest)}
             >
-              ✏️
+              <MdEdit size={18} />
             </button>
             <button
               type="button"
@@ -224,7 +225,7 @@ const ManageGuests = ({
               onClick={() => handleCopyRSVPLink(guest)}
               title="Copy RSVP link"
             >
-              📋
+              <MdContentCopy size={18} />
             </button>
             <button
               type="button"
@@ -232,7 +233,7 @@ const ManageGuests = ({
               title="Delete guest"
               onClick={() => handleDeleteGuest(guest)}
             >
-              🗑️
+              <MdDelete size={18} />
             </button>
           </div>
         </td>
@@ -340,7 +341,7 @@ const ManageGuests = ({
           title="Add new guest"
           onClick={() => handleCreateGuest()}
         >
-          ➕ Add Guest
+          <MdAdd size={18} /> Add Guest
         </button>
         <input
           type="text"

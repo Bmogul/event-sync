@@ -3,6 +3,7 @@
 import styles from "../styles/portal.module.css";
 import Select from "react-select";
 import { useState, useEffect, useRef} from "react";
+import { MdClose, MdEdit, MdAdd } from "react-icons/md";
 
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -596,8 +597,8 @@ const GuestModal = ({
       <div className={styles.guestFormModal}>
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>Guest Details</h3>
-          <button className={styles.closeModal} onClick={onClose}>
-            ✕
+          <button className={styles.closeModal} onClick={onClose} aria-label="Close modal">
+            <MdClose size={24} />
           </button>
         </div>
 
@@ -633,7 +634,7 @@ const GuestModal = ({
                 className={`${styles.btn} ${styles.btnPrimary}`}
                 onClick={() => setCreateGroup(true)}
               >
-                Create New Group
+                <MdAdd size={18} /> Create New Group
               </button>
 
               {/* Create New Group Fields */}
@@ -729,7 +730,7 @@ const GuestModal = ({
                             setGuestFormData(guest);
                             setOriginalGuestRsvpStatus({ ...guest.rsvp_status || {} });
                             setShowGuestForm(true);
-                            
+
                             // Scroll to guest form section after state updates
                             setTimeout(() => {
                               guestFormRef.current?.scrollIntoView({
@@ -738,8 +739,9 @@ const GuestModal = ({
                               });
                             }, 100);
                           }}
+                          aria-label="Edit guest"
                         >
-                          ✏️
+                          <MdEdit size={18} /> Edit
                         </button>
                       </div>
                     </div>
@@ -761,7 +763,7 @@ const GuestModal = ({
                   });
                   setOriginalGuestRsvpStatus({}); // Reset for new guest
                   setShowGuestForm(true);
-                  
+
                   // Scroll to guest form section after state updates
                   setTimeout(() => {
                     guestFormRef.current?.scrollIntoView({
@@ -771,7 +773,7 @@ const GuestModal = ({
                   }, 100);
                 }}
               >
-                Add Guest
+                <MdAdd size={18} /> Add Guest
               </button>
             </div>
           )}

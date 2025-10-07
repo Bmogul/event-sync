@@ -6,6 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 import Image from "next/image";
+import { MdEmail, MdBarChart, MdPalette, MdEdit, MdPeople, MdDownload, MdSettings, MdVisibility, MdPersonAdd } from "react-icons/md";
 
 import { useAuth } from "../../contexts/AuthContext";
 import useEventPermissions from "../../hooks/useEventPermissions";
@@ -182,16 +183,20 @@ const Page = () => {
             </div>
             <div className={styles.navActions}>
               {canViewAnalytics && (
-                <button className={styles.btnSecondary}>Export Data</button>
+                <button className={styles.btnSecondary}>
+                  <MdDownload size={18} /> Export Data
+                </button>
               )}
               {canEditEvent && (
-                <button className={styles.btnOutline}>Event Settings</button>
+                <button className={styles.btnOutline}>
+                  <MdSettings size={18} /> Event Settings
+                </button>
               )}
               <button
                 className={styles.btnPrimary}
                 onClick={() => window.open(`/${params.eventID}/rsvp`, "_blank")}
               >
-                View Public Page
+                <MdVisibility size={18} /> View Public Page
               </button>
             </div>
           </nav>
@@ -235,12 +240,12 @@ const Page = () => {
                     }
                     onClick={() => setCurrentView("email")}
                   >
-                    ✉️ Send Mail
+                    <MdEmail size={18} /> Send Mail
                   </button>
                 )}
 
                 {canViewAnalytics && (
-                  <button 
+                  <button
                     className={
                       currentView === "analytics"
                         ? styles.btnPrimary
@@ -248,7 +253,7 @@ const Page = () => {
                     }
                     onClick={() => setCurrentView("analytics")}
                   >
-                    📊 View Analytics
+                    <MdBarChart size={18} /> View Analytics
                   </button>
                 )}
 
@@ -257,7 +262,7 @@ const Page = () => {
                     onClick={handleCustomizeRSVP()}
                     className={styles.btnOutline}
                   >
-                    🎨 Customize RSVP
+                    <MdPalette size={18} /> Customize RSVP
                   </button>
                 )}
                 {canEditEvent && (
@@ -268,7 +273,7 @@ const Page = () => {
                     className={currentView === "manage-guests"
                        ? styles.btnPrimary : styles.btnOutline}
                   >
-                    Manage Guests
+                    <MdPersonAdd size={18} /> Manage Guests
                   </button>
                 )}
 
@@ -281,7 +286,7 @@ const Page = () => {
                     }
                     onClick={() => setCurrentView("template-editor")}
                   >
-                    🎨 Edit Templates
+                    <MdEdit size={18} /> Edit Templates
                   </button>
                 )}
 
@@ -294,7 +299,7 @@ const Page = () => {
                     }
                     onClick={() => setCurrentView("manage-team")}
                   >
-                    👥 Manage Team
+                    <MdPeople size={18} /> Manage Team
                   </button>
                 )}
               </div>

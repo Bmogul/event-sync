@@ -2,6 +2,7 @@
   "name": "event-sync",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -24,6 +25,7 @@
     "next": "14.2.9",
     "react": "^18",
     "react-dom": "^18",
+    "react-icons": "^5.5.0",
     "react-select": "^5.10.2",
     "react-toastify": "^10.0.5",
     "xlsx": "^0.18.5"

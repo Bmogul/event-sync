@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import styles from "../styles/portal.module.css";
 import GuestListModal from "./GuestListModal";
+import { MdPeople, MdCheckCircle, MdMan, MdWoman, MdRestaurant, MdChildCare, MdElderly, MdBarChart } from "react-icons/md";
 
 const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, setEmailFilters }) => {
   const [tablesPerGuest, setTablesPerGuest] = useState(8);
@@ -1084,7 +1085,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
               color: "#7c3aed",
             }}
           >
-            👥
+            <MdPeople size={28} />
           </div>
           <div
             style={{
@@ -1154,7 +1155,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
               color: "#3b82f6",
             }}
           >
-            ✅
+            <MdCheckCircle size={28} />
           </div>
           <div
             style={{
@@ -1306,7 +1307,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
                   color: "#3b82f6",
                 }}
               >
-                👨
+                <MdMan size={28} />
               </div>
               <div
                 style={{
@@ -1368,7 +1369,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
                   color: "#ec4899",
                 }}
               >
-                👩
+                <MdWoman size={28} />
               </div>
               <div
                 style={{
@@ -1430,7 +1431,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
                   color: "#8b5cf6",
                 }}
               >
-                🍽️
+                <MdRestaurant size={28} />
               </div>
               <div
                 style={{
@@ -1492,7 +1493,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
               color: "#f97316",
             }}
           >
-            🍽️
+            <MdRestaurant size={28} />
           </div>
           <div
             style={{
@@ -1563,7 +1564,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
               color: "#10b981",
             }}
           >
-            👶
+            <MdChildCare size={28} />
           </div>
           <div
             style={{
@@ -1655,7 +1656,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
               color: "#ec4899",
             }}
           >
-            🧓
+            <MdElderly size={28} />
           </div>
           <div
             style={{
@@ -2412,7 +2413,7 @@ const Analytics = ({ event, guestList, groups, session, toast, setCurrentView, s
                   color: "white",
                 }}
               >
-                📊
+                <MdBarChart size={24} />
               </div>
               <h3
                 style={{

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import EmailTemplateEditor from "./EmailTemplateEditor";
 import WhatsAppTemplateEditor from "./WhatsAppTemplateEditor";
 import styles from "../styles/portal.module.css";
+import { MdPalette, MdEmail, MdMessage } from "react-icons/md";
 
 const TemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
   const [activeTab, setActiveTab] = useState("email");
@@ -41,7 +42,7 @@ const TemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
     <div className={styles.section}>
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
-        <h2 className={styles.sectionTitle}>🎨 Edit Templates</h2>
+        <h2 className={styles.sectionTitle}><MdPalette size={24} /> Edit Templates</h2>
         <p className={styles.sectionDescription}>
           Create and manage email and WhatsApp message templates for your event communications
         </p>
@@ -60,7 +61,7 @@ const TemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
           onMouseEnter={(e) => handleTabHover(e, activeTab === "email")}
           onMouseLeave={(e) => handleTabLeave(e, activeTab === "email")}
         >
-          <span>📧</span>
+          <MdEmail size={18} />
           Email Templates
         </button>
         
@@ -70,7 +71,7 @@ const TemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
           onMouseEnter={(e) => handleTabHover(e, activeTab === "whatsapp")}
           onMouseLeave={(e) => handleTabLeave(e, activeTab === "whatsapp")}
         >
-          <span>📱</span>
+          <MdMessage size={18} />
           WhatsApp Templates
         </button>
       </div>

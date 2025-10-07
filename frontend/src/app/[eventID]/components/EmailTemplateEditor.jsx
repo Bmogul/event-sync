@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import styles from "../../create-event/components/sections/EmailTemplateCreator.module.css";
+import { MdEmail, MdMailOutline, MdEdit, MdPerson, MdImage, MdPalette, MdPhoneIphone, MdTablet, MdComputer, MdDelete, MdAccessTime, MdCampaign, MdLightbulb } from "react-icons/md";
 
 const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) => {
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0);
@@ -609,7 +610,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
   return (
     <div className={styles.formSection + " " + styles.emailTemplateCreator}>
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionIcon}>📧</div>
+        <div className={styles.sectionIcon}><MdEmail size={24} /></div>
         <div>
           <h2 className={styles.sectionTitle}>Email Template Editor</h2>
           <p className={styles.sectionDescription}>
@@ -643,9 +644,9 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
                   onClick={() => setCurrentTemplateIndex(index)}
                 >
                   <span className={styles.tabIcon}>
-                    {template.category === "invitation" && "💌"}
-                    {template.category === "reminder" && "⏰"}
-                    {template.category === "update" && "📢"}
+                    {template.category === "invitation" && <MdMailOutline size={18} />}
+                    {template.category === "reminder" && <MdAccessTime size={18} />}
+                    {template.category === "update" && <MdCampaign size={18} />}
                   </span>
                   <span className={styles.tabLabel}>{template.title}</span>
                   {emailTemplates.length > 1 && (
@@ -679,7 +680,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
           <div className={styles.templateConfig}>
             {/* Basic Information */}
             <div className={styles.controlSection}>
-              <h3 className={styles.controlTitle}>📝 Template Information</h3>
+              <h3 className={styles.controlTitle}><MdEdit size={20} /> Template Information</h3>
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Template Title *</label>
@@ -730,7 +731,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
 
             {/* Email Content */}
             <div className={styles.controlSection}>
-              <h3 className={styles.controlTitle}>✉️ Email Content</h3>
+              <h3 className={styles.controlTitle}><MdEmail size={20} /> Email Content</h3>
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Subject Line *</label>
@@ -791,7 +792,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
 
             {/* Sender Information */}
             <div className={styles.controlSection}>
-              <h3 className={styles.controlTitle}>👤 Sender Information</h3>
+              <h3 className={styles.controlTitle}><MdPerson size={20} /> Sender Information</h3>
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Sender Name *</label>
@@ -830,7 +831,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
 
             {/* Logo Section */}
             <div className={styles.controlSection}>
-              <h3 className={styles.controlTitle}>🖼️ Event Logo</h3>
+              <h3 className={styles.controlTitle}><MdImage size={20} /> Event Logo</h3>
 
               {event?.logo ? (
                 <div className={styles.formGroup}>
@@ -860,12 +861,11 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
                   <div className={styles.noLogo}>
                     <div
                       style={{
-                        fontSize: "48px",
                         opacity: 0.3,
                         marginBottom: "8px",
                       }}
                     >
-                      🖼️
+                      <MdImage size={48} />
                     </div>
                     <p
                       style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}
@@ -884,7 +884,7 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
 
             {/* Color Customization */}
             <div className={styles.controlSection}>
-              <h3 className={styles.controlTitle}>🎨 Color Theme</h3>
+              <h3 className={styles.controlTitle}><MdPalette size={20} /> Color Theme</h3>
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
@@ -973,21 +973,21 @@ const EmailTemplateEditor = ({ event, session, setCurrentView, toast, params }) 
                   className={`${styles.deviceBtn} ${previewDevice === "mobile" ? styles.active : ""}`}
                   onClick={() => setPreviewDevice("mobile")}
                 >
-                  📱
+                  <MdPhoneIphone size={18} />
                 </button>
                 <button
                   type="button"
                   className={`${styles.deviceBtn} ${previewDevice === "tablet" ? styles.active : ""}`}
                   onClick={() => setPreviewDevice("tablet")}
                 >
-                  📱
+                  <MdTablet size={18} />
                 </button>
                 <button
                   type="button"
                   className={`${styles.deviceBtn} ${previewDevice === "desktop" ? styles.active : ""}`}
                   onClick={() => setPreviewDevice("desktop")}
                 >
-                  💻
+                  <MdComputer size={18} />
                 </button>
               </div>
             </div>

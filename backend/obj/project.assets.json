@@ -452,11 +452,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/rafiki/Programming/react/event-sync/backend/backend.csproj",
+      "projectUniqueName": "/home/rafiki/Programming/Event_Sync/ES/backend/backend.csproj",
       "projectName": "backend",
-      "projectPath": "/home/rafiki/Programming/react/event-sync/backend/backend.csproj",
+      "projectPath": "/home/rafiki/Programming/Event_Sync/ES/backend/backend.csproj",
       "packagesPath": "/home/rafiki/.nuget/packages/",
-      "outputPath": "/home/rafiki/Programming/react/event-sync/backend/obj/",
+      "outputPath": "/home/rafiki/Programming/Event_Sync/ES/backend/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/rafiki/.nuget/NuGet/NuGet.Config"

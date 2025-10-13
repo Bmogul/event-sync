@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kH3gxxz2t2LDXSx+H/LiwNqhQtMCo8yHPXXVBhHnVcX6p5DhsC/Crylw5bANhSTuRaDc7q361jvcgQ8qw6x3uw==",
+  "dgSpecHash": "XXhjzVs9nMfstBNKdVN/S9SAlVTXZMHr9tyrETAibQK9pRgo792odISyCrQeAjW8Qii+kjqVq1rnZ7lVZ6tfSQ==",
   "success": true,
-  "projectFilePath": "/home/rafiki/Programming/react/event-sync/backend/backend.csproj",
+  "projectFilePath": "/home/rafiki/Programming/Event_Sync/ES/backend/backend.csproj",
   "expectedPackageFiles": [
     "/home/rafiki/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "/home/rafiki/.nuget/packages/microsoft.openapi/1.6.14/microsoft.openapi.1.6.14.nupkg.sha512",

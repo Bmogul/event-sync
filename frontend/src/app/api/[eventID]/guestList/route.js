@@ -104,60 +104,79 @@ export async function GET(request, { params }) {
     }
 
     // Fetch all guests for this event through guest_groups relationship
-    const { data: allGuests, error: guestError } = await supabase
-      .from("guests")
-      .select(
-        `
-        id,
-        public_id,
-        name,
-        email,
-        phone,
-        tag,
-        point_of_contact,
-        group_id,
-        guest_groups!inner (
-          id,
-          title,
-          event_id,
-          status_id,
-          invite_sent_at
-        ),
-        guest_gender (
-          id,
-          state
-        ),
-        guest_age_group (
-          id,
-          state
-        ),
-        rsvps (
-          subevent_id,
-          guest_id,
-          status_id,
-          response,
-          subevents (
-            id,
-            title
-          )
-        ),
-        guest_type (
-          id,
-          name
-        ),
-        guest_limit
-      `,
-      )
-      .eq("guest_groups.event_id", event.id)
-      .order("name");
+    // Using pagination to fetch all guests (Supabase default limit is 1000)
+    let allGuests = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (guestError) {
-      console.error("Guest fetch error:", guestError);
-      return NextResponse.json(
-        { error: "Failed to fetch guest list", message: guestError },
-        { status: 500 },
-      );
+    while (hasMore) {
+      const { data: guestsPage, error: guestError } = await supabase
+        .from("guests")
+        .select(
+          `
+          id,
+          public_id,
+          name,
+          email,
+          phone,
+          tag,
+          point_of_contact,
+          group_id,
+          guest_groups!inner (
+            id,
+            title,
+            event_id,
+            status_id,
+            invite_sent_at
+          ),
+          guest_gender (
+            id,
+            state
+          ),
+          guest_age_group (
+            id,
+            state
+          ),
+          rsvps (
+            subevent_id,
+            guest_id,
+            status_id,
+            response,
+            subevents (
+              id,
+              title
+            )
+          ),
+          guest_type (
+            id,
+            name
+          ),
+          guest_limit
+        `,
+        )
+        .eq("guest_groups.event_id", event.id)
+        .order("name")
+        .range(from, from + pageSize - 1);
+
+      if (guestError) {
+        console.error("Guest fetch error:", guestError);
+        return NextResponse.json(
+          { error: "Failed to fetch guest list", message: guestError },
+          { status: 500 },
+        );
+      }
+
+      if (guestsPage && guestsPage.length > 0) {
+        allGuests = allGuests.concat(guestsPage);
+        from += pageSize;
+        hasMore = guestsPage.length === pageSize; // Continue if we got a full page
+      } else {
+        hasMore = false;
+      }
     }
+
+    console.log(`Fetched ${allGuests.length} total guests for event ${event.id}`);
 
     // Transform guests
     const transformedUsers =
@@ -325,6 +344,35 @@ export async function POST(request, { params }) {
       );
     }
 
+    // Batch processing helper function to handle large datasets
+    const processBatch = async (items, batchSize, operation, tableName) => {
+      const results = [];
+      const totalBatches = Math.ceil(items.length / batchSize);
+
+      console.log(`Processing ${items.length} ${tableName} in ${totalBatches} batches of ${batchSize}`);
+
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+
+        console.log(`Processing batch ${batchNumber}/${totalBatches} for ${tableName} (${batch.length} items)`);
+
+        const { data, error } = await operation(batch);
+
+        if (error) {
+          console.error(`Error in batch ${batchNumber}/${totalBatches} for ${tableName}:`, error);
+          throw error;
+        }
+
+        if (data) {
+          results.push(...data);
+        }
+      }
+
+      console.log(`Completed processing ${results.length} ${tableName}`);
+      return results;
+    };
+
     // Here you would implement the guest list update logic
     // For now, just return success
     //
@@ -356,35 +404,32 @@ export async function POST(request, { params }) {
       "GROUPS TO UPDATE / CREATE",
     );
     console.log(groupsToUpsert);
-    /*console.log(
-      "POST",
-      `api/${eventID}/guestList/route.js`,
-      "GUESTS TO UPDATE",
-    );
-    console.log(guestList);*/
 
-    // CREATE / UPDATE GROUPS
-    const { data: updatedGroups, error: updatedGroupsError } = await supabase
-      .from("guest_groups")
-      .upsert(groupsToUpsert)
-      .select();
-
-    console.log("POST", `api/${eventID}/guestList/route.js`, "UPDATED VALUES");
-    console.log(updatedGroups);
-
-    if (updatedGroupsError || !updatedGroups) {
+    // CREATE / UPDATE GROUPS (with batch processing)
+    let updatedGroups;
+    try {
+      updatedGroups = await processBatch(
+        groupsToUpsert,
+        500, // batch size
+        (batch) => supabase.from("guest_groups").upsert(batch).select(),
+        "groups"
+      );
+    } catch (updatedGroupsError) {
       console.log(
         Date.now(),
         "POST",
         `api/${eventID}/guestList/route.js`,
-        "FAILED TO CEATE GROUP",
+        "FAILED TO CREATE/UPDATE GROUPS",
         updatedGroupsError,
       );
       return NextResponse.json(
-        { validated: false, message: "Failed to create group" },
+        { validated: false, message: "Failed to create/update groups", error: updatedGroupsError.message },
         { status: 403 },
       );
     }
+
+    console.log("POST", `api/${eventID}/guestList/route.js`, "UPDATED VALUES");
+    console.log(updatedGroups);
 
     // CREATE / UPDATE GUESTS
     //
@@ -443,13 +488,16 @@ export async function POST(request, { params }) {
     let insertedGuests = [];
     let upsertedGuests = [];
 
-    // Insert new guests
+    // Insert new guests (with batch processing)
     if (newGuests.length) {
-      const { data, error } = await supabase
-        .from("guests")
-        .insert(newGuests)
-        .select();
-      if (error) {
+      try {
+        insertedGuests = await processBatch(
+          newGuests,
+          500, // batch size
+          (batch) => supabase.from("guests").insert(batch).select(),
+          "new guests"
+        );
+      } catch (error) {
         console.log(
           Date.now(),
           "POST",
@@ -458,20 +506,22 @@ export async function POST(request, { params }) {
           error,
         );
         return NextResponse.json(
-          { validated: false, message: "Failed to insert guests", error },
+          { validated: false, message: "Failed to insert guests", error: error.message },
           { status: 403 },
         );
       }
-      insertedGuests = data || [];
     }
 
-    // Upsert existing guests
+    // Upsert existing guests (with batch processing)
     if (existingGuests.length) {
-      const { data, error } = await supabase
-        .from("guests")
-        .upsert(existingGuests)
-        .select();
-      if (error) {
+      try {
+        upsertedGuests = await processBatch(
+          existingGuests,
+          500, // batch size
+          (batch) => supabase.from("guests").upsert(batch).select(),
+          "existing guests"
+        );
+      } catch (error) {
         console.log(
           Date.now(),
           "POST",
@@ -480,17 +530,16 @@ export async function POST(request, { params }) {
           error,
         );
         return NextResponse.json(
-          { validated: false, message: "Failed to upsert guests", error },
+          { validated: false, message: "Failed to upsert guests", error: error.message },
           { status: 403 },
         );
       }
-      upsertedGuests = data || [];
     }
 
     // Merge results
     const updatedGuests = [...insertedGuests, ...upsertedGuests];
 
-    // DELETE RSVPS that are no longer needed
+    // DELETE RSVPS that are no longer needed (batch deletion)
     if (rsvpsToDelete && rsvpsToDelete.length > 0) {
       console.log(
         "POST",
@@ -507,44 +556,63 @@ export async function POST(request, { params }) {
         }
       });
 
-      for (const rsvpToDelete of rsvpsToDelete) {
-        // Map temp guest ID to real guest ID if needed
-        const realGuestId = guestIdMapForDeletion[rsvpToDelete.guest_id] ?? rsvpToDelete.guest_id;
+      // Map and validate guest IDs
+      const validRsvpsToDelete = rsvpsToDelete
+        .map(rsvp => ({
+          guest_id: guestIdMapForDeletion[rsvp.guest_id] ?? rsvp.guest_id,
+          subevent_id: rsvp.subevent_id
+        }))
+        .filter(rsvp => rsvp.guest_id >= 0);
 
-        // Only attempt deletion if we have a valid (non-negative) guest ID
-        if (realGuestId >= 0) {
-          const { data: deletedRsvp, error: deleteError } = await supabase
-            .from("rsvps")
-            .delete()
-            .eq("guest_id", realGuestId)
-            .eq("subevent_id", rsvpToDelete.subevent_id);
-
-          if (deleteError) {
-            console.log(
-              Date.now(),
-              "POST",
-              `api/${eventID}/guestList/route.js`,
-              "FAILED TO DELETE RSVP",
-              deleteError,
-              { ...rsvpToDelete, realGuestId }
-            );
-            // Continue with other deletions even if one fails
-          } else {
-            console.log(
-              "POST",
-              `api/${eventID}/guestList/route.js`,
-              "SUCCESSFULLY DELETED RSVP",
-              { ...rsvpToDelete, realGuestId }
-            );
+      if (validRsvpsToDelete.length > 0) {
+        // Group by subevent for efficient batch deletion
+        const groupedBySubevent = validRsvpsToDelete.reduce((acc, rsvp) => {
+          if (!acc[rsvp.subevent_id]) {
+            acc[rsvp.subevent_id] = [];
           }
-        } else {
-          console.log(
-            "POST",
-            `api/${eventID}/guestList/route.js`,
-            "SKIPPING RSVP DELETION - invalid guest ID",
-            rsvpToDelete
-          );
+          acc[rsvp.subevent_id].push(rsvp.guest_id);
+          return acc;
+        }, {});
+
+        // Delete in batches per subevent
+        for (const [subeventId, guestIds] of Object.entries(groupedBySubevent)) {
+          // Process in batches of 500
+          for (let i = 0; i < guestIds.length; i += 500) {
+            const batchIds = guestIds.slice(i, i + 500);
+            const { error: deleteError } = await supabase
+              .from("rsvps")
+              .delete()
+              .eq("subevent_id", parseInt(subeventId))
+              .in("guest_id", batchIds);
+
+            if (deleteError) {
+              console.log(
+                Date.now(),
+                "POST",
+                `api/${eventID}/guestList/route.js`,
+                "FAILED TO DELETE RSVP BATCH",
+                deleteError,
+                { subeventId, batchSize: batchIds.length }
+              );
+            } else {
+              console.log(
+                "POST",
+                `api/${eventID}/guestList/route.js`,
+                "SUCCESSFULLY DELETED RSVP BATCH",
+                { subeventId, batchSize: batchIds.length }
+              );
+            }
+          }
         }
+      }
+
+      const skippedCount = rsvpsToDelete.length - validRsvpsToDelete.length;
+      if (skippedCount > 0) {
+        console.log(
+          "POST",
+          `api/${eventID}/guestList/route.js`,
+          `SKIPPED ${skippedCount} RSVPs with invalid guest IDs`
+        );
       }
     }
 
@@ -680,21 +748,23 @@ export async function POST(request, { params }) {
     });
 
     if (rsvpsToUpsert.length > 0) {
-      const { data: updatedRsvps, error: rsvpsError } = await supabase
-        .from("rsvps")
-        .upsert(rsvpsToUpsert)
-        .select();
-
-      if (rsvpsError) {
+      try {
+        await processBatch(
+          rsvpsToUpsert,
+          500, // batch size
+          (batch) => supabase.from("rsvps").upsert(batch).select(),
+          "rsvps"
+        );
+      } catch (rsvpsError) {
         console.log(
           Date.now(),
           "POST",
           `api/${eventID}/guestList/route.js`,
-          "FAILED TO CEATE rsvps",
+          "FAILED TO CREATE/UPDATE rsvps",
           rsvpsError,
         );
         return NextResponse.json(
-          { validated: false, message: "Failed to create rsvps" },
+          { validated: false, message: "Failed to create/update rsvps", error: rsvpsError.message },
           { status: 403 },
         );
       }

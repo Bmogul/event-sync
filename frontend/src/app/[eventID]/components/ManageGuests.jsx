@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import styles from "../styles/portal.module.css";
+import loadingStyles from "../styles/loading.module.css";
 import GuestModal from "./GuestModal";
 import { MdEdit, MdContentCopy, MdDelete, MdAdd } from "react-icons/md";
 
@@ -25,6 +26,7 @@ const ManageGuests = ({
   const [subevents, setSubevents] = useState([]);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState(null);
+  const [isDeletingGuest, setIsDeletingGuest] = useState(false);
   const params = useParams();
 
   useEffect(() => {
@@ -130,7 +132,9 @@ const ManageGuests = ({
 
   // Handle confirming deletion
   const confirmDeleteGuest = async () => {
-    if (!guestToDelete) return;
+    if (!guestToDelete || isDeletingGuest) return;
+
+    setIsDeletingGuest(true);
 
     try {
       // Use guestList POST endpoint with deletedGuests array
@@ -165,11 +169,14 @@ const ManageGuests = ({
     } catch (error) {
       console.error('Error deleting guest:', error);
       toast('Failed to delete guest. Please try again.');
+    } finally {
+      setIsDeletingGuest(false);
     }
   };
 
   // Handle canceling deletion
   const cancelDeleteGuest = () => {
+    if (isDeletingGuest) return; // Prevent closing during deletion
     setShowDeleteConfirmation(false);
     setGuestToDelete(null);
   };
@@ -288,6 +295,12 @@ const ManageGuests = ({
           aria-modal="true"
           aria-labelledby="delete-confirmation-title"
           style={{ zIndex: 9999 }}
+          onClick={(e) => {
+            // Prevent closing modal during deletion
+            if (e.target === e.currentTarget && !isDeletingGuest) {
+              cancelDeleteGuest();
+            }
+          }}
         >
           <div className={styles.confirmationDialog}>
             <h4
@@ -303,12 +316,38 @@ const ManageGuests = ({
               This will permanently remove the guest and all their RSVP responses.
               This action cannot be undone.
             </p>
+            {isDeletingGuest && (
+              <div style={{
+                textAlign: 'center',
+                padding: '10px 0',
+                color: '#666',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px'
+              }}>
+                <div
+                  className={loadingStyles.loadingCircle}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderWidth: '3px',
+                    borderTopColor: '#dc2626',
+                    position: 'relative'
+                  }}
+                />
+                <span>Deleting guest...</span>
+              </div>
+            )}
             <div className={styles.confirmationActions}>
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={cancelDeleteGuest}
                 aria-label="Cancel deletion"
+                disabled={isDeletingGuest}
+                style={{ opacity: isDeletingGuest ? 0.5 : 1, cursor: isDeletingGuest ? 'not-allowed' : 'pointer' }}
               >
                 Cancel
               </button>
@@ -317,8 +356,34 @@ const ManageGuests = ({
                 className={`${styles.btn} ${styles.btnDanger}`}
                 onClick={confirmDeleteGuest}
                 aria-label="Confirm deletion"
+                disabled={isDeletingGuest}
+                style={{
+                  opacity: isDeletingGuest ? 0.7 : 1,
+                  cursor: isDeletingGuest ? 'not-allowed' : 'pointer',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
               >
-                Delete Guest
+                {isDeletingGuest ? (
+                  <>
+                    <div
+                      className={loadingStyles.loadingCircle}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderWidth: '2px',
+                        borderTopColor: '#ffffff',
+                        position: 'relative'
+                      }}
+                    />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  'Delete Guest'
+                )}
               </button>
             </div>
           </div>

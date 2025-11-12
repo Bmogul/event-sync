@@ -37,6 +37,7 @@ const GuestListSection = ({
   const [newGroup, setNewGroup] = useState({
     name: "",
     members: [],
+    cardVariant: "", // Card variant for guest group
   });
   const [tempGroupMembers, setTempGroupMembers] = useState([]);
   const [editingMemberIndex, setEditingMemberIndex] = useState(-1);
@@ -452,6 +453,7 @@ const GuestListSection = ({
       details: {
         color: groupColor,
         description: "Family/Group",
+        card_variant: newGroup.cardVariant || null, // Include card variant in details
       },
     };
 
@@ -487,7 +489,7 @@ const GuestListSection = ({
     });
 
     // Reset all forms
-    setNewGroup({ name: "", members: [] });
+    setNewGroup({ name: "", members: [], cardVariant: "" });
     setTempGroupMembers([]);
     setNewGuest({
       name: "",
@@ -1652,7 +1654,7 @@ const GuestListSection = ({
                     subEventRSVPs: {},
                     isPointOfContact: true, // Default to true when closing modal
                   });
-                  setNewGroup({ name: "", members: [] });
+                  setNewGroup({ name: "", members: [], cardVariant: "" });
                   setTempGroupMembers([]);
                   setEditingMemberIndex(-1);
                 }}
@@ -1906,6 +1908,21 @@ const GuestListSection = ({
                         }
                         placeholder="e.g., Smith Family, College Friends"
                       />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Card Variant</label>
+                      <input
+                        type="text"
+                        className={styles.formInput}
+                        value={newGroup.cardVariant}
+                        onChange={(e) =>
+                          setNewGroup({ ...newGroup, cardVariant: e.target.value })
+                        }
+                        placeholder="e.g., arabic, vip, formal (optional)"
+                      />
+                      <small className={styles.formHelp}>
+                        Specify a variant to show different card images for this group (e.g., language, style, theme)
+                      </small>
                     </div>
                   </div>
 
@@ -2198,7 +2215,7 @@ const GuestListSection = ({
                     subEventRSVPs: {},
                     isPointOfContact: true, // Default to true when canceling
                   });
-                  setNewGroup({ name: "", members: [] });
+                  setNewGroup({ name: "", members: [], cardVariant: "" });
                   setTempGroupMembers([]);
                   setEditingMemberIndex(-1);
                 }}

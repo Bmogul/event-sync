@@ -47,6 +47,7 @@ const GuestModal = ({
   const [groupOptions, setGroupOptions] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setCreateGroup] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [editingGuest, setEditingGuest] = useState(null);
   const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
@@ -649,11 +650,73 @@ const GuestModal = ({
               <div className={styles.fieldHelp}>
                 Select an existing group or create a new one
               </div>
-              {selectedGroup?.details?.card_variant && (
-                <div className={styles.groupInfoBox}>
-                  <strong>Card Variant:</strong> {selectedGroup.details.card_variant}
+
+              {/* Edit Group Variant Section */}
+              {selectedGroup && !showCreateGroup && (
+                <div className={styles.editGroupSection}>
+                  <div className={styles.groupInfoHeader}>
+                    <div className={styles.groupInfoBox}>
+                      <strong>Card Variant:</strong> {selectedGroup.details?.card_variant || 'None'}
+                    </div>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                      onClick={() => setShowEditGroup(!showEditGroup)}
+                    >
+                      <MdEdit size={16} /> {showEditGroup ? 'Cancel' : 'Edit Variant'}
+                    </button>
+                  </div>
+
+                  {showEditGroup && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>
+                        Update Card Variant
+                      </label>
+                      <Select
+                        classNamePrefix="react-select"
+                        value={selectedGroup.details?.card_variant ?
+                          { value: selectedGroup.details.card_variant, label: selectedGroup.details.card_variant } : null}
+                        onChange={(selected) => {
+                          const updatedGroup = {
+                            ...selectedGroup,
+                            details: {
+                              ...selectedGroup.details,
+                              card_variant: selected?.value || null,
+                            },
+                          };
+                          setSelectedGroup(updatedGroup);
+
+                          // Update groupsStaging
+                          setGroupsStaging((prev) =>
+                            prev.map((g) => g.id === updatedGroup.id ? updatedGroup : g)
+                          );
+
+                          // Track as updated group
+                          setUpdatedGroups((prev) => {
+                            const existing = prev.findIndex((g) => g.id === updatedGroup.id);
+                            if (existing >= 0) {
+                              const updated = [...prev];
+                              updated[existing] = updatedGroup;
+                              return updated;
+                            }
+                            return [...prev, updatedGroup];
+                          });
+
+                          setShowEditGroup(false);
+                        }}
+                        options={getAvailableVariants(subevents)}
+                        placeholder="Select card variant..."
+                        isClearable
+                        isSearchable
+                      />
+                      <div className={styles.fieldHelp}>
+                        Changes will be saved when you complete the guest editing
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnPrimary}`}

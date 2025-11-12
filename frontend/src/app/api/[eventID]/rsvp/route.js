@@ -53,7 +53,8 @@ export async function GET(request, { params }) {
       .select(`
         id,
         title,
-        event_id
+        event_id,
+        details
       `)
       .eq("id", parseInt(groupId))
       .eq("event_id", event.id)
@@ -177,16 +178,33 @@ export async function GET(request, { params }) {
       })
       .filter(guest => guest.hasInvitations); // Only include guests with at least one invitation
 
+    // Resolve variant images for subevents based on guest group's card variant
+    const cardVariant = group.details?.card_variant;
+    const resolvedSubEvents = (subEvents || []).map(subEvent => {
+      let resolvedImageUrl = subEvent.image_url; // Default fallback
+
+      // If guest group has a card variant defined, try to use variant-specific image
+      if (cardVariant && subEvent.details?.card_images?.[cardVariant]) {
+        resolvedImageUrl = subEvent.details.card_images[cardVariant];
+      }
+
+      return {
+        ...subEvent,
+        image_url: resolvedImageUrl
+      };
+    });
+
     // Log the filtering results for debugging
-    console.log(`Group ${group.id} - Found ${guests.length} total guests, ${party.length} invited guests, ${existingRsvps?.length || 0} RSVPs, ${subEvents?.length || 0} invited sub-events`);
-    
+    console.log(`Group ${group.id} - Found ${guests.length} total guests, ${party.length} invited guests, ${existingRsvps?.length || 0} RSVPs, ${subEvents?.length || 0} invited sub-events, variant: ${cardVariant || 'default'}`);
+
     return NextResponse.json({
       party,
       event,
-      subEvents: subEvents || [],
+      subEvents: resolvedSubEvents,
       group: {
         id: group.id,
-        title: group.title
+        title: group.title,
+        cardVariant: cardVariant
       }
     });
 

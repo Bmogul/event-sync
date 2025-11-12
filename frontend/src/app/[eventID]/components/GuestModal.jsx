@@ -9,6 +9,25 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Extract available card variants from subevents' card_images
+const getAvailableVariants = (subevents) => {
+  if (!subevents?.length) return [];
+
+  const variantSet = new Set();
+  subevents.forEach(subevent => {
+    if (subevent.details?.card_images) {
+      Object.keys(subevent.details.card_images).forEach(variant => {
+        variantSet.add(variant);
+      });
+    }
+  });
+
+  return Array.from(variantSet).map(variant => ({
+    value: variant,
+    label: variant.charAt(0).toUpperCase() + variant.slice(1) // Capitalize first letter
+  }));
+};
+
 const GuestModal = ({
   currentGuest,
   isOpen,
@@ -36,6 +55,7 @@ const GuestModal = ({
   const defaultGroup = {
     details: {
       description: "",
+      card_variant: null,
     },
     event_id: null,
     id: null,
@@ -629,6 +649,11 @@ const GuestModal = ({
               <div className={styles.fieldHelp}>
                 Select an existing group or create a new one
               </div>
+              {selectedGroup?.details?.card_variant && (
+                <div className={styles.groupInfoBox}>
+                  <strong>Card Variant:</strong> {selectedGroup.details.card_variant}
+                </div>
+              )}
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnPrimary}`}
@@ -674,6 +699,32 @@ const GuestModal = ({
                         }))
                       }
                     />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      Card Variant <span className={styles.optional}>(Optional)</span>
+                    </label>
+                    <Select
+                      classNamePrefix="react-select"
+                      value={newGroup.details?.card_variant ?
+                        { value: newGroup.details.card_variant, label: newGroup.details.card_variant } : null}
+                      onChange={(selected) =>
+                        setNewGroup((prev) => ({
+                          ...prev,
+                          details: {
+                            ...prev.details,
+                            card_variant: selected?.value || null,
+                          },
+                        }))
+                      }
+                      options={getAvailableVariants(subevents)}
+                      placeholder="Select card variant..."
+                      isClearable
+                      isSearchable
+                    />
+                    <div className={styles.fieldHelp}>
+                      Choose which card images this group should see (e.g., arabic, vip, formal)
+                    </div>
                   </div>
                   <div className={styles.formActions}>
                     <button

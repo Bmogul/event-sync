@@ -43,16 +43,7 @@ const GuestModal = ({
 }) => {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL LOGIC
   
-  // useState hooks
-  const [groupOptions, setGroupOptions] = useState(null);
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [showCreateGroup, setCreateGroup] = useState(false);
-  const [showEditGroup, setShowEditGroup] = useState(false);
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [editingGuest, setEditingGuest] = useState(null);
-  const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
-  const [pendingPOCChange, setPendingPOCChange] = useState(false);
-  
+  // Define default objects before useState
   const defaultGroup = {
     details: {
       description: "",
@@ -64,6 +55,19 @@ const GuestModal = ({
     status_id: 2,
     title: "",
   };
+
+  // useState hooks
+  const [groupOptions, setGroupOptions] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [showCreateGroup, setCreateGroup] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupFormData, setGroupFormData] = useState(defaultGroup);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [editingGuest, setEditingGuest] = useState(null);
+  const [showPOCConfirmation, setShowPOCConfirmation] = useState(false);
+  const [pendingPOCChange, setPendingPOCChange] = useState(false);
+
   const [newGroup, setNewGroup] = useState(defaultGroup);
   const [guestlistStaging, setguestlistStaging] = useState(null);
   const [groupsStaging, setGroupsStaging] = useState(null);
@@ -95,6 +99,7 @@ const GuestModal = ({
 
   // useRef hooks
   const guestFormRef = useRef(null);
+  const groupFormRef = useRef(null);
   const reviewModalRef = useRef(null);
   const unsavedChangesModalRef = useRef(null);
 
@@ -443,6 +448,63 @@ const GuestModal = ({
     console.log(groupOptions);
   };
 
+  // Save group function
+  const saveGroup = (group) => {
+    // Validate
+    if (!group.title?.trim()) {
+      toast.error("Group name is required", { position: "top-center" });
+      return;
+    }
+
+    const modifiedGroup = {
+      ...group,
+      id: group.id || -Date.now(),
+      event_id: eventID,
+      title: group.title.trim(),
+      details: {
+        ...group.details,
+        card_variant: group.details?.card_variant || null,
+      },
+    };
+
+    // Update staging
+    setGroupsStaging((prev) => {
+      const idx = prev.findIndex((g) => g.id === modifiedGroup.id);
+      if (idx !== -1) {
+        const updated = [...prev];
+        updated[idx] = modifiedGroup;
+        return updated;
+      }
+      return [...prev, modifiedGroup];
+    });
+
+    // Track for save
+    setUpdatedGroups((prev) => {
+      const idx = prev.findIndex((g) => g.id === modifiedGroup.id);
+      if (idx !== -1) {
+        const updated = [...prev];
+        updated[idx] = modifiedGroup;
+        return updated;
+      }
+      return [...prev, modifiedGroup];
+    });
+
+    setSelectedGroup(modifiedGroup);
+    setShowGroupForm(false);
+    setEditingGroup(null);
+    toast.success(`Group "${modifiedGroup.title}" updated!`, {
+      position: "top-center",
+      autoClose: 2000,
+    });
+  };
+
+  // Cancel group edit
+  const cancelGroupEdit = () => {
+    setShowGroupForm(false);
+    setEditingGroup(null);
+    setGroupFormData(defaultGroup);
+  };
+
   // Delete guest function
   const deleteGuest = (guest) => {
     // Only add to deletedGuests if it's an existing guest (positive ID)
@@ -650,80 +712,39 @@ const GuestModal = ({
               <div className={styles.fieldHelp}>
                 Select an existing group or create a new one
               </div>
-
-              {/* Edit Group Variant Section */}
-              {selectedGroup && !showCreateGroup && (
-                <div className={styles.editGroupSection}>
-                  <div className={styles.groupInfoHeader}>
-                    <div className={styles.groupInfoBox}>
-                      <strong>Card Variant:</strong> {selectedGroup.details?.card_variant || 'None'}
-                    </div>
-                    <button
-                      type="button"
-                      className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
-                      onClick={() => setShowEditGroup(!showEditGroup)}
-                    >
-                      <MdEdit size={16} /> {showEditGroup ? 'Cancel' : 'Edit Variant'}
-                    </button>
-                  </div>
-
-                  {showEditGroup && (
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>
-                        Update Card Variant
-                      </label>
-                      <Select
-                        classNamePrefix="react-select"
-                        value={selectedGroup.details?.card_variant ?
-                          { value: selectedGroup.details.card_variant, label: selectedGroup.details.card_variant } : null}
-                        onChange={(selected) => {
-                          const updatedGroup = {
-                            ...selectedGroup,
-                            details: {
-                              ...selectedGroup.details,
-                              card_variant: selected?.value || null,
-                            },
-                          };
-                          setSelectedGroup(updatedGroup);
-
-                          // Update groupsStaging
-                          setGroupsStaging((prev) =>
-                            prev.map((g) => g.id === updatedGroup.id ? updatedGroup : g)
-                          );
-
-                          // Track as updated group
-                          setUpdatedGroups((prev) => {
-                            const existing = prev.findIndex((g) => g.id === updatedGroup.id);
-                            if (existing >= 0) {
-                              const updated = [...prev];
-                              updated[existing] = updatedGroup;
-                              return updated;
-                            }
-                            return [...prev, updatedGroup];
-                          });
-
-                          setShowEditGroup(false);
-                        }}
-                        options={getAvailableVariants(subevents)}
-                        placeholder="Select card variant..."
-                        isClearable
-                        isSearchable
-                      />
-                      <div className={styles.fieldHelp}>
-                        Changes will be saved when you complete the guest editing
-                      </div>
-                    </div>
-                  )}
+              {selectedGroup?.details?.card_variant && (
+                <div className={styles.groupInfoBox}>
+                  <strong>Card Variant:</strong> {selectedGroup.details.card_variant}
                 </div>
               )}
-
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnPrimary}`}
-                onClick={() => setCreateGroup(true)}
-              >
-                <MdAdd size={18} /> Create New Group
-              </button>
+              {selectedGroup && !showCreateGroup && !showGroupForm && (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  onClick={() => {
+                    setEditingGroup(selectedGroup);
+                    setGroupFormData({ ...selectedGroup });
+                    setShowGroupForm(true);
+                    setTimeout(() => {
+                      groupFormRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
+                    }, 100);
+                  }}
+                >
+                  <MdEdit size={16} /> Edit Group Details
+                </button>
+              )}
+              {!showGroupForm && (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => setCreateGroup(true)}
+                >
+                  <MdAdd size={18} /> Create New Group
+                </button>
+              )}
 
               {/* Create New Group Fields */}
               {showCreateGroup && (
@@ -889,6 +910,119 @@ const GuestModal = ({
               >
                 <MdAdd size={18} /> Add Guest
               </button>
+            </div>
+          )}
+
+          {/* Group Edit Form */}
+          {showGroupForm && (
+            <div ref={groupFormRef} className={styles.formSectionGroup}>
+              <h4 className={styles.formSectionTitle}>
+                {editingGroup ? `Edit Group: ${editingGroup.title}` : "Create New Group"}
+              </h4>
+
+              {/* Group Name */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Group Name *</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={groupFormData.title}
+                  onChange={(e) =>
+                    setGroupFormData((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter group name..."
+                />
+              </div>
+
+              {/* Group Description */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description</label>
+                <textarea
+                  className={styles.formInput}
+                  rows={3}
+                  value={groupFormData.details?.description || ""}
+                  onChange={(e) =>
+                    setGroupFormData((prev) => ({
+                      ...prev,
+                      details: {
+                        ...prev.details,
+                        description: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Enter group description..."
+                />
+              </div>
+
+              {/* Card Variant */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  Card Variant <span className={styles.optional}>(Optional)</span>
+                </label>
+                <Select
+                  classNamePrefix="react-select"
+                  value={groupFormData.details?.card_variant ?
+                    { value: groupFormData.details.card_variant,
+                      label: groupFormData.details.card_variant } : null}
+                  onChange={(selected) =>
+                    setGroupFormData((prev) => ({
+                      ...prev,
+                      details: {
+                        ...prev.details,
+                        card_variant: selected?.value || null,
+                      },
+                    }))
+                  }
+                  options={getAvailableVariants(subevents)}
+                  placeholder="Select card variant..."
+                  isClearable
+                  isSearchable
+                />
+                <div className={styles.fieldHelp}>
+                  Card images this group will see (e.g., arabic, vip, formal)
+                </div>
+              </div>
+
+              {/* Size Limit */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Size Limit</label>
+                <input
+                  type="number"
+                  className={styles.formInput}
+                  value={groupFormData.size_limit === -1 ? "" : groupFormData.size_limit}
+                  onChange={(e) =>
+                    setGroupFormData((prev) => ({
+                      ...prev,
+                      size_limit: e.target.value ? parseInt(e.target.value) : -1,
+                    }))
+                  }
+                  placeholder="Leave empty for unlimited"
+                />
+                <div className={styles.fieldHelp}>
+                  Maximum number of guests in this group (-1 or empty = unlimited)
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  onClick={cancelGroupEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => saveGroup(groupFormData)}
+                >
+                  {editingGroup ? "Update Group" : "Save Group"}
+                </button>
+              </div>
             </div>
           )}
 

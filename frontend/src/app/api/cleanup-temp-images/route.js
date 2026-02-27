@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // Clean up temporary images that were never finalized
 export async function POST(request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get the current user
     const {

@@ -11,10 +11,9 @@ function getSupabaseClient() {
 // POST - Create new guests
 export async function POST(request, { params }) {
   try {
-    const { eventID } = params;
+    const { eventID } = await params;
     const body = await request.json();
     const { guests, event } = body;
-    const supabase = getSupabaseClient();
 
     // Authentication check - extract token from Authorization header
     const authHeader = request.headers.get('authorization');
@@ -26,6 +25,8 @@ export async function POST(request, { params }) {
         { status: 401 }
       );
     }
+
+    const supabase = getSupabaseClient();
 
     // Get the current user from Supabase
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);

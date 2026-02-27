@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get authenticated user
     const {
@@ -486,7 +486,7 @@ export async function PATCH(request) {
   console.log("=== PATCH EVENTS API (INCREMENTAL UPDATE) START ===");
   
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get authenticated user
     console.log("Step 1: Getting authenticated user...");
@@ -754,7 +754,7 @@ export async function POST(request) {
   console.log("=== NEW EVENTS API START ===");
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get authenticated user
     console.log("Step 1: Getting authenticated user...");
@@ -2330,7 +2330,7 @@ export async function POST(request) {
 // Keep the DELETE function as is
 export async function DELETE(request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get the current user
     const {

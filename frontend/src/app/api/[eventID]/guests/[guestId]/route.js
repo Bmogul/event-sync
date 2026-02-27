@@ -11,8 +11,7 @@ function getSupabaseClient() {
 // DELETE - Remove a guest
 export async function DELETE(request, { params }) {
   try {
-    const { eventID, guestId } = params;
-    const supabase = getSupabaseClient();
+    const { eventID, guestId } = await params;
 
     // Authentication check - extract token from Authorization header
     const authHeader = request.headers.get('authorization');
@@ -24,6 +23,8 @@ export async function DELETE(request, { params }) {
         { status: 401 }
       );
     }
+
+    const supabase = getSupabaseClient();
 
     // Get the current user from Supabase
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
@@ -176,10 +177,9 @@ export async function DELETE(request, { params }) {
 // PUT - Update a guest
 export async function PUT(request, { params }) {
   try {
-    const { eventID, guestId } = params;
+    const { eventID, guestId } = await params;
     const body = await request.json();
     const { guest } = body;
-    const supabase = getSupabaseClient();
 
     // Authentication check - extract token from Authorization header
     const authHeader = request.headers.get('authorization');
@@ -191,6 +191,8 @@ export async function PUT(request, { params }) {
         { status: 401 }
       );
     }
+
+    const supabase = getSupabaseClient();
 
     // Get the current user from Supabase
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);

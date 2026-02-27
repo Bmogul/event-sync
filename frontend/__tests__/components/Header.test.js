@@ -7,6 +7,27 @@ import { renderWithAuth, mockUser, mockUserProfile, mockSession } from '../utils
 // Mock the router
 jest.mock('next/navigation')
 
+// Mock supabase client so AuthProvider doesn't fail when testValue is provided
+jest.mock('../../src/app/utils/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      signInWithOAuth: jest.fn().mockResolvedValue({ data: null, error: null }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+    },
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+    }),
+  })),
+  supabase: {},
+}))
+
 // Mock Link component
 jest.mock('next/link', () => {
   return ({ children, href, ...props }) => (
@@ -14,6 +35,14 @@ jest.mock('next/link', () => {
       {children}
     </a>
   )
+})
+
+// Mock next/image to return plain img (avoids /_next/image URL transform in tests)
+jest.mock('next/image', () => {
+  return function MockImage({ src, alt, ...props }) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} {...props} />
+  }
 })
 
 // Mock Container and Button components
@@ -216,7 +245,7 @@ describe('Header Component', () => {
       const profileButton = screen.getByLabelText('User profile menu')
       fireEvent.click(profileButton)
 
-      expect(screen.getByText('Test User')).toBeInTheDocument()
+      expect(screen.getAllByText('Test User').length).toBeGreaterThan(0)
       expect(screen.getByText(mockUser.email)).toBeInTheDocument()
     })
 

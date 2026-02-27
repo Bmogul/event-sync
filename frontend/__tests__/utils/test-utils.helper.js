@@ -33,14 +33,11 @@ export const createMockSupabaseClient = (overrides = {}) => {
           single: jest.fn().mockResolvedValue({
             data: null,
             error: { code: 'PGRST116', message: 'No rows found' }
-          })
+          }),
+          eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+          neq: jest.fn().mockResolvedValue({ data: [], error: null }),
         }),
-        in: jest.fn().mockReturnValue({
-          then: jest.fn().mockResolvedValue({
-            data: [],
-            error: null
-          })
-        })
+        in: jest.fn().mockResolvedValue({ data: [], error: null }),
       }),
       insert: jest.fn().mockResolvedValue({ data: null, error: null }),
       update: jest.fn().mockReturnValue({
@@ -50,6 +47,11 @@ export const createMockSupabaseClient = (overrides = {}) => {
         eq: jest.fn().mockResolvedValue({ data: null, error: null })
       })
     }),
+    channel: jest.fn().mockReturnValue({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnValue({ unsubscribe: jest.fn() }),
+    }),
+    removeChannel: jest.fn().mockResolvedValue({}),
     ...overrides
   }
 }

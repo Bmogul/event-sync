@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
@@ -103,7 +104,7 @@ const DashboardContent = () => {
         <div className={styles.container}>
           <nav className={styles.nav}>
             <div className={styles.logoSection}>
-              <a href="/" className={styles.logo}>Event-Sync</a>
+              <Link href="/" className={styles.logo}>Event-Sync</Link>
               <span className={styles.breadcrumb}>/ Dashboard</span>
             </div>
             <div className={styles.navActions}>

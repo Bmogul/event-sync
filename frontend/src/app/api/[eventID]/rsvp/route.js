@@ -4,7 +4,7 @@ import { createClient } from "../../../utils/supabase/server";
 
 // Get Guest Data for RSVP (Group-based)
 export async function GET(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
   const { searchParams } = new URL(request.url);
   const groupId = searchParams.get("guestId") || searchParams.get("guid");
 
@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get event
     const { data: event, error: eventError } = await supabase
@@ -218,7 +218,7 @@ export async function GET(request, { params }) {
 
 // Submit RSVP Responses
 export async function POST(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
 
   try {
     const { party, responses, guestDetails, customQuestionResponses } = await request.json();
@@ -227,7 +227,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Invalid data format - no party data" }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch event
     const { data: event } = await supabase

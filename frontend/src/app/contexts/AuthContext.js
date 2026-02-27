@@ -36,7 +36,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
   }, [])
 
   // Function to fetch user profile with retry logic and timeout
-  const fetchUserProfile = useCallback(async (userId, retryCount = 0) => {
+  const fetchUserProfile = useCallback(async (userId, retryCount = 0, userObj = null) => {
     const maxRetries = 2
     const timeoutMs = 5000
     
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
           
           // If user doesn't exist in database, create a basic profile
           if (error.code === 'PGRST116') {
-            const fallbackProfile = {
+            const fallbackProfile = userObj ? createFallbackProfile(userObj) : {
               id: null,
               supa_id: userId,
               first_name: '',
@@ -93,7 +93,8 @@ export const AuthProvider = ({ children, value: testValue }) => {
           if (retryCount < maxRetries) {
             console.log(`Retrying profile fetch (${retryCount + 1}/${maxRetries})`)
             await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))) // Exponential backoff
-            return fetchUserProfile(userId, retryCount + 1)
+            profileFetchRef.current = null // clear dedup so retry proceeds
+            return fetchUserProfile(userId, retryCount + 1, userObj)
           }
           
           // Set error state for failed fetches
@@ -118,7 +119,8 @@ export const AuthProvider = ({ children, value: testValue }) => {
         if (retryCount < maxRetries && (error.message.includes('timeout') || error.name === 'NetworkError')) {
           console.log(`Retrying profile fetch after error (${retryCount + 1}/${maxRetries})`)
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
-          return fetchUserProfile(userId, retryCount + 1)
+          profileFetchRef.current = null // clear dedup so retry proceeds
+          return fetchUserProfile(userId, retryCount + 1, userObj)
         }
         
         if (mountedRef.current) {
@@ -201,7 +203,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
           
           // Fetch user profile if user exists, but don't block on it
           if (session?.user) {
-            fetchUserProfile(session.user.id).catch(() => {
+            fetchUserProfile(session.user.id, 0, session.user).catch(() => {
               // If profile fetch fails completely, set fallback
               if (mountedRef.current) {
                 const fallback = createFallbackProfile(session.user)
@@ -249,7 +251,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
           }
         } else if (session?.user && event === 'SIGNED_IN') {
           // For sign in, fetch profile but don't block
-          fetchUserProfile(session.user.id).catch(() => {
+          fetchUserProfile(session.user.id, 0, session.user).catch(() => {
             // If profile fetch fails completely, set fallback
             if (mountedRef.current) {
               const fallback = createFallbackProfile(session.user)
@@ -291,7 +293,7 @@ export const AuthProvider = ({ children, value: testValue }) => {
     signInWithProvider,
     supabase,
     fetchUserProfile,
-    retryProfileFetch: user ? () => fetchUserProfile(user.id) : null
+    retryProfileFetch: user ? () => fetchUserProfile(user.id, 0, user) : null
   }), [user, userProfile, session, loading, profileLoading, profileError, signOut, signInWithProvider, supabase, fetchUserProfile])
 
   // If testValue is provided (for testing), use it directly

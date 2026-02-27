@@ -8,6 +8,32 @@ import { renderWithAuth, mockUser, mockUserProfile, mockSession, createMockSupab
 // Mock the router
 jest.mock('next/navigation')
 
+// Mock supabase client so AuthProvider doesn't fail when testValue is provided
+jest.mock('../../src/app/utils/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      signInWithOAuth: jest.fn().mockResolvedValue({ data: null, error: null }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+    },
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+    }),
+    channel: jest.fn().mockReturnValue({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnValue({ unsubscribe: jest.fn() }),
+    }),
+    removeChannel: jest.fn().mockResolvedValue({}),
+  })),
+  supabase: {},
+}))
+
 // Mock toast
 jest.mock('react-toastify', () => ({
   toast: {
@@ -117,19 +143,34 @@ describe('Dashboard Component', () => {
         }
       ]
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            then: jest.fn().mockResolvedValue({
-              data: [{ event_id: 1 }],
-              error: null
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'event_manage_roles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null })
+              })
             })
-          }),
-          in: jest.fn().mockResolvedValue({
-            data: mockEvents,
-            error: null
+          }
+        }
+        if (table === 'events') {
+          return {
+            select: jest.fn().mockReturnValue({
+              in: jest.fn().mockResolvedValue({ data: mockEvents, error: null })
+            })
+          }
+        }
+        // event_managers: return one owned event_id
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: [{ event_id: 1 }], error: null }),
+              neq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
           })
-        })
+        }
       })
 
       renderWithAuth(<Dashboard />, {
@@ -148,10 +189,26 @@ describe('Dashboard Component', () => {
     })
 
     it('should handle events fetch error gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockRejectedValue(new Error('Database error'))
-        })
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'event_manage_roles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
+              })
+            })
+          }
+        }
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              neq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
+          })
+        }
       })
 
       renderWithAuth(<Dashboard />, {
@@ -173,13 +230,27 @@ describe('Dashboard Component', () => {
     })
 
     it('should show empty state when no events exist', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: [],
-            error: null
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'event_manage_roles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null })
+              })
+            })
+          }
+        }
+        // event_managers and others: return empty arrays
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              neq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
           })
-        })
+        }
       })
 
       renderWithAuth(<Dashboard />, {
@@ -232,7 +303,7 @@ describe('Dashboard Component', () => {
         }
       })
 
-      const createButton = screen.getByText('➕ Create Event')
+      const createButton = screen.getByRole('button', { name: /Create Event/i })
       fireEvent.click(createButton)
 
       expect(mockRouter.push).toHaveBeenCalledWith('/create-event')
@@ -252,7 +323,7 @@ describe('Dashboard Component', () => {
         }
       })
 
-      const signOutButton = screen.getByText('🚪 Sign Out')
+      const signOutButton = screen.getByRole('button', { name: /Sign Out/i })
       fireEvent.click(signOutButton)
 
       await waitFor(() => {
@@ -276,7 +347,7 @@ describe('Dashboard Component', () => {
         }
       })
 
-      const signOutButton = screen.getByText('🚪 Sign Out')
+      const signOutButton = screen.getByRole('button', { name: /Sign Out/i })
       fireEvent.click(signOutButton)
 
       await waitFor(() => {
@@ -321,22 +392,40 @@ describe('Dashboard Component', () => {
 
   describe('Retry Functionality', () => {
     it('should allow retrying failed data fetches', async () => {
-      // First call fails
-      mockSupabase.from
-        .mockReturnValueOnce({
+      // Use a shared single mock so we can control call order
+      const mockSingleFn = jest.fn()
+        .mockResolvedValueOnce({ data: null, error: { message: 'Network error' } }) // fetchEvents initial: owner role fails
+        .mockResolvedValueOnce({ data: { id: 1 }, error: null }) // fetchCollaborations initial: owner role succeeds
+        .mockResolvedValue({ data: { id: 1 }, error: null }) // all subsequent (retry): owner role succeeds
+
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'event_manage_roles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ single: mockSingleFn })
+            })
+          }
+        }
+        if (table === 'event_managers') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+                neq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              })
+            })
+          }
+        }
+        // Default: return empty resolved values for any other table
+        return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockRejectedValue(new Error('Network error'))
-          })
-        })
-        // Second call succeeds
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [],
-              error: null
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              in: jest.fn().mockResolvedValue({ data: [], error: null }),
             })
           })
-        })
+        }
+      })
 
       renderWithAuth(<Dashboard />, {
         authValue: {
@@ -393,10 +482,28 @@ describe('Dashboard Component', () => {
         resolvePromise = resolve
       })
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue(pendingPromise)
-        })
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'event_manage_roles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                // single() returns the pending promise — keeps component in loading state
+                single: jest.fn(() => pendingPromise)
+              })
+            })
+          }
+        }
+        // event_managers and others: return empty results after pending resolves
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              neq: jest.fn().mockResolvedValue({ data: [], error: null }),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
+          })
+        }
       })
 
       const { rerender } = renderWithAuth(<Dashboard />, {
@@ -409,29 +516,22 @@ describe('Dashboard Component', () => {
         }
       })
 
-      // Should show loading state
+      // Should show loading state while promise is pending
       await waitFor(() => {
         expect(screen.getByText('Loading events...')).toBeInTheDocument()
       })
 
-      // Re-render with same props
-      rerender(
-        renderWithAuth(<Dashboard />, {
-          authValue: {
-            user: mockUser,
-            userProfile: mockUserProfile,
-            session: mockSession,
-            loading: false,
-            supabase: mockSupabase,
-          }
-        }).container.firstChild
-      )
+      // Capture call count before re-render
+      const fromCallsBefore = mockSupabase.from.mock.calls.length
+
+      // Re-render with same props — wrapper is preserved by RTL, useEffect deps unchanged
+      rerender(<Dashboard />)
 
       // Should not have made additional API calls
-      expect(mockSupabase.from).toHaveBeenCalledTimes(1)
+      expect(mockSupabase.from).toHaveBeenCalledTimes(fromCallsBefore)
 
-      // Resolve the promise
-      resolvePromise({ data: [], error: null })
+      // Resolve the pending promise with a valid owner role
+      resolvePromise({ data: { id: 1 }, error: null })
 
       await waitFor(() => {
         expect(screen.getByText('No events yet')).toBeInTheDocument()

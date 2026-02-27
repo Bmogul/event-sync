@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 
 export async function GET(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
   console.log("GET GUESTLIST, ", eventID, searchParams);
@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     // Get auth token from request headers
     const authHeader = request.headers.get("Authorization"); // e.g., "Bearer <token>"
     const token = authHeader?.split(" ")[1];
@@ -238,10 +238,10 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body = await request.json();
     const { event, guestList, groups, rsvpsToDelete, deletedGuests } = body;
 

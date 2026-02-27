@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // Move images from temporary to permanent storage when event is saved
 export async function POST(request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get the current user
     const {

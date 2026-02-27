@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 
 export async function POST(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
   
   try {
     const { password } = await request.json();
@@ -11,7 +11,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Missing password or event ID" }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get event data and check if password is required
     const { data: event, error: eventError } = await supabase

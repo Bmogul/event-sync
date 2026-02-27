@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 
 export const POST = async (req, { params }) => {
-  const { eventID } = params;
+  const { eventID } = await params;
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body = await req.json();
     const { group_id, status_id, invite_method } = body;
 

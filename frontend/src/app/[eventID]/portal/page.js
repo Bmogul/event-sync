@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
@@ -171,9 +172,9 @@ const Page = () => {
         <div className={styles.container}>
           <nav className={styles.nav}>
             <div className={styles.logoSection}>
-              <a href="/" className={styles.logo}>
+              <Link href="/" className={styles.logo}>
                 Event-Sync
-              </a>
+              </Link>
               <span className={styles.breadcrumb}>/ Event Portal</span>
               {userRole && (
                 <span className={styles.userRoleBadge}>

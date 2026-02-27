@@ -2,11 +2,11 @@ import { createClient } from "../../../utils/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
-  const { eventID } = params;
+  const { eventID } = await params;
   console.log(eventID);
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get event data with all related information
     const { data: event, error: eventError } = await supabase

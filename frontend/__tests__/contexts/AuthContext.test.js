@@ -13,7 +13,7 @@ const TestComponent = () => {
       <div data-testid="user">{auth.user ? auth.user.email : 'no-user'}</div>
       <div data-testid="profile">{auth.userProfile ? `${auth.userProfile.first_name} ${auth.userProfile.last_name}` : 'no-profile'}</div>
       <div data-testid="session">{auth.session ? 'has-session' : 'no-session'}</div>
-      <button data-testid="sign-out" onClick={auth.signOut}>Sign Out</button>
+      <button data-testid="sign-out" onClick={() => auth.signOut().catch(() => {})}>Sign Out</button>
       <button data-testid="sign-in" onClick={() => auth.signInWithProvider('google')}>Sign In</button>
     </div>
   )

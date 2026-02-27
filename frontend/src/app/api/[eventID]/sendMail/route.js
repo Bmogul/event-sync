@@ -11,10 +11,10 @@ const compiledReminderTemplate = Handlebars.compile(reminderTemplate);
 const compiledInviteTemplate = Handlebars.compile(inviteTemplate);
 
 export const POST = async (req, { params }) => {
-  const { eventID } = params;
+  const { eventID } = await params;
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const body = await req.json();
     const { guestList, emailType = "invitation", templateId } = body;
 

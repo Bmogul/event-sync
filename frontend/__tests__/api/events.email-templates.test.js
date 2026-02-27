@@ -31,12 +31,16 @@ describe('Events API - Email Templates', () => {
     jest.clearAllMocks();
     
     // Setup mock chain for Supabase queries
-    mockSingle = jest.fn();
-    mockEq = jest.fn().mockReturnValue({ single: mockSingle });
-    mockSelect = jest.fn().mockReturnValue({ eq: mockEq });
-    mockInsert = jest.fn().mockReturnValue({ select: jest.fn() });
-    mockUpdate = jest.fn().mockReturnValue({ eq: jest.fn() });
-    mockDelete = jest.fn().mockReturnValue({ eq: jest.fn(), in: jest.fn() });
+    mockSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    mockEq = jest.fn().mockReturnValue({ single: mockSingle, eq: jest.fn().mockResolvedValue({ data: [], error: null }) });
+    mockSelect = jest.fn().mockReturnValue({ eq: mockEq, in: jest.fn().mockResolvedValue({ data: [], error: null }) });
+    mockInsert = jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ single: mockSingle }) });
+    mockUpdate = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({ single: mockSingle })
+      })
+    });
+    mockDelete = jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }), in: jest.fn().mockResolvedValue({ error: null }) });
     mockQuery = jest.fn().mockReturnValue({
       select: mockSelect,
       insert: mockInsert,

@@ -896,6 +896,7 @@ export async function POST(request) {
       logo_url: eventData.logo_url || null,
       status_id: action === "published" ? 2 : 1,
       details: detailsToSave,
+      created_by: userProfile.id,
     };
 
     let createdEvent;
@@ -1014,6 +1015,7 @@ export async function POST(request) {
                   ? parseInt(subEvent.maxGuests)
                   : null,
                 status_id: action === "published" ? 2 : 1,
+                image_url: subEvent.cardLink || null,
                 details: {
                   description: subEvent.description || null,
                   is_required: subEvent.isRequired || false,
@@ -1033,6 +1035,7 @@ export async function POST(request) {
                   ? parseInt(subEvent.maxGuests)
                   : null,
                 status_id: action === "published" ? 2 : 1,
+                image_url: subEvent.cardLink || null,
                 details: {
                   description: subEvent.description || null,
                   is_required: subEvent.isRequired || false,
@@ -1112,6 +1115,7 @@ export async function POST(request) {
             venue_address: subEvent.location || null,
             capacity: subEvent.maxGuests ? parseInt(subEvent.maxGuests) : null,
             status_id: action === "published" ? 2 : 1,
+            image_url: subEvent.cardLink || null,
             details: {
               description: subEvent.description || null,
               is_required: subEvent.isRequired || false,

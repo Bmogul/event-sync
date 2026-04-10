@@ -189,7 +189,10 @@ const Page = () => {
                 </button>
               )}
               {canEditEvent && (
-                <button className={styles.btnOutline}>
+                <button
+                  className={styles.btnOutline}
+                  onClick={() => router.push(`/${params.eventID}/portal/eventSettings`)}
+                >
                   <MdSettings size={18} /> Event Settings
                 </button>
               )}

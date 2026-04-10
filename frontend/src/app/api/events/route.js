@@ -896,6 +896,7 @@ export async function POST(request) {
       logo_url: eventData.logo_url || null,
       status_id: action === "published" ? 2 : 1,
       details: detailsToSave,
+      created_by: userProfile.id,
     };
 
     let createdEvent;

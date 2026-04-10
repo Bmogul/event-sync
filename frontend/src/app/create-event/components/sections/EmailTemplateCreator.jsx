@@ -175,6 +175,13 @@ const EmailTemplateCreator = ({
         position: "top-center",
         autoClose: 3000,
       });
+      // Scroll the first error field into view after state update
+      setTimeout(() => {
+        const firstError = document.querySelector(
+          `.${styles.controlsPanel} .${styles.error}`,
+        );
+        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
     }
   };
 

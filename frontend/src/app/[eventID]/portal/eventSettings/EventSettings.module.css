@@ -1,11 +1,95 @@
 /* Event Settings Page — scoped styles */
 
+/* ─── Outer layout ─────────────────────────────────────────── */
 .settingsLayout {
-  max-width: 860px;
-  margin: 0 auto;
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
 }
 
-/* Section card */
+/* ─── Side nav ─────────────────────────────────────────────── */
+.sideNav {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 108px; /* clears the sticky portal header (~90px) + breathing room */
+}
+
+.sideNavInner {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sideNavLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9ca3af;
+  padding: 16px 16px 8px;
+  margin: 0;
+}
+
+.sideNavItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-left: 3px solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sideNavItem:hover {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.sideNavItemActive {
+  background: #faf5ff;
+  color: #7c3aed;
+  font-weight: 600;
+  border-left-color: #7c3aed;
+}
+
+.sideNavDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+
+.sideNavItemActive .sideNavDot {
+  opacity: 1;
+}
+
+.sideNavDivider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 4px 0;
+}
+
+/* ─── Content area (right of sidebar) ─────────────────────── */
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Section card ─────────────────────────────────────────── */
 .section {
   background: white;
   border: 1px solid #e5e7eb;
@@ -13,6 +97,7 @@
   padding: 40px;
   margin-bottom: 32px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  scroll-margin-top: 116px; /* accounts for sticky header when scrolling to #id */
 }
 
 .sectionTitle {
@@ -27,7 +112,7 @@
   border-bottom: 2px solid #f3e8ff;
 }
 
-/* Form grid */
+/* ─── Form grid ────────────────────────────────────────────── */
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -98,13 +183,33 @@
   background: #fef2f2;
 }
 
+/* ─── Image preview ────────────────────────────────────────── */
+.imagePreview {
+  margin-top: 8px;
+  border: 2px solid #e9d5ff;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #faf5ff;
+  max-width: 240px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.imagePreview img {
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
 .errorText {
   font-size: 12px;
   color: #dc2626;
   font-weight: 500;
 }
 
-/* Checkboxes */
+/* ─── Checkboxes ───────────────────────────────────────────── */
 .checkboxGroup {
   display: flex;
   flex-wrap: wrap;
@@ -130,13 +235,62 @@
   flex-shrink: 0;
 }
 
-/* Sub-event card */
+/* ─── Sub-nav items (indented under Sub-events parent) ─────── */
+.sideNavSubItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 16px 7px 30px;
+  border: none;
+  border-left: 3px solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sideNavSubItem:hover {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.sideNavSubItemActive {
+  background: #faf5ff;
+  color: #7c3aed;
+  font-weight: 600;
+  border-left-color: #7c3aed;
+}
+
+.sideNavSubDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.sideNavSubItemActive .sideNavSubDot {
+  opacity: 1;
+}
+
+/* ─── Sub-event card ───────────────────────────────────────── */
 .subEventCard {
   background: #faf5ff;
   border: 2px solid #e9d5ff;
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
+  scroll-margin-top: 116px;
 }
 
 .subEventHeader {
@@ -173,7 +327,7 @@
   border-color: #dc2626;
 }
 
-/* Add sub-event button */
+/* ─── Add sub-event button ─────────────────────────────────── */
 .addSubEventBtn {
   display: inline-flex;
   align-items: center;
@@ -198,7 +352,7 @@
   border-style: solid;
 }
 
-/* Footer actions */
+/* ─── Footer actions ───────────────────────────────────────── */
 .formActions {
   display: flex;
   justify-content: space-between;
@@ -207,7 +361,17 @@
   gap: 16px;
 }
 
-/* Responsive */
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sideNav {
+    display: none;
+  }
+
+  .settingsLayout {
+    gap: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .section {
     padding: 24px;

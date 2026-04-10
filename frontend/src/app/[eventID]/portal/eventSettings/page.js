@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { ToastContainer, toast } from "react-toastify";
@@ -13,6 +13,31 @@ import Loading from "../../components/loading";
 
 import styles from "../../styles/portal.module.css";
 import settingsStyles from "./EventSettings.module.css";
+
+// Isolated image preview — owns its own load/error state so it never
+// triggers a re-render of the parent form when the image loads/fails.
+const ImagePreview = ({ src }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  // Reset visibility whenever the URL changes
+  useEffect(() => {
+    setLoaded(false);
+  }, [src]);
+
+  if (!src) return null;
+
+  return (
+    <div className={settingsStyles.imagePreview}>
+      <img
+        src={src}
+        alt="Preview"
+        style={{ display: loaded ? "block" : "none" }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(false)}
+      />
+    </div>
+  );
+};
 
 const EventSettingsPage = () => {
   const router = useRouter();
@@ -43,14 +68,42 @@ const EventSettingsPage = () => {
     subEvents: [],
   });
 
+  // Guard so session token refreshes (new object reference) don't re-fire
+  // the fetch and overwrite the user's in-progress edits.
+  const hasFetchedRef = useRef(false);
+
+  const [activeSection, setActiveSection] = useState("details");
+
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    // "subevent-N" → scroll to that card; everything else → section wrapper
+    const elId = id.startsWith("subevent-")
+      ? id.replace("subevent-", "subevent-card-")
+      : `section-${id}`;
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 116;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  };
+
   const {
     loading: permissionsLoading,
     canEditEvent,
     userRole,
   } = useEventPermissions(eventID);
 
-  // Fetch event data and populate form
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+
+    // Only fetch once — prevents session token refreshes from resetting the form
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     const fetchEvent = async () => {
       try {
         const res = await fetch(`/api/events/${eventID}`);
@@ -87,6 +140,7 @@ const EventSettingsPage = () => {
             maxGuests: se.capacity || "",
             timezone: tz,
             isRequired: se.details?.is_required !== false,
+            cardLink: se.image_url || "",
           })),
         });
       } catch (err) {
@@ -97,13 +151,7 @@ const EventSettingsPage = () => {
       }
     };
 
-    if (!authLoading) {
-      if (!session) {
-        router.push("/login");
-        return;
-      }
-      fetchEvent();
-    }
+    fetchEvent();
   }, [eventID, session, authLoading, router]);
 
   // Redirect if no edit permission
@@ -112,6 +160,43 @@ const EventSettingsPage = () => {
       router.push(`/${eventID}/portal`);
     }
   }, [permissionsLoading, canEditEvent, loading, eventID, router]);
+
+  // Track which section is in view and highlight the matching nav item
+  useEffect(() => {
+    if (loading || permissionsLoading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Pick the topmost intersecting section
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length === 0) return;
+        const top = visible.reduce((a, b) =>
+          a.boundingClientRect.top < b.boundingClientRect.top ? a : b,
+        );
+        const rawId = top.target.id;
+        if (rawId.startsWith("subevent-card-")) {
+          setActiveSection(rawId.replace("subevent-card-", "subevent-"));
+        } else {
+          setActiveSection(rawId.replace("section-", ""));
+        }
+      },
+      // Trigger when the top ~25% of the viewport contains the section
+      { rootMargin: "-15% 0px -70% 0px", threshold: 0 },
+    );
+
+    ["details", "settings", "subevents"].forEach((id) => {
+      const el = document.getElementById(`section-${id}`);
+      if (el) observer.observe(el);
+    });
+
+    // Observe individual sub-event cards so nav highlights the right one
+    formData.subEvents.forEach((_, i) => {
+      const el = document.getElementById(`subevent-card-${i}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [loading, permissionsLoading, formData.subEvents.length]);
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -146,8 +231,9 @@ const EventSettingsPage = () => {
           location: "",
           description: "",
           maxGuests: "",
-          timezone: formData.timezone,
+          timezone: prev.timezone,
           isRequired: false,
+          cardLink: "",
         },
       ],
     }));
@@ -281,8 +367,66 @@ const EventSettingsPage = () => {
         <div className={styles.container}>
           <div className={settingsStyles.settingsLayout}>
 
+            {/* ── Side nav ── */}
+            <nav className={settingsStyles.sideNav}>
+              <div className={settingsStyles.sideNavInner}>
+                <p className={settingsStyles.sideNavLabel}>Sections</p>
+
+                <button
+                  type="button"
+                  className={`${settingsStyles.sideNavItem} ${activeSection === "details" ? settingsStyles.sideNavItemActive : ""}`}
+                  onClick={() => scrollToSection("details")}
+                >
+                  <span className={settingsStyles.sideNavDot} />
+                  Event Details
+                </button>
+
+                <div className={settingsStyles.sideNavDivider} />
+
+                <button
+                  type="button"
+                  className={`${settingsStyles.sideNavItem} ${activeSection === "settings" ? settingsStyles.sideNavItemActive : ""}`}
+                  onClick={() => scrollToSection("settings")}
+                >
+                  <span className={settingsStyles.sideNavDot} />
+                  Event Settings
+                </button>
+
+                <div className={settingsStyles.sideNavDivider} />
+
+                {/* Sub-events parent + dynamic children */}
+                <button
+                  type="button"
+                  className={`${settingsStyles.sideNavItem} ${
+                    activeSection === "subevents" || activeSection.startsWith("subevent-")
+                      ? settingsStyles.sideNavItemActive
+                      : ""
+                  }`}
+                  onClick={() => scrollToSection("subevents")}
+                >
+                  <span className={settingsStyles.sideNavDot} />
+                  Sub-events
+                </button>
+
+                {formData.subEvents.map((se, i) => (
+                  <button
+                    key={se.id ?? `nav-new-${i}`}
+                    type="button"
+                    className={`${settingsStyles.sideNavSubItem} ${activeSection === `subevent-${i}` ? settingsStyles.sideNavSubItemActive : ""}`}
+                    onClick={() => scrollToSection(`subevent-${i}`)}
+                  >
+                    <span className={settingsStyles.sideNavSubDot} />
+                    {se.title.trim() || `Sub-event ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+            </nav>
+
+            {/* ── Scrollable content ── */}
+            <div className={settingsStyles.content}>
+
             {/* Event Details Section */}
-            <div className={settingsStyles.section}>
+            <div id="section-details" className={settingsStyles.section}>
               <h2 className={settingsStyles.sectionTitle}>
                 <MdSettings size={22} /> Event Details
               </h2>
@@ -334,6 +478,7 @@ const EventSettingsPage = () => {
                     onChange={(e) => handleFieldChange("logo_url", e.target.value)}
                     placeholder="https://..."
                   />
+                  <ImagePreview src={formData.logo_url} />
                 </div>
 
                 <div className={settingsStyles.formGroup}>
@@ -404,7 +549,7 @@ const EventSettingsPage = () => {
             </div>
 
             {/* Event Settings Section */}
-            <div className={settingsStyles.section}>
+            <div id="section-settings" className={settingsStyles.section}>
               <h2 className={settingsStyles.sectionTitle}>Event Settings</h2>
               <div className={settingsStyles.checkboxGroup}>
                 <label className={settingsStyles.checkboxItem}>
@@ -435,11 +580,11 @@ const EventSettingsPage = () => {
             </div>
 
             {/* Sub-events Section */}
-            <div className={settingsStyles.section}>
+            <div id="section-subevents" className={settingsStyles.section}>
               <h2 className={settingsStyles.sectionTitle}>Sub-events</h2>
 
               {formData.subEvents.map((se, index) => (
-                <div key={se.id ?? `new-${index}`} className={settingsStyles.subEventCard}>
+                <div key={se.id ?? `new-${index}`} id={`subevent-card-${index}`} className={settingsStyles.subEventCard}>
                   <div className={settingsStyles.subEventHeader}>
                     <span className={settingsStyles.subEventNum}>
                       Sub-event {index + 1}
@@ -534,6 +679,17 @@ const EventSettingsPage = () => {
                       />
                     </div>
 
+                    <div className={`${settingsStyles.formGroup} ${settingsStyles.fullWidth}`}>
+                      <label className={settingsStyles.formLabel}>Card Image Link</label>
+                      <input
+                        className={settingsStyles.formInput}
+                        value={se.cardLink}
+                        onChange={(e) => handleSubEventChange(index, "cardLink", e.target.value)}
+                        placeholder="https://..."
+                      />
+                      <ImagePreview src={se.cardLink} />
+                    </div>
+
                     <div className={settingsStyles.formGroup}>
                       <label className={settingsStyles.checkboxItem}>
                         <input
@@ -574,6 +730,7 @@ const EventSettingsPage = () => {
               </button>
             </div>
 
+            </div> {/* end .content */}
           </div>
         </div>
       </main>

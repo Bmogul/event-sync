@@ -922,6 +922,70 @@
   }
 }
 
+/* ─── Page-open transition ───────────────────────────────────── */
+@keyframes bubbleRise {
+  0%   { transform: translateY(0)      translateX(0px);   opacity: 0.65; }
+  20%  { transform: translateY(-20vh)  translateX(6px);   opacity: 0.65; }
+  45%  { transform: translateY(-45vh)  translateX(-5px);  opacity: 0.60; }
+  70%  { transform: translateY(-70vh)  translateX(7px);   opacity: 0.55; }
+  88%  { transform: translateY(-100vh) translateX(-3px);  opacity: 0.3;  }
+  100% { transform: translateY(-115vh) translateX(0px);   opacity: 0;    }
+}
+
+@keyframes waveExpand {
+  0%   { clip-path: circle(0%   at 100% 100%); }
+  100% { clip-path: circle(185% at 100% 100%); }
+}
+
+@keyframes waveCrestExpand {
+  0%   { clip-path: circle(0%   at 100% 100%); opacity: 0.5; }
+  60%  {                                        opacity: 0.3; }
+  100% { clip-path: circle(195% at 100% 100%); opacity: 0;   }
+}
+
+@keyframes overlayFadeOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
+.transitionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  overflow: hidden;
+  animation: overlayFadeOut 0.5s ease forwards;
+  animation-delay: 1.6s;
+}
+
+.bubble {
+  position: absolute;
+  bottom: -40px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(241, 232, 219, 0.55),
+    rgba(120, 140, 191, 0.25)
+  );
+  border: 1px solid rgba(241, 232, 219, 0.4);
+  animation: bubbleRise linear forwards;
+}
+
+.waveOverlay {
+  position: absolute;
+  inset: 0;
+  background: #788CBF;
+  animation: waveExpand 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.waveCrest {
+  position: absolute;
+  inset: 0;
+  background: rgba(212, 228, 238, 0.35);
+  animation: waveCrestExpand 1.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* Expanded Image Modal */
 .expandedImageModal {
   position: fixed;

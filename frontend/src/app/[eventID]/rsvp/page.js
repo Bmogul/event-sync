@@ -10,6 +10,22 @@ import RSVPForm from "../components/RSVPForm";
 
 import styles from "../styles/events.module.css";
 
+// Static bubble data for logo-click transition (outside component = no re-render cost)
+const BUBBLES = [
+  { left: '8%',  size: 22, delay: 0,    dur: 2.4 },
+  { left: '20%', size: 30, delay: 0.18, dur: 2.7 },
+  { left: '34%', size: 18, delay: 0.32, dur: 2.2 },
+  { left: '48%', size: 26, delay: 0.10, dur: 2.5 },
+  { left: '60%', size: 34, delay: 0.25, dur: 2.8 },
+  { left: '72%', size: 20, delay: 0.45, dur: 2.3 },
+  { left: '83%', size: 28, delay: 0.14, dur: 2.6 },
+  { left: '92%', size: 16, delay: 0.38, dur: 2.2 },
+  { left: '15%', size: 24, delay: 0.55, dur: 2.7 },
+  { left: '42%', size: 19, delay: 0.20, dur: 2.4 },
+  { left: '65%', size: 32, delay: 0.05, dur: 2.9 },
+  { left: '55%', size: 21, delay: 0.62, dur: 2.3 },
+];
+
 // Helper function to format time from 24-hour to 12-hour format
 const formatTime = (timeString) => {
   if (!timeString) return "";
@@ -500,6 +516,7 @@ export default function RSVPPage() {
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [pageOpened, setPageOpened] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [layoutVariation, setLayoutVariation] = useState("gallery");
@@ -653,8 +670,7 @@ export default function RSVPPage() {
   // When invite is opeened
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openPage = () => {
-    setPageOpened(true);
-    //start music
+    setIsTransitioning(true);
     if (audioRef.current && !isMuted) {
       audioRef.current.play().catch((error) => {
         if (process.env.NODE_ENV === "development") {
@@ -731,6 +747,14 @@ export default function RSVPPage() {
   useEffect(() => {
     setLayoutVariation(computedLayoutVariation);
   }, [computedLayoutVariation]);
+
+  // Transition timers: open content behind wave at 900ms, remove overlay at 1200ms
+  useEffect(() => {
+    if (!isTransitioning) return;
+    const t1 = setTimeout(() => setPageOpened(true), 1600);
+    const t2 = setTimeout(() => setIsTransitioning(false), 2100);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [isTransitioning]);
 
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   // While still loading
@@ -926,6 +950,26 @@ export default function RSVPPage() {
             themeStyles={themeStyles}
             toast={toast}
           />
+        </div>
+      )}
+
+      {isTransitioning && (
+        <div className={styles.transitionOverlay}>
+          <div className={styles.waveOverlay} />
+          <div className={styles.waveCrest} />
+          {BUBBLES.map((b, i) => (
+            <div
+              key={i}
+              className={styles.bubble}
+              style={{
+                left: b.left,
+                width: b.size,
+                height: b.size,
+                animationDuration: `${b.dur}s`,
+                animationDelay: `${b.delay}s`,
+              }}
+            />
+          ))}
         </div>
       )}
 

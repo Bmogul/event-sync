@@ -955,8 +955,48 @@ export default function RSVPPage() {
 
       {isTransitioning && (
         <div className={styles.transitionOverlay}>
-          <div className={styles.waveOverlay} />
-          <div className={styles.waveCrest} />
+          <svg className={`${styles.waveSvg} ${styles.wave1}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#788CBF"
+              d="M0,198.06 l33.3,-22.529 c33.4,-22.53,100,-67.588,166.7,-76.385
+                 c66.7,-8.69,133.3,18.774,200,45.272
+                 c66.7,26.5,133.3,51.818,200,34.653
+                 c66.7,-17.165,133.3,-76.815,166.7,-106.746
+                 L800,42.5 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave2}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#5B8293"
+              d="M0,236.778 l33.3,-1.566
+                 c33.4,-1.634,100,-4.769,166.7,15.398
+                 c64.113,19.449,121.591,57.76,187.494,71.764
+                 c72.17,15.336,143.807,-10.083,212.506,-29.592
+                 c66.014,-18.812,133.004,-33.703,200,-48.508
+                 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave3}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#D4E4EE"
+              d="M0,271.5 l33.3,8.801
+                 c33.4,8.899,100,26.5,166.7,28.199
+                 c66.7,1.7,133.3,-12.699,200,-9.8
+                 c66.189,2.778,130.174,21.864,195.236,32.534
+                 C651.914,340.529,709.356,343.142,766.7,344
+                 l33.3,0.5 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave4}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="rgba(241,232,219,0.35)"
+              d="M0,400.415 l33.3,3.2
+                 c33.4,3.101,100,9.5,166.7,3.5
+                 c100.333,-9.025,196.807,-41.231,297.561,-48.551
+                 c90.98,-6.609,180.075,5.551,269.139,23.151
+                 l33.3,6.699 L800,500 L0,500 Z"/>
+          </svg>
           {BUBBLES.map((b, i) => (
             <div
               key={i}

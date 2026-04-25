@@ -1,11 +1,11 @@
 .modal {
   /* Modern CSS Variables */
-  --modal-bg: rgba(255, 255, 255, 0.95);
+  --modal-bg: rgba(255, 255, 255, 0.97);
   --modal-text-color: #374151;
-  --modal-border: rgba(124, 58, 237, 0.1);
+  --modal-border: rgba(67, 152, 162, 0.15);
   --response-btn-bg: #f3f4f6;
-  --response-btn-bg-active: #7c3aed;
-  --response-btn-bg-hover: #8b5cf6;
+  --response-btn-bg-active: #4398A2;
+  --response-btn-bg-hover: #788CBF;
 
   border: none;
   position: fixed;
@@ -20,7 +20,7 @@
   border-radius: 16px;
   transition: all 0.3s ease;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Garet', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--modal-bg);
   color: var(--modal-text-color);
   backdrop-filter: blur(20px);
@@ -64,7 +64,7 @@
 .formHeader {
   padding: 24px 32px 16px 32px;
   border-bottom: 2px solid #e5e7eb;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(67, 152, 162, 0.05) 0%, rgba(120, 140, 191, 0.05) 100%);
   transition: all 0.3s ease;
   cursor: pointer;
 }
@@ -95,7 +95,7 @@
   .formHeader {
     cursor: default;
   }
-  
+
   .toggleIcon {
     display: none;
   }
@@ -120,6 +120,7 @@
   font-weight: 600;
   margin: 0 0 12px 0;
   color: inherit;
+  font-family: 'Brittany', 'Cormorant Garamond', serif;
 }
 
 .formHeader h4 {
@@ -153,17 +154,17 @@
 }
 
 .formBody::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(67, 152, 162, 0.3);
   border-radius: 3px;
 }
 
 .formBody::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 58, 237, 0.5);
+  background: rgba(67, 152, 162, 0.5);
 }
 
 .formBody {
   scrollbar-width: thin;
-  scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+  scrollbar-color: rgba(67, 152, 162, 0.3) transparent;
 }
 
 .resBlock {
@@ -171,9 +172,9 @@
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(212, 228, 238, 0.2);
   border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(67, 152, 162, 0.15);
 }
 
 .resBlock > div:first-child {
@@ -186,8 +187,7 @@
   font-weight: 500;
   font-size: 16px;
   color: #374151;
-
-  font-family: 'serif';
+  font-family: 'Garet', 'Nunito', serif;
 }
 
 .responseBtn {
@@ -202,6 +202,7 @@
   text-align: center;
   background: var(--response-btn-bg);
   color: #374151;
+  font-family: 'Garet', 'Nunito', sans-serif;
 }
 
 .responseBtn:hover {
@@ -211,13 +212,13 @@
 
 .selectedBtn {
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 4px 12px rgba(67, 152, 162, 0.2);
 }
 
 .formSubmit {
   padding: 24px 32px;
   border-top: 1px solid #e5e7eb;
-  background: rgba(249, 250, 251, 0.8);
+  background: rgba(241, 232, 219, 0.4);
 }
 
 .formSubmit .responseBtn {
@@ -298,8 +299,6 @@
   }
 }
 
-/* Remove legacy hover styles - already defined above */
-
 .responseInput {
   background: white;
   width: 80px;
@@ -314,7 +313,7 @@
 
 .responseInput:focus {
   outline: none;
-  border-color: #7c3aed;
+  border-color: #4398A2;
 }
 
 /* Progress Indicator */
@@ -325,22 +324,22 @@
   margin-bottom: 24px;
   text-align: center;
   padding: 16px;
-  background: rgba(124, 58, 237, 0.05);
+  background: rgba(67, 152, 162, 0.05);
   border-radius: 8px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(67, 152, 162, 0.15);
 }
 
 .progressBar {
   width: 100%;
   height: 6px;
-  background-color: rgba(124, 58, 237, 0.1);
+  background-color: rgba(67, 152, 162, 0.15);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #4398A2 0%, #788CBF 100%);
   transition: width 0.3s ease;
   border-radius: 3px;
 }
@@ -348,9 +347,9 @@
 .contactSection {
   margin-bottom: 24px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(212, 228, 238, 0.2);
   border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(67, 152, 162, 0.15);
 }
 
 .contactSection h4 {
@@ -392,7 +391,7 @@
 
 .contactField input:focus {
   outline: none;
-  border-color: #7c3aed;
+  border-color: #4398A2;
 }
 
 .rsvpSection {
@@ -459,9 +458,9 @@
 .customQuestions {
   margin-bottom: 24px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(212, 228, 238, 0.15);
   border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(67, 152, 162, 0.15);
 }
 
 .customQuestions h4 {
@@ -496,7 +495,7 @@
 .customQuestion textarea:focus,
 .customQuestion select:focus {
   outline: none;
-  border-color: #7c3aed;
+  border-color: #4398A2;
 }
 
 .navButtons {
@@ -512,7 +511,7 @@
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .navButtons .responseBtn {
     width: 100%;
   }
@@ -540,7 +539,7 @@
 .noGuestsMessage {
   text-align: center;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(212, 228, 238, 0.2);
   border-radius: 8px;
   margin: 16px 0;
   opacity: 0.8;
@@ -551,7 +550,7 @@
   font-size: 18px;
   margin: 20px 0;
   padding: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(212, 228, 238, 0.2);
   border-radius: 8px;
 }
 
@@ -574,7 +573,7 @@
 .subEvent {
   margin-bottom: 16px;
   padding: 16px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(212, 228, 238, 0.2);
   border-radius: 8px;
 }
 
@@ -597,6 +596,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 20px;
+  font-family: 'Garet', 'Nunito', sans-serif;
 }
 
 .rsvpButton:hover {
@@ -609,21 +609,21 @@
   .contactFields {
     grid-template-columns: 1fr;
   }
-  
+
   .responseButtons {
     flex-direction: column;
   }
-  
+
   .responseBtn {
     min-width: auto;
     width: 100%;
   }
-  
+
   .navButtons {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .eventDetails,
   .locationInfo {
     flex-direction: column;

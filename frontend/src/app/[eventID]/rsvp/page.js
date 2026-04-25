@@ -697,9 +697,9 @@ export default function RSVPPage() {
   const themeStyles = useMemo(() => {
     if (!landingConfig?.greeting_config) {
       return {
-        backgroundColor: "#faf5ff",
-        color: "#581c87",
-        primaryColor: "#7c3aed",
+        backgroundColor: "#F1e8db",
+        color: "#5B8293",
+        primaryColor: "#4398A2",
       };
     }
 

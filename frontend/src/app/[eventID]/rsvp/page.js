@@ -697,8 +697,8 @@ export default function RSVPPage() {
   const themeStyles = useMemo(() => {
     if (!landingConfig?.greeting_config) {
       return {
-        backgroundColor: "#F1e8db",
-        color: "#5B8293",
+        backgroundColor: "#788CBF",
+        color: "#F1e8db",
         primaryColor: "#4398A2",
       };
     }
@@ -822,8 +822,14 @@ export default function RSVPPage() {
     <div
       className={styles.page}
       style={{
-        backgroundColor: themeStyles.backgroundColor,
-        color: themeStyles.color,
+        backgroundColor:
+          !pageOpened && !themeStyles.backgroundImage
+            ? "#F1e8db"
+            : themeStyles.backgroundColor,
+        color:
+          !pageOpened && !themeStyles.backgroundImage
+            ? "#4398A2"
+            : themeStyles.color,
         fontFamily: themeStyles.fontFamily,
         backgroundImage: themeStyles.backgroundImage
           ? `url(${themeStyles.backgroundImage})`
@@ -925,7 +931,7 @@ export default function RSVPPage() {
 
       <div className={styles.main} style={{ position: "relative", zIndex: 2 }}>
         <div className={styles.header}>
-          <h1 style={{ color: themeStyles.color }}>
+          <h1 style={{ color: pageOpened ? themeStyles.color : "#5B8293" }}>
             {landingConfig?.title || event?.title || "Please Join Us"}
           </h1>
           {!guid ? (

@@ -969,6 +969,7 @@
   position: absolute;
   width: 100%;
   height: 200vh;
+  max-width: none;
   left: 0;
   top: 0;
   will-change: transform;

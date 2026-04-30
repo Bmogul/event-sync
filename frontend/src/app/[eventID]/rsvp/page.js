@@ -956,11 +956,10 @@ export default function RSVPPage() {
       console.log("CONFIG", landingConfig);
     }
     if (!landingConfig?.rsvp_config) {
-      return "gallery"; // Hardcoded fallback to current layout
+      return "gallery_minimal";
     }
 
-    // Check for layout_type in rsvp_config, default to "gallery"
-    return landingConfig.rsvp_config.layout_type || "gallery";
+    return landingConfig.rsvp_config.layout_type || "gallery_minimal";
   }, [landingConfig]);
 
   // Update layout variation when landingConfig changes

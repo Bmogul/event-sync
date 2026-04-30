@@ -10,6 +10,22 @@ import RSVPForm from "../components/RSVPForm";
 
 import styles from "../styles/events.module.css";
 
+// Static bubble data for logo-click transition (outside component = no re-render cost)
+const BUBBLES = [
+  { left: '8%',  size: 22, delay: 0,    dur: 2.4 },
+  { left: '20%', size: 30, delay: 0.18, dur: 2.7 },
+  { left: '34%', size: 18, delay: 0.32, dur: 2.2 },
+  { left: '48%', size: 26, delay: 0.10, dur: 2.5 },
+  { left: '60%', size: 34, delay: 0.25, dur: 2.8 },
+  { left: '72%', size: 20, delay: 0.45, dur: 2.3 },
+  { left: '83%', size: 28, delay: 0.14, dur: 2.6 },
+  { left: '92%', size: 16, delay: 0.38, dur: 2.2 },
+  { left: '15%', size: 24, delay: 0.55, dur: 2.7 },
+  { left: '42%', size: 19, delay: 0.20, dur: 2.4 },
+  { left: '65%', size: 32, delay: 0.05, dur: 2.9 },
+  { left: '55%', size: 21, delay: 0.62, dur: 2.3 },
+];
+
 // Helper function to format time from 24-hour to 12-hour format
 const formatTime = (timeString) => {
   if (!timeString) return "";
@@ -500,6 +516,7 @@ export default function RSVPPage() {
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [pageOpened, setPageOpened] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [layoutVariation, setLayoutVariation] = useState("gallery");
@@ -653,8 +670,7 @@ export default function RSVPPage() {
   // When invite is opeened
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   const openPage = () => {
-    setPageOpened(true);
-    //start music
+    setIsTransitioning(true);
     if (audioRef.current && !isMuted) {
       audioRef.current.play().catch((error) => {
         if (process.env.NODE_ENV === "development") {
@@ -697,9 +713,9 @@ export default function RSVPPage() {
   const themeStyles = useMemo(() => {
     if (!landingConfig?.greeting_config) {
       return {
-        backgroundColor: "#faf5ff",
-        color: "#581c87",
-        primaryColor: "#7c3aed",
+        backgroundColor: "#788CBF",
+        color: "#F1e8db",
+        primaryColor: "#4398A2",
       };
     }
 
@@ -731,6 +747,14 @@ export default function RSVPPage() {
   useEffect(() => {
     setLayoutVariation(computedLayoutVariation);
   }, [computedLayoutVariation]);
+
+  // Transition timers: open content behind wave at 900ms, remove overlay at 1200ms
+  useEffect(() => {
+    if (!isTransitioning) return;
+    const t1 = setTimeout(() => setPageOpened(true), 1600);
+    const t2 = setTimeout(() => setIsTransitioning(false), 2100);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [isTransitioning]);
 
   /* -\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\ */
   // While still loading
@@ -822,8 +846,14 @@ export default function RSVPPage() {
     <div
       className={styles.page}
       style={{
-        backgroundColor: themeStyles.backgroundColor,
-        color: themeStyles.color,
+        backgroundColor:
+          !pageOpened && !themeStyles.backgroundImage
+            ? "#F1e8db"
+            : themeStyles.backgroundColor,
+        color:
+          !pageOpened && !themeStyles.backgroundImage
+            ? "#4398A2"
+            : themeStyles.color,
         fontFamily: themeStyles.fontFamily,
         backgroundImage: themeStyles.backgroundImage
           ? `url(${themeStyles.backgroundImage})`
@@ -923,9 +953,69 @@ export default function RSVPPage() {
         </div>
       )}
 
+      {isTransitioning && (
+        <div className={styles.transitionOverlay}>
+          <svg className={`${styles.waveSvg} ${styles.wave1}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#788CBF"
+              d="M0,198.06 l33.3,-22.529 c33.4,-22.53,100,-67.588,166.7,-76.385
+                 c66.7,-8.69,133.3,18.774,200,45.272
+                 c66.7,26.5,133.3,51.818,200,34.653
+                 c66.7,-17.165,133.3,-76.815,166.7,-106.746
+                 L800,42.5 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave2}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#5B8293"
+              d="M0,236.778 l33.3,-1.566
+                 c33.4,-1.634,100,-4.769,166.7,15.398
+                 c64.113,19.449,121.591,57.76,187.494,71.764
+                 c72.17,15.336,143.807,-10.083,212.506,-29.592
+                 c66.014,-18.812,133.004,-33.703,200,-48.508
+                 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave3}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="#D4E4EE"
+              d="M0,271.5 l33.3,8.801
+                 c33.4,8.899,100,26.5,166.7,28.199
+                 c66.7,1.7,133.3,-12.699,200,-9.8
+                 c66.189,2.778,130.174,21.864,195.236,32.534
+                 C651.914,340.529,709.356,343.142,766.7,344
+                 l33.3,0.5 L800,500 L0,500 Z"/>
+          </svg>
+          <svg className={`${styles.waveSvg} ${styles.wave4}`}
+               viewBox="0 0 800 500" preserveAspectRatio="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path fill="rgba(241,232,219,0.35)"
+              d="M0,400.415 l33.3,3.2
+                 c33.4,3.101,100,9.5,166.7,3.5
+                 c100.333,-9.025,196.807,-41.231,297.561,-48.551
+                 c90.98,-6.609,180.075,5.551,269.139,23.151
+                 l33.3,6.699 L800,500 L0,500 Z"/>
+          </svg>
+          {BUBBLES.map((b, i) => (
+            <div
+              key={i}
+              className={styles.bubble}
+              style={{
+                left: b.left,
+                width: b.size,
+                height: b.size,
+                animationDuration: `${b.dur}s`,
+                animationDelay: `${b.delay}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       <div className={styles.main} style={{ position: "relative", zIndex: 2 }}>
         <div className={styles.header}>
-          <h1 style={{ color: themeStyles.color }}>
+          <h1 style={{ color: pageOpened ? themeStyles.color : "#5B8293" }}>
             {landingConfig?.title || event?.title || "Please Join Us"}
           </h1>
           {!guid ? (

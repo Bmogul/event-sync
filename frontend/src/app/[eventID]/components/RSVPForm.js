@@ -491,7 +491,7 @@ const openGoogleCalendar = (subEvent) => {
             >
               {currentSubEvent && (
                 <div className={styles.headerInfo}>
-                  <h4 style={{ color: themeStyles.primaryColor }}>
+                  <h4 style={{ color: "#F1e8db" }}>
                     {currentSubEvent.title}
                   </h4>
                   {currentSubEvent.event_date && (
@@ -547,8 +547,8 @@ const openGoogleCalendar = (subEvent) => {
                         className={styles.mapBtn}
                         style={{
                           backgroundColor: "transparent",
-                          color: themeStyles.primaryColor,
-                          border: `1px solid ${themeStyles.primaryColor}`,
+                          color: "#F1e8db",
+                          border: "1px solid rgba(241, 232, 219, 0.5)",
                           padding: "4px 8px",
                           borderRadius: "4px",
                           cursor: "pointer",
@@ -568,7 +568,7 @@ const openGoogleCalendar = (subEvent) => {
             {/* Progress indicator */}
             {subEvents.length > 1 && (
               <div className={styles.progressIndicator}>
-                <span style={{ color: themeStyles.color }}>
+                <span>
                   Event {currentSubEventIndex + 1} of {subEvents.length}
                 </span>
                 <div className={styles.progressBar}>
@@ -585,12 +585,12 @@ const openGoogleCalendar = (subEvent) => {
 
             {/* Guest contact info section */}
             <div className={styles.contactSection}>
-              <h4 style={{ color: themeStyles.color }}>Contact Information</h4>
+              <h4>Contact Information</h4>
               {party
                 .filter((guest) => guest.point_of_contact)
                 .map((guest) => (
                   <div key={guest.id} className={styles.contactForm}>
-                    <p style={{ color: themeStyles.color }}>
+                    <p>
                       Please confirm your contact details:
                     </p>
                     <div className={styles.contactFields}>
@@ -829,8 +829,8 @@ const openGoogleCalendar = (subEvent) => {
                   className={styles.responseBtn}
                   style={{
                     backgroundColor: "transparent",
-                    color: themeStyles.primaryColor,
-                    border: `1px solid ${themeStyles.primaryColor}`,
+                    color: "#F1e8db",
+                    border: "1px solid rgba(241, 232, 219, 0.5)",
                   }}
                 >
                   ← Previous Event

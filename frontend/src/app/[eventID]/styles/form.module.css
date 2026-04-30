@@ -1,12 +1,11 @@
-.modal {
-  /* Modern CSS Variables */
-  --modal-bg: rgba(255, 255, 255, 0.95);
-  --modal-text-color: #374151;
-  --modal-border: rgba(124, 58, 237, 0.1);
-  --response-btn-bg: #f3f4f6;
-  --response-btn-bg-active: #7c3aed;
-  --response-btn-bg-hover: #8b5cf6;
+/* ─── Palette ────────────────────────────────────────────────── */
+/* #F1e8db  sand  | #D4E4EE  mist  | #788CBF  ocean             */
+/* #5B8293  slate | #4398A2  teal                               */
+/*                                                               */
+/* formBody is sand (#F1e8db) — use slate (#5B8293) for text,   */
+/* white for input backgrounds, #D4E4EE for borders.             */
 
+.modal {
   border: none;
   position: fixed;
   left: 50%;
@@ -19,12 +18,13 @@
   z-index: 1000;
   border-radius: 16px;
   transition: all 0.3s ease;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--modal-bg);
-  color: var(--modal-text-color);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--modal-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  font-family: 'Garet', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Ocean blue base — cream (#F1e8db) text is fully readable here */
+  background-color: #788CBF;
+  color: #F1e8db;
+  border: 1px solid rgba(212, 228, 238, 0.2);
 
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -33,44 +33,45 @@
   overflow: hidden;
 }
 
+/* ─── Close button ───────────────────────────────────────────── */
 .closeBtnDiv {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   z-index: 10;
 }
 
 .closeBtn {
   cursor: pointer;
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #6b7280;
-  transition: color 0.2s ease;
-  padding: 8px;
+  background: rgba(241, 232, 219, 0.15);
+  border: 1px solid rgba(241, 232, 219, 0.25);
+  font-size: 22px;
+  color: #F1e8db;
+  transition: all 0.2s ease;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .closeBtn:hover {
-  color: #374151;
-  background-color: rgba(0, 0, 0, 0.05);
+  background: rgba(241, 232, 219, 0.3);
 }
 
+/* ─── Form header — darker slate band ───────────────────────── */
 .formHeader {
-  padding: 24px 32px 16px 32px;
-  border-bottom: 2px solid #e5e7eb;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  padding: 22px 32px 16px 32px;
+  border-bottom: 3px solid #4398A2;
+  background: #5B8293;
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .formHeader.headerCollapsed {
-  padding: 16px 32px;
+  padding: 14px 32px;
 }
 
 .headerTitle {
@@ -78,24 +79,24 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .toggleIcon {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 600;
   transition: transform 0.3s ease;
   user-select: none;
   padding: 4px;
   align-self: flex-start;
+  color: #D4E4EE;
 }
 
-/* Desktop styles - disable click behavior */
 @media (min-width: 769px) {
   .formHeader {
     cursor: default;
   }
-  
+
   .toggleIcon {
     display: none;
   }
@@ -115,118 +116,460 @@
   padding: 0;
 }
 
+/* Header text — both the inline themeStyles.color (#F1e8db) and CSS inherit correctly */
 .formHeader h3 {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: inherit;
+  font-size: 28px;
+  font-weight: 400;
+  margin: 0 0 10px 0;
+  color: #F1e8db;
+  font-family: 'Brittany', 'Cormorant Garamond', serif;
+  line-height: 1.2;
 }
 
 .formHeader h4 {
-  font-size: 18px;
-  font-weight: 500;
-  margin: 8px 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 6px 0 14px 0;
+  color: #F1e8db;
+  letter-spacing: 0.02em;
 }
 
 .headerInfo {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Date / location rows inside header */
+.eventDetails,
+.locationInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  font-size: 13px;
+  color: #D4E4EE;
+}
+
+.eventDetails span,
+.locationInfo span {
+  color: #D4E4EE;
+  opacity: 0.9;
+}
+
+/* ─── Scrollable form body ───────────────────────────────────── */
 .formBody {
-  padding: 32px;
+  padding: 28px 32px;
   overflow-y: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+  background: #F1e8db;
 }
 
-/* Modern Scrollbar Styling */
 .formBody::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .formBody::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(91, 130, 147, 0.1);
 }
 
 .formBody::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(91, 130, 147, 0.35);
   border-radius: 3px;
 }
 
 .formBody::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 58, 237, 0.5);
+  background: rgba(91, 130, 147, 0.55);
 }
 
 .formBody {
   scrollbar-width: thin;
-  scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+  scrollbar-color: rgba(91, 130, 147, 0.35) rgba(91, 130, 147, 0.1);
 }
 
+/* ─── Progress indicator ─────────────────────────────────────── */
+.progressIndicator {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  padding: 14px 16px;
+  background: #F1e8db;
+  border-radius: 10px;
+  border: 1px solid rgba(67, 152, 162, 0.25);
+  border-left: 4px solid #4398A2;
+  color: #5B8293;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background-color: rgba(91, 130, 147, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4398A2 0%, #D4E4EE 100%);
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+/* ─── Section cards (contact, RSVP blocks, custom questions) ─── */
+.contactSection {
+  padding: 20px;
+  background: #F1e8db;
+  border-radius: 10px;
+  border: 1px solid rgba(67, 152, 162, 0.25);
+  border-left: 4px solid #4398A2;
+}
+
+.contactSection h4 {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5B8293;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.contactForm {
+  margin-bottom: 8px;
+}
+
+.contactForm > p {
+  color: #5B8293;
+  font-size: 14px;
+  margin: 0 0 12px 0;
+  opacity: 0.9;
+}
+
+.contactFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.contactField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.contactField label {
+  font-weight: 700;
+  font-size: 12px;
+  color: #5B8293;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.contactField input {
+  padding: 9px 12px;
+  border: 1px solid #D4E4EE;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #5B8293;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  font-family: 'Garet', 'Nunito', sans-serif;
+}
+
+.contactField input::placeholder {
+  color: rgba(91, 130, 147, 0.4);
+}
+
+.contactField input:focus {
+  outline: none;
+  border-color: #4398A2;
+  background: white;
+}
+
+/* ─── RSVP section ───────────────────────────────────────────── */
+.rsvpSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rsvpSection h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5B8293;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Individual guest response card */
 .resBlock {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  gap: 14px;
+  padding: 18px 20px;
+  background: #F1e8db;
+  border-radius: 10px;
+  border: 1px solid rgba(67, 152, 162, 0.25);
+  border-left: 4px solid #4398A2;
 }
 
 .resBlock > div:first-child {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
+/* Guest name label — dark on sand background */
 .resBlock label {
-  font-weight: 500;
-  font-size: 16px;
-  color: #374151;
-
-  font-family: 'serif';
+  font-weight: 600;
+  font-size: 15px;
+  color: #5B8293;
+  font-family: 'Garet', 'Nunito', sans-serif;
 }
 
+.subEventDetails {
+  font-size: 12px;
+  color: #4398A2;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.responseButtons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Base unselected response button */
 .responseBtn {
-  padding: 12px 24px;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 9px 22px;
+  border: 2px solid #D4E4EE;
+  border-radius: 6px;
+  background: white;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
   transition: all 0.2s ease;
-  min-width: 100px;
-  text-align: center;
-  background: var(--response-btn-bg);
-  color: #374151;
+  min-width: 80px;
+  color: #5B8293;
+  font-family: 'Garet', 'Nunito', sans-serif;
 }
 
 .responseBtn:hover {
+  border-color: #788CBF;
+  color: #788CBF;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .selectedBtn {
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
+/* Guest count select / number input */
+.resBlock select,
+.resBlock input[type="number"] {
+  padding: 8px 12px;
+  border: 1px solid #D4E4EE;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #5B8293;
+  transition: border-color 0.2s ease;
+  font-family: 'Garet', 'Nunito', sans-serif;
+}
+
+.resBlock select:focus,
+.resBlock input[type="number"]:focus {
+  outline: none;
+  border-color: #4398A2;
+}
+
+.resBlock select option {
+  background: white;
+  color: #5B8293;
+}
+
+.attendeeCount {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attendeeCount label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5B8293;
+}
+
+.attendeeCount input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid #D4E4EE;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+  background: white;
+  color: #5B8293;
+}
+
+.noGuestsMessage {
+  text-align: center;
+  padding: 20px;
+  background: rgba(212, 228, 238, 0.3);
+  border-radius: 8px;
+  color: #5B8293;
+  margin: 8px 0;
+}
+
+/* ─── Custom / additional questions ─────────────────────────── */
+.customQuestions {
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid rgba(91, 130, 147, 0.2);
+  border-left: 4px solid #5B8293;
+}
+
+.customQuestions h4 {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5B8293;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.customQuestion {
+  margin-bottom: 16px;
+}
+
+.customQuestion label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 7px;
+  color: #5B8293;
+}
+
+.customQuestion input,
+.customQuestion textarea,
+.customQuestion select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #D4E4EE;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #5B8293;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  font-family: 'Garet', 'Nunito', sans-serif;
+}
+
+.customQuestion input::placeholder,
+.customQuestion textarea::placeholder {
+  color: rgba(91, 130, 147, 0.4);
+}
+
+.customQuestion input:focus,
+.customQuestion textarea:focus,
+.customQuestion select:focus {
+  outline: none;
+  border-color: #4398A2;
+  background: white;
+}
+
+.customQuestion select option {
+  background: white;
+  color: #5B8293;
+}
+
+/* ─── Form footer / navigation ───────────────────────────────── */
 .formSubmit {
-  padding: 24px 32px;
-  border-top: 1px solid #e5e7eb;
-  background: rgba(249, 250, 251, 0.8);
+  padding: 18px 32px;
+  border-top: 2px solid rgba(241, 232, 219, 0.15);
+  background: #5B8293;
 }
 
 .formSubmit .responseBtn {
-  padding: 16px 32px;
-  font-size: 16px;
-  font-weight: 600;
+  padding: 13px 32px;
+  font-size: 15px;
+  font-weight: 700;
   min-height: 48px;
 }
 
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* ─── Misc ───────────────────────────────────────────────────── */
+.responseInput {
+  background: white;
+  width: 80px;
+  text-align: center;
+  padding: 8px 12px;
+  border: 1px solid #D4E4EE;
+  border-radius: 6px;
+  color: #5B8293;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.responseInput:focus {
+  outline: none;
+  border-color: #4398A2;
+}
+
+.greetingMessage {
+  text-align: center;
+  font-size: 16px;
+  margin: 16px 0;
+  padding: 18px;
+  background: rgba(212, 228, 238, 0.3);
+  border-radius: 8px;
+  color: #5B8293;
+}
+
+.rsvpButton {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+  font-family: 'Garet', 'Nunito', sans-serif;
+}
+
+.rsvpButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.calendarBtn,
+.mapBtn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Garet', 'Nunito', sans-serif;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .modal {
     width: 95%;
@@ -235,41 +578,54 @@
   }
 
   .formHeader {
-    padding: 20px 24px 16px 24px;
+    padding: 16px 20px 12px 20px;
   }
 
   .formHeader.headerCollapsed {
-    padding: 16px 24px;
-  }
-
-  .headerTitle {
-    margin-bottom: 4px;
-  }
-
-  .toggleIcon {
-    font-size: 14px;
+    padding: 12px 20px;
   }
 
   .formBody {
-    padding: 24px;
+    padding: 20px;
+    gap: 16px;
   }
 
   .formSubmit {
-    padding: 20px 24px;
+    padding: 14px 20px;
   }
 
   .resBlock {
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .responseButtons {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 
   .responseBtn {
     width: 100%;
     min-width: auto;
+  }
+
+  .navButtons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navButtons .responseBtn {
+    width: 100%;
+  }
+
+  .contactFields {
+    grid-template-columns: 1fr;
+  }
+
+  .eventDetails,
+  .locationInfo {
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
   }
 }
 
@@ -281,16 +637,17 @@
   }
 
   .formHeader {
-    padding: 16px 20px 12px 20px;
+    padding: 12px 20px 10px 20px;
   }
 
   .formHeader h3 {
-    font-size: 20px;
+    font-size: 22px;
+    margin-bottom: 6px;
   }
 
   .formBody {
-    padding: 20px;
-    gap: 16px;
+    padding: 16px 20px;
+    gap: 14px;
   }
 
   .resBlock {
@@ -298,336 +655,9 @@
   }
 }
 
-/* Remove legacy hover styles - already defined above */
-
-.responseInput {
-  background: white;
-  width: 80px;
-  text-align: center;
-  padding: 8px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  color: #374151;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.responseInput:focus {
-  outline: none;
-  border-color: #7c3aed;
-}
-
-/* Progress Indicator */
-.progressIndicator {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-  text-align: center;
-  padding: 16px;
-  background: rgba(124, 58, 237, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
-}
-
-.progressBar {
-  width: 100%;
-  height: 6px;
-  background-color: rgba(124, 58, 237, 0.1);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  transition: width 0.3s ease;
-  border-radius: 3px;
-}
-
-.contactSection {
-  margin-bottom: 24px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
-}
-
-.contactSection h4 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.contactForm {
-  margin-bottom: 16px;
-}
-
-.contactFields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.contactField {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.contactField label {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.contactField input {
-  padding: 8px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.contactField input:focus {
-  outline: none;
-  border-color: #7c3aed;
-}
-
-.rsvpSection {
-  margin-bottom: 24px;
-}
-
-.rsvpSection h4 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.subEventDetails {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-.responseButtons {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.responseBtn {
-  padding: 8px 16px;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  min-width: 80px;
-}
-
-.selectedBtn {
-  font-weight: 600;
-}
-
-.attendeeCount {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.attendeeCount label {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.attendeeCount input {
-  width: 80px;
-  padding: 6px 8px;
-  border: 2px solid #e5e7eb;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.customQuestions {
-  margin-bottom: 24px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
-}
-
-.customQuestions h4 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.customQuestion {
-  margin-bottom: 16px;
-}
-
-.customQuestion label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.customQuestion input,
-.customQuestion textarea,
-.customQuestion select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.customQuestion input:focus,
-.customQuestion textarea:focus,
-.customQuestion select:focus {
-  outline: none;
-  border-color: #7c3aed;
-}
-
-.navButtons {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
 @media (max-width: 480px) {
   .navButtons {
     flex-direction: column;
-    gap: 12px;
-  }
-  
-  .navButtons .responseBtn {
-    width: 100%;
-  }
-}
-
-.eventDetails,
-.locationInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 0;
-  font-size: 14px;
-}
-
-.calendarBtn,
-.mapBtn {
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.noGuestsMessage {
-  text-align: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  margin: 16px 0;
-  opacity: 0.8;
-}
-
-.greetingMessage {
-  text-align: center;
-  font-size: 18px;
-  margin: 20px 0;
-  padding: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
-
-.eventInfo {
-  text-align: center;
-  padding: 24px;
-}
-
-.eventDescription {
-  font-size: 16px;
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
-.subEvents {
-  margin: 20px 0;
-  text-align: left;
-}
-
-.subEvent {
-  margin-bottom: 16px;
-  padding: 16px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
-
-.subEvent h4 {
-  margin-bottom: 8px;
-  color: inherit;
-}
-
-.subEvent p {
-  margin: 4px 0;
-  font-size: 14px;
-}
-
-.rsvpButton {
-  padding: 12px 32px;
-  font-size: 18px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 20px;
-}
-
-.rsvpButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .contactFields {
-    grid-template-columns: 1fr;
-  }
-  
-  .responseButtons {
-    flex-direction: column;
-  }
-  
-  .responseBtn {
-    min-width: auto;
-    width: 100%;
-  }
-  
-  .navButtons {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .eventDetails,
-  .locationInfo {
-    flex-direction: column;
-    text-align: center;
-    gap: 8px;
+    gap: 10px;
   }
 }

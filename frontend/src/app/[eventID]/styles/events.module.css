@@ -617,6 +617,41 @@
   margin-bottom: 150px;
 }
 
+/* Gallery + Minimal combined layout */
+.galleryMinimalLayout {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 8px;
+  margin-bottom: 150px;
+}
+
+.galleryMinimalCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.galleryMinimalCardInfo {
+  padding: 0 4px 8px;
+}
+
+.galleryMinimalCardInfo h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.galleryMinimalCardInfo p {
+  margin: 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .galleryGrid {
   display: grid;
   gap: 12px;
@@ -853,6 +888,13 @@
     grid-column-end: -1;
     justify-self: center;
     max-width: calc((100% - 12px) / 2);
+  }
+
+  .galleryMinimalLayout .galleryGrid>*:last-child:nth-child(odd) {
+    grid-column-start: unset;
+    grid-column-end: unset;
+    justify-self: unset;
+    max-width: 100%;
   }
 
   .galleryItem {

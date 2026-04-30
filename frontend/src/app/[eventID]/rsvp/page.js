@@ -423,6 +423,226 @@ const GalleryLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   );
 };
 
+const GalleryMinimalLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
+  const imagesWithUrl = sortByStartDate(subEvents || []).filter(
+    (se) => se.image_url,
+  );
+
+  const [expandedImage, setExpandedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  const getColumnCount = (imageCount) => {
+    if (imageCount === 0) return 1;
+    if (imageCount === 1) return 1;
+    if (imageCount === 2) return 2;
+    if (imageCount % 3 === 0) return 3;
+    if (imageCount % 2 === 0) return 2;
+    return 3;
+  };
+
+  const getResponsiveColumns = (imageCount) => {
+    if (windowWidth <= 768) return 1;
+    return getColumnCount(imageCount);
+  };
+
+  const columnCount = getResponsiveColumns(imagesWithUrl.length);
+
+  const handleImageExpand = (subEvent, index) => {
+    setExpandedImage(subEvent);
+    setCurrentImageIndex(index);
+  };
+
+  const closeExpandedView = () => {
+    setExpandedImage(null);
+  };
+
+  const navigateImage = (direction) => {
+    const newIndex =
+      direction === "next"
+        ? (currentImageIndex + 1) % imagesWithUrl.length
+        : (currentImageIndex - 1 + imagesWithUrl.length) % imagesWithUrl.length;
+    setCurrentImageIndex(newIndex);
+    setExpandedImage(imagesWithUrl[newIndex]);
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!expandedImage) return;
+      if (e.key === "Escape") closeExpandedView();
+      else if (e.key === "ArrowRight") navigateImage("next");
+      else if (e.key === "ArrowLeft") navigateImage("prev");
+    };
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, [expandedImage, currentImageIndex, imagesWithUrl.length]);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <div className={styles.galleryMinimalLayout}>
+      {/* Image grid — each card has image + event details below */}
+      <div
+        className={styles.galleryGrid}
+        style={{
+          gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+          "--gallery-columns": columnCount,
+        }}
+      >
+        {imagesWithUrl.map((subEvent, index) => (
+          <div key={subEvent.id || subEvent.title} className={styles.galleryMinimalCard}>
+            <div
+              className={styles.galleryItem}
+              onClick={() => handleImageExpand(subEvent, index)}
+            >
+              <Image
+                src={subEvent.image_url}
+                alt={subEvent.title}
+                width={400}
+                height={300}
+                sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
+                className={styles.galleryImage}
+                priority={index < 2}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+            <div className={styles.galleryMinimalCardInfo}>
+              <h4 style={{ color: themeStyles.color }}>{subEvent.title}</h4>
+              {subEvent.event_date && (
+                <p style={{ color: themeStyles.color, opacity: 0.8 }}>
+                  {new Date(subEvent.event_date).toLocaleDateString(undefined, {
+                    timeZone: "UTC",
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  {subEvent.start_time && ` at ${formatTime(subEvent.start_time)}`}
+                </p>
+              )}
+              {subEvent.venue_address && (
+                <p style={{ color: themeStyles.color, opacity: 0.8 }}>
+                  📍 {subEvent.venue_address}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Guest list + RSVP — last in DOM = top via column-reverse */}
+      <div className={styles.galleryInfo}>
+        <h2 style={{ color: themeStyles.color }}>Please Join Us</h2>
+        <div className={styles.galleryGuestList}>
+          {party &&
+            party.map((guest) => (
+              <div
+                key={guest.id}
+                className={styles.galleryGuestName}
+                style={{ color: themeStyles.color }}
+              >
+                {guest.name}
+              </div>
+            ))}
+        </div>
+        {subEvents && subEvents.length > 0 && (
+          <button
+            className={styles.rsvpButton}
+            onClick={openForm}
+            style={{
+              backgroundColor: themeStyles.primaryColor,
+              color: "white",
+            }}
+          >
+            RSVP Now
+          </button>
+        )}
+      </div>
+
+      {/* Expanded image modal */}
+      {expandedImage && (
+        <div className={styles.expandedImageModal} onClick={closeExpandedView}>
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className={styles.closeBtn}
+              onClick={closeExpandedView}
+              style={{ color: "white" }}
+            >
+              ✕
+            </button>
+
+            {imagesWithUrl.length > 1 && (
+              <>
+                <button
+                  className={`${styles.navBtn} ${styles.prevBtn}`}
+                  onClick={() => navigateImage("prev")}
+                  style={{ color: "white" }}
+                >
+                  ‹
+                </button>
+                <button
+                  className={`${styles.navBtn} ${styles.nextBtn}`}
+                  onClick={() => navigateImage("next")}
+                  style={{ color: "white" }}
+                >
+                  ›
+                </button>
+              </>
+            )}
+
+            <div className={styles.imageDetails}>
+              <h3 style={{ color: "white" }}>{expandedImage.title}</h3>
+              {expandedImage.event_date && (
+                <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {new Date(expandedImage.event_date).toLocaleDateString(
+                    undefined,
+                    {
+                      timeZone: "UTC",
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )}
+                  {expandedImage.start_time &&
+                    ` at ${formatTime(expandedImage.start_time)}`}
+                </p>
+              )}
+              {expandedImage.venue_address && (
+                <p style={{ color: "rgba(255,255,255,0.8)" }}>
+                  📍 {expandedImage.venue_address}
+                </p>
+              )}
+            </div>
+
+            <div className={styles.expandedImageContainer}>
+              <Image
+                src={expandedImage.image_url}
+                alt={expandedImage.title}
+                width={1200}
+                height={800}
+                className={styles.expandedImage}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const TimelineLayout = ({ event, party, subEvents, themeStyles, openForm }) => {
   return (
     <div className={styles.timelineLayout}>
@@ -700,7 +920,7 @@ export default function RSVPPage() {
   };
 
   // Development-only layout toggle functionality
-  const availableLayouts = ["default", "minimal", "gallery", "timeline"];
+  const availableLayouts = ["default", "minimal", "gallery", "gallery_minimal", "timeline"];
   const toggleLayout = () => {
     if (process.env.NODE_ENV === "development") {
       const currentIndex = availableLayouts.indexOf(layoutVariation);
@@ -782,6 +1002,8 @@ export default function RSVPPage() {
         return <MinimalLayout {...layoutProps} />;
       case "gallery":
         return <GalleryLayout {...layoutProps} />;
+      case "gallery_minimal":
+        return <GalleryMinimalLayout {...layoutProps} />;
       case "timeline":
         return <TimelineLayout {...layoutProps} />;
       case "default":
